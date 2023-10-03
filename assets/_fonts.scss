@@ -1,0 +1,42 @@
+body {
+    font-size: 18px;
+    font-weight: normal;
+    font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Source Han Sans CN", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.formula-text-center {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    font-size: 18px;
+    text-align: center;
+}
+
+// .book-menu {
+//     li {
+//         font-size: 14px;
+//     }
+// }
+
+.markdown {
+    summary {
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    figure {
+        img {
+            text-align: right;
+            // line-height: 0.5;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+            // margin-left: auto;
+            // margin-right: auto;
+        }
+
+        figcaption {
+            text-align: center;
+        }
+    }
+}
