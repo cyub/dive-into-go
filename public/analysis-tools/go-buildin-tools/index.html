@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。
+go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：
+go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：
+# # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &gt;$WORK/b001/importcfg &lt;&lt; &#39;EOF&#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &#34;$WORK/b001=&gt;&#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &gt;$WORK/b001/importcfg.link &lt;&lt; &#39;EOF&#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="Go语言内置分析工具" />
+<meta property="og:description" content="Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。
+go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：
+go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：
+# # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &gt;$WORK/b001/importcfg &lt;&lt; &#39;EOF&#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &#34;$WORK/b001=&gt;&#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &gt;$WORK/b001/importcfg.link &lt;&lt; &#39;EOF&#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/analysis-tools/go-buildin-tools/" /><meta property="article:section" content="analysis-tools" />
+
+
+<title>Go语言内置分析工具 | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/"class=active>Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Go语言内置分析工具</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="go-内置分析工具">
+  Go 内置分析工具
+  <a class="anchor" href="#go-%e5%86%85%e7%bd%ae%e5%88%86%e6%9e%90%e5%b7%a5%e5%85%b7">#</a>
+</h1>
+<p>这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。</p>
+<h2 id="go-build">
+  go build
+  <a class="anchor" href="#go-build">#</a>
+</h2>
+<p><code>go build</code>命令用来编译Go 程序。<code>go build</code>重要的命令行选项有以下几个：</p>
+<h3 id="go-build--n">
+  go build -n
+  <a class="anchor" href="#go-build--n">#</a>
+</h3>
+<p><code>-n</code>选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：</p>
+<pre tabindex="0"><code>#
+# _/home/vagrant/dive-into-go
+#
+
+mkdir -p $WORK/b001/
+cat &gt;$WORK/b001/importcfg &lt;&lt; &#39;EOF&#39; # internal
+# import config
+packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a
+packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
+EOF
+cd /home/vagrant/dive-into-go
+/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &#34;$WORK/b001=&gt;&#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go
+/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal
+cat &gt;$WORK/b001/importcfg.link &lt;&lt; &#39;EOF&#39; # internal
+packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.a
+packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a
+packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
+packagefile errors=/usr/lib/go/pkg/linux_amd64/errors.a
+packagefile internal/fmtsort=/usr/lib/go/pkg/linux_amd64/internal/fmtsort.a
+packagefile io=/usr/lib/go/pkg/linux_amd64/io.a
+packagefile math=/usr/lib/go/pkg/linux_amd64/math.a
+packagefile os=/usr/lib/go/pkg/linux_amd64/os.a
+packagefile reflect=/usr/lib/go/pkg/linux_amd64/reflect.a
+packagefile strconv=/usr/lib/go/pkg/linux_amd64/strconv.a
+packagefile sync=/usr/lib/go/pkg/linux_amd64/sync.a
+packagefile unicode/utf8=/usr/lib/go/pkg/linux_amd64/unicode/utf8.a
+packagefile internal/bytealg=/usr/lib/go/pkg/linux_amd64/internal/bytealg.a
+packagefile internal/cpu=/usr/lib/go/pkg/linux_amd64/internal/cpu.a
+packagefile runtime/internal/atomic=/usr/lib/go/pkg/linux_amd64/runtime/internal/atomic.a
+packagefile runtime/internal/math=/usr/lib/go/pkg/linux_amd64/runtime/internal/math.a
+packagefile runtime/internal/sys=/usr/lib/go/pkg/linux_amd64/runtime/internal/sys.a
+packagefile internal/reflectlite=/usr/lib/go/pkg/linux_amd64/internal/reflectlite.a
+packagefile sort=/usr/lib/go/pkg/linux_amd64/sort.a
+packagefile math/bits=/usr/lib/go/pkg/linux_amd64/math/bits.a
+packagefile internal/oserror=/usr/lib/go/pkg/linux_amd64/internal/oserror.a
+packagefile internal/poll=/usr/lib/go/pkg/linux_amd64/internal/poll.a
+packagefile internal/syscall/execenv=/usr/lib/go/pkg/linux_amd64/internal/syscall/execenv.a
+packagefile internal/syscall/unix=/usr/lib/go/pkg/linux_amd64/internal/syscall/unix.a
+packagefile internal/testlog=/usr/lib/go/pkg/linux_amd64/internal/testlog.a
+packagefile sync/atomic=/usr/lib/go/pkg/linux_amd64/sync/atomic.a
+packagefile syscall=/usr/lib/go/pkg/linux_amd64/syscall.a
+packagefile time=/usr/lib/go/pkg/linux_amd64/time.a
+packagefile unicode=/usr/lib/go/pkg/linux_amd64/unicode.a
+packagefile internal/race=/usr/lib/go/pkg/linux_amd64/internal/race.a
+EOF
+mkdir -p $WORK/b001/exe/
+cd .
+/usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode=exe -buildid=nR64Q3qx-0ZdNI4_-qJS/RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0/nR64Q3qx-0ZdNI4_-qJS -extld=gcc $WORK/b001/_pkg_.a
+/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out # internal
+mv $WORK/b001/exe/a.out dive-into-go
+</code></pre><h3 id="go-build--race">
+  go build -race
+  <a class="anchor" href="#go-build--race">#</a>
+</h3>
+<p><code>-race</code>用来检查代码中是否存在数据竞态问题。<code>-race</code>可以用在多个命令中：</p>
+<pre tabindex="0"><code>go test -race mypkg
+go run -race mysrc.go
+go build -race mycmd
+go install -race mypkg
+</code></pre><p>我们使用<code>-race</code>检查下面代码是否存在数据竞态问题，示例来自go官方博客：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">start</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Now</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Timer</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">t</span> = <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">AfterFunc</span>(<span style="color:#a6e22e">randomDuration</span>(), <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Now</span>().<span style="color:#a6e22e">Sub</span>(<span style="color:#a6e22e">start</span>))
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">Reset</span>(<span style="color:#a6e22e">randomDuration</span>())
+</span></span><span style="display:flex;"><span>	})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">5</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">randomDuration</span>() <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>(<span style="color:#a6e22e">rand</span>.<span style="color:#a6e22e">Int63n</span>(<span style="color:#ae81ff">1e9</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码功能是通过<code>time.AfterFunc</code>创建<code>timer</code>，定时的间隔从<code>randomDuration</code>函数获得，定时函数打印消息，然后通过<code>timer</code>的<code>Reset</code>方法重置定时器，重复利用。</p>
+<p>我们<code>-race</code>选项运行检查可以发现，上面代码是存在竞态问题的：</p>
+<pre tabindex="0"><code>$ go run -race main.go
+==================
+WARNING: DATA RACE
+Read by goroutine 5:
+  main.func·001()
+     race.go:14 +0x169
+
+Previous write by goroutine 1:
+  main.main()
+      race.go:15 +0x174
+
+Goroutine 5 (running) created at:
+  time.goFunc()
+      src/pkg/time/sleep.go:122 +0x56
+  timerproc()
+     src/pkg/runtime/ztime_linux_amd64.c:181 +0x189
+==================
+</code></pre><h3 id="go-build--gcflags">
+  go build -gcflags
+  <a class="anchor" href="#go-build--gcflags">#</a>
+</h3>
+<p><code>-gcflags</code>选项用来设置编译器编译时参数，支持的参数有：</p>
+<ul>
+<li>-N选项指示禁止优化</li>
+<li>-l选项指示禁止内联</li>
+<li>-S选项指示打印出汇编代码</li>
+<li>-m选项指示打印出变量变量逃逸信息，<code>-m -m</code>可以打印出更丰富的变量逃逸信息</li>
+</ul>
+<p><code>-gcflags</code>支持只在编译特定包时候才传递编译参数，此时的<code>-gcflags</code>格式为<code>包名=参数列表</code>。</p>
+<pre tabindex="0"><code>go build -gcflags=&#34;-N -l -S&#34;  main.go // 打印出main.go对应的汇编代码
+go build -gcflags=&#34;log=-N -l&#34; main.go // 只对log包进行禁止优化，禁止内联操作
+</code></pre><h2 id="go-tool-compile">
+  go tool compile
+  <a class="anchor" href="#go-tool-compile">#</a>
+</h2>
+<p><code>go tool compile</code>命令用于汇编处理Go 程序文件。<code>go tool compile</code>支持常见选项有：</p>
+<ul>
+<li>-N选项指示禁止优化</li>
+<li>-l选项指示禁止内联</li>
+<li>-S选项指示打印出汇编代码</li>
+<li>-m选项指示打印出变量内存逃逸信息</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go tool compile -N -l -S main.go <span style="color:#75715e"># 打印出main.go对应的汇编代码</span>
+</span></span><span style="display:flex;"><span>GOOS<span style="color:#f92672">=</span>linux GOARCH<span style="color:#f92672">=</span>amd64 go tool compile -N -l -S main.go <span style="color:#75715e"># 打印出针对特定系统和CPU架构的汇编代码</span>
+</span></span></code></pre></div><h2 id="go-tool-nm">
+  go tool nm
+  <a class="anchor" href="#go-tool-nm">#</a>
+</h2>
+<p><code>go tool nm</code>命令用来查看Go 二进制文件中符号表信息。</p>
+<pre tabindex="0"><code>go tool nm ./main | grep &#34;runtime.zerobase&#34;
+</code></pre><h2 id="go-tool-objdump">
+  go tool objdump
+  <a class="anchor" href="#go-tool-objdump">#</a>
+</h2>
+<p><code>go tool objdump</code>命令用来根据目标文件或二进制文件反编译出汇编代码。该命令支持两个选项：</p>
+<ul>
+<li>-S选项指示打印汇编代码</li>
+<li>-s选项指示搜索相关的汇编代码</li>
+</ul>
+<pre tabindex="0"><code>go tool compile -N -l main.go # 生成main.o
+go tool objdump main.o # 打印所有汇编代码
+go tool objdump -s &#34;main.(main|add)&#34; ./test # objdump支持搜索特定字符串
+</code></pre><h2 id="go-tool-trace">
+  go tool trace
+  <a class="anchor" href="#go-tool-trace">#</a>
+</h2>
+<h2 id="godebug环境变量">
+  GODEBUG环境变量
+  <a class="anchor" href="#godebug%e7%8e%af%e5%a2%83%e5%8f%98%e9%87%8f">#</a>
+</h2>
+<p><code>GODEBUG</code>是控制运行时调试的变量，其参数以逗号分隔，格式为：name=val。<code>GODEBUG</code>可以用来观察GMP调度和GC过程。</p>
+<h3 id="gmp调度">
+  GMP调度
+  <a class="anchor" href="#gmp%e8%b0%83%e5%ba%a6">#</a>
+</h3>
+<p>与GMP调度相关的两个参数：</p>
+<ul>
+<li>
+<p>schedtrace：设置 schedtrace=X 参数可以使运行时在每 X 毫秒输出一行调度器的摘要信息到标准 err 输出中。</p>
+</li>
+<li>
+<p>scheddetail：设置 schedtrace=X 和 scheddetail=1 可以使运行时在每 X 毫秒输出一次详细的多行信息，信息内容主要包括调度程序、处理器、OS 线程 和 Goroutine 的状态。</p>
+</li>
+</ul>
+<p>我们以下面代码为例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;sync&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;time&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">wg</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">WaitGroup</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">2000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">1e6</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">a</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Done</span>()
+</span></span><span style="display:flex;"><span>        }()
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">100</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Millisecond</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Wait</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>执行以下代码获取GMP调度信息：</p>
+<pre tabindex="0"><code>GODEBUG=schedtrace=1000 go run ./test.go
+</code></pre><p>笔者本人电脑输出以下内容：</p>
+<pre tabindex="0"><code>SCHED 0ms: gomaxprocs=8 idleprocs=6 threads=4 spinningthreads=1 idlethreads=0 runqueue=0 [0 0 0 0 0 0 0 0]
+SCHED 0ms: gomaxprocs=8 idleprocs=5 threads=3 spinningthreads=1 idlethreads=0 runqueue=0 [1 0 0 0 0 0 0 0]
+SCHED 0ms: gomaxprocs=8 idleprocs=5 threads=5 spinningthreads=1 idlethreads=0 runqueue=0 [0 0 0 0 0 0 0 0]
+SCHED 0ms: gomaxprocs=8 idleprocs=5 threads=5 spinningthreads=2 idlethreads=0 runqueue=0 [0 0 0 0 0 0 0 0]
+SCHED 1007ms: gomaxprocs=8 idleprocs=8 threads=16 spinningthreads=0 idlethreads=9 runqueue=0 [0 0 0 0 0 0 0 0]
+SCHED 1000ms: gomaxprocs=8 idleprocs=8 threads=5 spinningthreads=0 idlethreads=3 runqueue=0 [0 0 0 0 0 0 0 0]
+SCHED 2018ms: gomaxprocs=8 idleprocs=8 threads=16 spinningthreads=0 idlethreads=9 runqueue=0 [0 0 0 0 0 0 0 0]
+</code></pre><p>上面输出内容解释说明：</p>
+<ul>
+<li>SCHED XXms: SCHED是调度日志输出标志符。XXms是自程序启动之后到输出当前行时间</li>
+<li>gomaxprocs： P的数量，等于当前的 CPU 核心数，或者GOMAXPROCS环境变量的值</li>
+<li>idleprocs： 空闲P的数量，与gomaxprocs的差值即运行中P的数量</li>
+<li>threads： 线程数量，即M的数量</li>
+<li>spinningthreads：自旋状态线程的数量。当M没有找到可供其调度执行的 Goroutine 时，该线程并不会销毁，而是出于自旋状态</li>
+<li>idlethreads：空闲线程的数量</li>
+<li>runqueue：全局队列中G的数量</li>
+<li>[0 0 0 0 0 0 0 0]：表示P本地队列下G的数量，有几个P中括号里面就会有几个数字</li>
+</ul>
+<h3 id="gc">
+  GC
+  <a class="anchor" href="#gc">#</a>
+</h3>
+<p>与GC相关的参数是gctrace，当设置为1时候，会输出gc信息到标准err输出中。使用方式示例如下：</p>
+<pre tabindex="0"><code>GODEBUG=gctrace=1 godoc -http=:8080
+</code></pre><p>GC时候输出的内容格式如下：</p>
+<blockquote>
+<p>gc# @#s #%: #+#+# ms clock, #+#/#/#+# ms cpu, #-&gt;#-&gt;# MB, # MB goal, #P</p>
+</blockquote>
+<p>格式解释说明如下：</p>
+<ul>
+<li>gc#：GC 执行次数的编号，每次叠加。</li>
+<li>@#s：自程序启动后到当前的具体秒数。</li>
+<li>#%：自程序启动以来在GC中花费的时间百分比。</li>
+<li>#+&hellip;+#：GC 的标记工作共使用的 CPU 时间占总 CPU 时间的百分比。</li>
+<li>#-&gt;#-&gt;# MB：分别表示 GC 启动时, GC 结束时, GC 活动时的堆大小.</li>
+<li>#MB goal：下一次触发 GC 的内存占用阈值。</li>
+<li>#P：当前使用的处理器 P 的数量。</li>
+</ul>
+<p>比如对于以下输出内容：</p>
+<blockquote>
+<p>gc 100 @0.904s 11%: 0.043+2.8+0.029 ms clock, 0.34+3.4/5.4/0+0.23 ms cpu, 10-&gt;11-&gt;6 MB, 12 MB goal, 8 P</p>
+</blockquote>
+<ul>
+<li>
+<p>gc 100：第 100 次 GC</p>
+</li>
+<li>
+<p>@0.904s：当前时间是程序启动后的0.904s</p>
+</li>
+<li>
+<p>11%：程序启动后到现在共花费 11% 的时间在 GC 上</p>
+</li>
+<li>
+<p>0.043+2.8+0.029 ms clock</p>
+<ul>
+<li>0.043：表示单个 P 在 mark 阶段的 STW 时间</li>
+<li>2.8：表示所有 P 的 mark concurrent（并发标记）所使用的时间</li>
+<li>0.029：表示单个 P 的 markTermination 阶段的 STW 时间</li>
+</ul>
+</li>
+<li>
+<p>0.34+3.4/5.4/0+0.23 ms cpu:</p>
+<ul>
+<li>0.34：表示整个进程在 mark 阶段 STW 停顿的时间，一共0.34秒</li>
+<li>3.4/5.4/0：3.4 表示 mutator assist 占用的时间，5.4 表示 dedicated + fractional 占用的时间，0 表示 idle 占用的时间</li>
+<li>0.23 ms：0.23 表示整个进程在 markTermination 阶段 STW 时间</li>
+</ul>
+</li>
+<li>
+<p>10-&gt;11-&gt;6 MB:</p>
+<ul>
+<li>10：表示开始 mark 阶段前的 heap_live 大小</li>
+<li>11：表示开始 markTermination 阶段前的 heap_live 大小</li>
+<li>6：表示被标记对象的大小</li>
+</ul>
+</li>
+<li>
+<p>12 MB goal：表示下一次触发 GC 回收的阈值是 12 MB</p>
+</li>
+<li>
+<p>8 P：本次 GC 一共涉及8 P</p>
+</li>
+</ul>
+<h4 id="gogc参数">
+  GOGC参数
+  <a class="anchor" href="#gogc%e5%8f%82%e6%95%b0">#</a>
+</h4>
+<p>Go语言GC相关的另外一个参数是GOGC。GOGC 用于控制GC的处发频率， 其值默认为100, 这意味着直到自上次垃圾回收后heap size已经增长了100%时GC才触发运行，live heap size每增长一倍，GC触发运行一次。若设定GOGC=200, 则live heap size 自上次垃圾回收后，增长2倍时，GC触发运行， 总之，其值越大则GC触发运行频率越低， 反之则越高。如果GOGC=off 则关闭GC。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 表示当前应用占用的内存是上次GC时占用内存的两倍时，触发GC</span>
+</span></span><span style="display:flex;"><span>export GOGC<span style="color:#f92672">=</span><span style="color:#ae81ff">100</span>
+</span></span></code></pre></div><h2 id="进一步阅读">
+  进一步阅读
+  <a class="anchor" href="#%e8%bf%9b%e4%b8%80%e6%ad%a5%e9%98%85%e8%af%bb">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://blog.golang.org/race-detector">Introducing the Go Race Detector</a></li>
+<li>
+  <a href="https://eddycjy.gitbook.io/golang/di-9-ke-gong-ju/go-tool-trace">Go 大杀器之跟踪剖析 trace</a></li>
+<li>
+  <a href="https://pkg.go.dev/runtime#hdr-Environment_Variables">go runtime Environment Variables</a></li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

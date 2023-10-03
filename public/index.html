@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+	<meta name="generator" content="Hugo 0.119.0">
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content=" 欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析了Goroutine调度流程，通道、上下文等并发模式的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言设计与实现机制。 本书分析的源码基于 go1.14.13 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。 未经本人同意，严禁复制、转载！
+欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：深入Go语言之旅。群主会拉你进群。
+如果觉得作者写的不错，对你有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。
+感谢打赏 # 十分感谢以下读者的打赏❤️
+姓名 金额 留言 铁头班*友 10 *w 50 写的很好，加油 *油 33 *谭 10 林*壕 20 张*冲 20 参考资料 # Go语言调度器源代码情景分析 cch123/golang-notes Go语言设计与实现 深度探索Go语言：对象模型与runtime的原理、特性及应用 ">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="简介" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://go.cyub.vip/" />
+<title>简介 | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<link rel="alternate" type="application/rss+xml" href="https://go.cyub.vip/index.xml" title="深入Go语言之旅" />
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>简介</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><figure class="text-center"><img src="https://static.cyub.vip/images/202104/dive_info_go_feature.png" width="420px"/>
+</figure>
+
+<p>欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析了Goroutine调度流程，通道、上下文等并发模式的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言设计与实现机制。
+本书分析的源码基于 
+  <a href="https://github.com/golang/go/tree/go1.14.13">go1.14.13</a> 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。
+未经本人同意，严禁复制、转载！</p>
+<p>欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：<strong>深入Go语言之旅</strong>。群主会拉你进群。</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202112/wx_qrc.jpeg" width="185px"/>
+</figure>
+
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<p>如果觉得作者写的不错，对你有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202201/wepay.jpeg" width="160px"/>
+</figure>
+
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<h2 id="感谢打赏">
+  感谢打赏
+  <a class="anchor" href="#%e6%84%9f%e8%b0%a2%e6%89%93%e8%b5%8f">#</a>
+</h2>
+<p>十分感谢以下读者的打赏❤️</p>
+<table>
+<thead>
+<tr>
+<th>姓名</th>
+<th>金额</th>
+<th>留言</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>铁头班*友</td>
+<td>10</td>
+<td></td>
+</tr>
+<tr>
+<td>*w</td>
+<td>50</td>
+<td>写的很好，加油</td>
+</tr>
+<tr>
+<td>*油</td>
+<td>33</td>
+<td></td>
+</tr>
+<tr>
+<td>*谭</td>
+<td>10</td>
+<td></td>
+</tr>
+<tr>
+<td>林*壕</td>
+<td>20</td>
+<td></td>
+</tr>
+<tr>
+<td>张*冲</td>
+<td>20</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="参考资料">
+  参考资料
+  <a class="anchor" href="#%e5%8f%82%e8%80%83%e8%b5%84%e6%96%99">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://www.cnblogs.com/abozhang/tag/goroutine%E8%B0%83%E5%BA%A6%E5%99%A8/">Go语言调度器源代码情景分析</a></li>
+<li>
+  <a href="https://github.com/cch123/golang-notes">cch123/golang-notes</a></li>
+<li>
+  <a href="https://u.jd.com/Kbpnch5">Go语言设计与实现</a></li>
+<li>
+  <a href="https://u.jd.com/K8pazHz">深度探索Go语言：对象模型与runtime的原理、特性及应用</a></li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

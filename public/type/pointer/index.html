@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="指针 # Golang支持指针，但是不能像C语言中那样进行算术运算。对于任意类型T，其对应的的指针类型是*T，类型T称为指针类型*T的基类型。
+引用与解引用 # 一个指针类型*T变量B存储的是类型T变量A的内存地址，我们称该指针类型变量B引用(reference)了A。从指针类型变量B获取（或者称为访问）A变量的值的过程，叫解引用。解引用是通过解引用操作符*操作的。
+func main() { var A int = 100 var B *int = &amp;A fmt.Println(A == *B) } 转换和可比较性 # 对于指针类型变量能不能够比较和显示转换需要满足以下规则：
+指针类型*T1和*T2相应的基类型T1和T2的底层类型必须一致。 type MyInt int type PInt *int type PMyInt *MyInt func main() { p1 := new(int) var p2 PInt = p1 // p2底层类型是*int p3 := new(MyInt) var p4 PMyInt = p3 // p4底层类型是*MyInt fmt.Println(p1, p2, p3, p4) } uintptr # uintptr是一个足够大的整数类型，能够存放任何指针。不同C语言，Go语言中普通类型指针不能进行算术运算，我们可以将普通类型指针转换成uintptr然后进行运算，但普通类型指针不能直接转换成uintptr，必须先转换成unsafe.Pointer类型之后，再转换成uintptr。
+// uintptr is an integer type that is large enough to hold the bit pattern of // any pointer.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="指针" />
+<meta property="og:description" content="指针 # Golang支持指针，但是不能像C语言中那样进行算术运算。对于任意类型T，其对应的的指针类型是*T，类型T称为指针类型*T的基类型。
+引用与解引用 # 一个指针类型*T变量B存储的是类型T变量A的内存地址，我们称该指针类型变量B引用(reference)了A。从指针类型变量B获取（或者称为访问）A变量的值的过程，叫解引用。解引用是通过解引用操作符*操作的。
+func main() { var A int = 100 var B *int = &amp;A fmt.Println(A == *B) } 转换和可比较性 # 对于指针类型变量能不能够比较和显示转换需要满足以下规则：
+指针类型*T1和*T2相应的基类型T1和T2的底层类型必须一致。 type MyInt int type PInt *int type PMyInt *MyInt func main() { p1 := new(int) var p2 PInt = p1 // p2底层类型是*int p3 := new(MyInt) var p4 PMyInt = p3 // p4底层类型是*MyInt fmt.Println(p1, p2, p3, p4) } uintptr # uintptr是一个足够大的整数类型，能够存放任何指针。不同C语言，Go语言中普通类型指针不能进行算术运算，我们可以将普通类型指针转换成uintptr然后进行运算，但普通类型指针不能直接转换成uintptr，必须先转换成unsafe.Pointer类型之后，再转换成uintptr。
+// uintptr is an integer type that is large enough to hold the bit pattern of // any pointer." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/type/pointer/" /><meta property="article:section" content="type" />
+
+
+<title>指针 | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/"class=active>指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>指针</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="指针">
+  指针
+  <a class="anchor" href="#%e6%8c%87%e9%92%88">#</a>
+</h1>
+<p>Golang支持指针，但是不能像C语言中那样进行算术运算。<strong>对于任意类型T，其对应的的指针类型是*T，类型T称为指针类型*T的基类型</strong>。</p>
+<h2 id="引用与解引用">
+  引用与解引用
+  <a class="anchor" href="#%e5%bc%95%e7%94%a8%e4%b8%8e%e8%a7%a3%e5%bc%95%e7%94%a8">#</a>
+</h2>
+<p>一个指针类型*T变量B存储的是类型T变量A的内存地址，我们称该指针类型变量B<strong>引用(reference)<strong>了A。从指针类型变量B获取（或者称为访问）A变量的值的过程，叫</strong>解引用</strong>。解引用是通过解引用操作符*操作的。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">A</span> <span style="color:#66d9ef">int</span> = <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">B</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">int</span> = <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">A</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">A</span> <span style="color:#f92672">==</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">B</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="转换和可比较性">
+  转换和可比较性
+  <a class="anchor" href="#%e8%bd%ac%e6%8d%a2%e5%92%8c%e5%8f%af%e6%af%94%e8%be%83%e6%80%a7">#</a>
+</h2>
+<p>对于指针类型变量能不能够比较和显示转换需要满足以下规则：</p>
+<ul>
+<li>指针类型*T1和*T2相应的基类型T1和T2的底层类型必须一致。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">MyInt</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">PInt</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">PMyInt</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">MyInt</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">p1</span> <span style="color:#f92672">:=</span> new(<span style="color:#66d9ef">int</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">p2</span> <span style="color:#a6e22e">PInt</span> = <span style="color:#a6e22e">p1</span> <span style="color:#75715e">// p2底层类型是*int
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">p3</span> <span style="color:#f92672">:=</span> new(<span style="color:#a6e22e">MyInt</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">p4</span> <span style="color:#a6e22e">PMyInt</span> = <span style="color:#a6e22e">p3</span> <span style="color:#75715e">// p4底层类型是*MyInt
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">p1</span>, <span style="color:#a6e22e">p2</span>, <span style="color:#a6e22e">p3</span>, <span style="color:#a6e22e">p4</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="uintptr">
+  uintptr
+  <a class="anchor" href="#uintptr">#</a>
+</h2>
+<p>uintptr是一个足够大的整数类型，能够存放任何指针。不同C语言，Go语言中普通类型指针不能进行算术运算，我们可以将普通类型指针转换成uintptr然后进行运算，但普通类型指针不能直接转换成uintptr，必须先转换成unsafe.Pointer类型之后，再转换成uintptr。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// uintptr is an integer type that is large enough to hold the bit pattern of
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// any pointer.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#66d9ef">uintptr</span> <span style="color:#66d9ef">uintptr</span>
+</span></span></code></pre></div><h2 id="unsafepointer">
+  unsafe.Pointer
+  <a class="anchor" href="#unsafepointer">#</a>
+</h2>
+<p><code>unsafe</code>标准库包提供了<code>unsafe.Pointer</code>类型，<code>unsafe.Pointer</code>类型称为非安全指针类型。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">ArbitraryType</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Pointer</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">ArbitraryType</span>
+</span></span></code></pre></div><p><code>unsafe</code>标准库包中也提供了三个函数：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Alignof</span>(<span style="color:#a6e22e">variable</span> <span style="color:#a6e22e">ArbitraryType</span>) <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 用来获取变量variable的对齐保证
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Offsetof</span>(<span style="color:#a6e22e">selector</span> <span style="color:#a6e22e">ArbitraryType</span>) <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 用来获取结构体值中的某个字段的地址相对于此结构体值地址的偏移
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">variable</span> <span style="color:#a6e22e">ArbitraryType</span>) <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 用来获取变量variable变量的大小尺寸
+</span></span></span></code></pre></div><p><strong>任何指针类型都可以转换成<code>unsafe.Pointer</code>类型</strong>，即<code>unsafe.Pointer</code>可以指向任何类型（arbitrary type），但是该类型值是不能够解引用(dereferenced)的。<code>unsafe.Pointer</code>类型的零值是nil。反过来，<strong><code>unsafe.Pointer</code>也可以转换成任何指针类型</strong>。</p>
+<p><code>unsafe.Pointer</code>类型变量可以显示转换成内置的<code>uintptr</code>类型变量，<code>uintptr</code>变量是整数，可以进行算术运算，也可以反向转换成<code>unsafe.Pointer</code>。</p>
+<blockquote>
+<p>安全类型指针(普通类型指针) &lt;&mdash;-&gt; unsafe.Pointer &lt;&mdash;&ndash;&gt; uintptr</p>
+</blockquote>
+<h3 id="如何正确地使用非类型安全指针">
+  如何正确地使用非类型安全指针？
+  <a class="anchor" href="#%e5%a6%82%e4%bd%95%e6%ad%a3%e7%a1%ae%e5%9c%b0%e4%bd%bf%e7%94%a8%e9%9d%9e%e7%b1%bb%e5%9e%8b%e5%ae%89%e5%85%a8%e6%8c%87%e9%92%88">#</a>
+</h3>
+<p><code>unsafe</code>包中列出
+  <a href="https://golang.google.cn/pkg/unsafe/#Pointer">6种正确使用<code>unsafe.Pointer</code>的模式</a>。</p>
+<blockquote>
+<p>Code not using these patterns is likely to be invalid today or to become invalid in the future 在代码中不使用这些模式可能现在无效，或者将来也会变成无效的。</p>
+</blockquote>
+<h4 id="通过非安全类型指针将t1转换成t2">
+  通过非安全类型指针，将<em>T1转换成</em>T2
+  <a class="anchor" href="#%e9%80%9a%e8%bf%87%e9%9d%9e%e5%ae%89%e5%85%a8%e7%b1%bb%e5%9e%8b%e6%8c%87%e9%92%88%e5%b0%86t1%e8%bd%ac%e6%8d%a2%e6%88%90t2">#</a>
+</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Float64bits</span>(<span style="color:#a6e22e">f</span> <span style="color:#66d9ef">float64</span>) <span style="color:#66d9ef">uint64</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#66d9ef">uint64</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">f</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>此时<code>unsafe.Pointer</code>充当桥梁，注意T2类型的尺寸不应该大于T1，否则会出现溢出异常</p>
+<h4 id="将非安全类型指针转换成uintptr类型">
+  将非安全类型指针转换成<code>uintptr</code>类型
+  <a class="anchor" href="#%e5%b0%86%e9%9d%9e%e5%ae%89%e5%85%a8%e7%b1%bb%e5%9e%8b%e6%8c%87%e9%92%88%e8%bd%ac%e6%8d%a2%e6%88%90uintptr%e7%b1%bb%e5%9e%8b">#</a>
+</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">MyInt</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%p\n&#34;</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">a</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%x\n&#34;</span>, uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">a</span>)))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="将非安全类型指针转换成uintptr类型并进行算术运算">
+  将非安全类型指针转换成<code>uintptr</code>类型，并进行算术运算
+  <a class="anchor" href="#%e5%b0%86%e9%9d%9e%e5%ae%89%e5%85%a8%e7%b1%bb%e5%9e%8b%e6%8c%87%e9%92%88%e8%bd%ac%e6%8d%a2%e6%88%90uintptr%e7%b1%bb%e5%9e%8b%e5%b9%b6%e8%bf%9b%e8%a1%8c%e7%ae%97%e6%9c%af%e8%bf%90%e7%ae%97">#</a>
+</h4>
+<p>这种模式常用来访问结构体字段或者数组的地址。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">MyType</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f1</span> <span style="color:#66d9ef">uint8</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f2</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f3</span> <span style="color:#66d9ef">uint64</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">MyType</span>{<span style="color:#a6e22e">f1</span>: <span style="color:#ae81ff">10</span>, <span style="color:#a6e22e">f2</span>: <span style="color:#ae81ff">20</span>, <span style="color:#a6e22e">f3</span>: <span style="color:#ae81ff">30</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f2UintPtr</span> <span style="color:#f92672">:=</span> uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>)) <span style="color:#f92672">+</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Offsetof</span>(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">f2</span>)))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%p\n&#34;</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%x\n&#34;</span>, <span style="color:#a6e22e">f2UintPtr</span>) <span style="color:#75715e">// f2UintPtr = s地址 + 8
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">arr</span> <span style="color:#f92672">:=</span> [<span style="color:#ae81ff">3</span>]<span style="color:#66d9ef">int</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%p\n&#34;</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">arr</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">3</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">addr</span> <span style="color:#f92672">:=</span> uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>])) <span style="color:#f92672">+</span> uintptr(<span style="color:#a6e22e">i</span>)<span style="color:#f92672">*</span><span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>])))
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%x\n&#34;</span>, <span style="color:#a6e22e">addr</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>通过指针移动到变量内存地址的末尾是无效的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// INVALID: end points outside allocated space.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">s</span> <span style="color:#a6e22e">thing</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">end</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>)) <span style="color:#f92672">+</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s</span>))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// INVALID: end points outside allocated space.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">b</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">byte</span>, <span style="color:#a6e22e">n</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">end</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>[<span style="color:#ae81ff">0</span>])) <span style="color:#f92672">+</span> uintptr(<span style="color:#a6e22e">n</span>))
+</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. warning:: 当将uintptr转换回unsafe.Pointer时，其不能赋值给一个变量进行中转。
+</code></pre><p>我们来看看下面这个例子：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">MyType</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f1</span> <span style="color:#66d9ef">uint8</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f2</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f3</span> <span style="color:#66d9ef">uint64</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 方式1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">s</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">MyType</span>{<span style="color:#a6e22e">f1</span>: <span style="color:#ae81ff">10</span>, <span style="color:#a6e22e">f2</span>: <span style="color:#ae81ff">20</span>, <span style="color:#a6e22e">f3</span>: <span style="color:#ae81ff">30</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ptr</span> <span style="color:#f92672">:=</span> uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>)) <span style="color:#f92672">+</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Offsetof</span>(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">f2</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f2Ptr</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#66d9ef">int</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">ptr</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#f92672">*</span><span style="color:#a6e22e">f2Ptr</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 方式2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">f2Ptr2</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#66d9ef">int</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>)) <span style="color:#f92672">+</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Offsetof</span>(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">f2</span>)))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#f92672">*</span><span style="color:#a6e22e">f2Ptr2</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码中方式1是不安全的，尽管大多数情况结果是符合我们期望的，但是由于将uintptr赋值给ptr时，变量s已不再被引用，这时候若恰好进行GC，变量s会被回收处理。这会造成此后的操作都是非法访问内存地址。所以对于uintptr转换成unsafe.Pointer的场景，我们应该采用方式2将其写在一行里面。</p>
+<h4 id="将非类型安全指针值转换为uintptr值然后传递给syscallsyscall函数">
+  将非类型安全指针值转换为uintptr值，然后传递给syscall.Syscall函数
+  <a class="anchor" href="#%e5%b0%86%e9%9d%9e%e7%b1%bb%e5%9e%8b%e5%ae%89%e5%85%a8%e6%8c%87%e9%92%88%e5%80%bc%e8%bd%ac%e6%8d%a2%e4%b8%bauintptr%e5%80%bc%e7%84%b6%e5%90%8e%e4%bc%a0%e9%80%92%e7%bb%99syscallsyscall%e5%87%bd%e6%95%b0">#</a>
+</h4>
+<p>如果unsafe.Pointer参数必须转换为uintptr才能作为参数使用，这个转换必须出现在调用表达式中：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">Syscall</span>(<span style="color:#a6e22e">SYS_READ</span>, uintptr(<span style="color:#a6e22e">fd</span>), uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">p</span>)), uintptr(<span style="color:#a6e22e">n</span>))
+</span></span></code></pre></div><p>将unsafe.Pointer转换成uintptr后传参时，无法保证执行函数时其执行的内存未回收。只有将这个转换放在函数调用表达时候，才能保证函数能够安全的访问该内存，这个是编译器进行安全保障实现的。</p>
+<h4 id="将reflectvaluepointer或reflectvalueunsafeaddr方法的uintptr返回值转换为非类型安全指针">
+  将reflect.Value.Pointer或reflect.Value.UnsafeAddr方法的uintptr返回值转换为非类型安全指针
+  <a class="anchor" href="#%e5%b0%86reflectvaluepointer%e6%88%96reflectvalueunsafeaddr%e6%96%b9%e6%b3%95%e7%9a%84uintptr%e8%bf%94%e5%9b%9e%e5%80%bc%e8%bd%ac%e6%8d%a2%e4%b8%ba%e9%9d%9e%e7%b1%bb%e5%9e%8b%e5%ae%89%e5%85%a8%e6%8c%87%e9%92%88">#</a>
+</h4>
+<p>reflect标准库包中的Value类型的Pointer和UnsafeAddr方法都返回uintptr类型值，而不是unsafe.Pointer类型值，是<strong>为了避免用户在不引用unsafe包情况下就可以将这两个方法的返回值转换为任何类型安全指针类型</strong>。</p>
+<p>调用reflect.Value.Pointer或reflect.Value.UnsafeAddr方法获取uintptr，并转换unsafe.Pointer必须放在一行表达式中：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">p</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#66d9ef">int</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">ValueOf</span>(new(<span style="color:#66d9ef">int</span>)).<span style="color:#a6e22e">Pointer</span>()))
+</span></span></code></pre></div><p>下面这种形式是非法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// INVALID: uintptr cannot be stored in variable
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// before conversion back to Pointer.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">u</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">ValueOf</span>(new(<span style="color:#66d9ef">int</span>)).<span style="color:#a6e22e">Pointer</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">p</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#66d9ef">int</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">u</span>))
+</span></span></code></pre></div><h4 id="将reflectsliceheader或reflectstringheader的data字段转换成非安全类型或反之操作">
+  将reflect.SliceHeader或reflect.StringHeader的Data字段转换成非安全类型，或反之操作
+  <a class="anchor" href="#%e5%b0%86reflectsliceheader%e6%88%96reflectstringheader%e7%9a%84data%e5%ad%97%e6%ae%b5%e8%bd%ac%e6%8d%a2%e6%88%90%e9%9d%9e%e5%ae%89%e5%85%a8%e7%b1%bb%e5%9e%8b%e6%88%96%e5%8f%8d%e4%b9%8b%e6%93%8d%e4%bd%9c">#</a>
+</h4>
+<p>正确的转换操作如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">s</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">hdr</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">StringHeader</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>)) <span style="color:#75715e">// 模式1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">hdr</span>.<span style="color:#a6e22e">Data</span> = uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">p</span>))              <span style="color:#75715e">// 模式6
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">hdr</span>.<span style="color:#a6e22e">Len</span> = <span style="color:#a6e22e">n</span>
+</span></span></code></pre></div><p>下面操作是存在bug的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">hdr</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">StringHeader</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">hdr</span>.<span style="color:#a6e22e">Data</span> = uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">p</span>))
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 当执行下面代码时候，hdr.Data指向的内存可以已经被回收了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">hdr</span>.<span style="color:#a6e22e">Len</span> = <span style="color:#a6e22e">n</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">s</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">hdr</span>))
+</span></span></code></pre></div></article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

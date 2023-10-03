@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="
+  GMP模型
+  #
+
+Golang的一大特色就是Goroutine。Goroutine是Golang支持高并发的重要保障。Golang可以创建成千上万个Goroutine来处理任务，将这些Goroutine分配、负载、调度到处理器上采用的是G-M-P模型。
+
+  什么是Goroutine
+  #
+
+Goroutine = Golang &#43; Coroutine。Goroutine是golang实现的协程，是用户级线程。Goroutine具有以下特点：
+
+相比线程，其启动的代价很小，以很小栈空间启动（2Kb左右）
+能够动态地伸缩栈的大小，最大可以支持到Gb级别
+工作在用户态，切换成很小
+与线程关系是n:m，即可以在n个系统线程上多工调度m个Goroutine
+">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="调度机制概述" />
+<meta property="og:description" content="
+  GMP模型
+  #
+
+Golang的一大特色就是Goroutine。Goroutine是Golang支持高并发的重要保障。Golang可以创建成千上万个Goroutine来处理任务，将这些Goroutine分配、负载、调度到处理器上采用的是G-M-P模型。
+
+  什么是Goroutine
+  #
+
+Goroutine = Golang &#43; Coroutine。Goroutine是golang实现的协程，是用户级线程。Goroutine具有以下特点：
+
+相比线程，其启动的代价很小，以很小栈空间启动（2Kb左右）
+能够动态地伸缩栈的大小，最大可以支持到Gb级别
+工作在用户态，切换成很小
+与线程关系是n:m，即可以在n个系统线程上多工调度m个Goroutine
+" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/gmp/gmp-model/" /><meta property="article:section" content="gmp" />
+
+
+<title>调度机制概述 | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/"class=active>调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>调度机制概述</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="gmp模型">
+  GMP模型
+  <a class="anchor" href="#gmp%e6%a8%a1%e5%9e%8b">#</a>
+</h1>
+<p>Golang的一大特色就是Goroutine。Goroutine是Golang支持高并发的重要保障。Golang可以创建成千上万个Goroutine来处理任务，将这些Goroutine分配、负载、调度到处理器上采用的是G-M-P模型。</p>
+<h2 id="什么是goroutine">
+  什么是Goroutine
+  <a class="anchor" href="#%e4%bb%80%e4%b9%88%e6%98%afgoroutine">#</a>
+</h2>
+<p>Goroutine = Golang + Coroutine。<strong>Goroutine是golang实现的协程，是用户级线程</strong>。Goroutine具有以下特点：</p>
+<ul>
+<li>相比线程，其启动的代价很小，以很小栈空间启动（2Kb左右）</li>
+<li>能够动态地伸缩栈的大小，最大可以支持到Gb级别</li>
+<li>工作在用户态，切换成很小</li>
+<li>与线程关系是n:m，即可以在n个系统线程上多工调度m个Goroutine</li>
+</ul>
+<h2 id="进程线程goroutine">
+  进程、线程、Goroutine
+  <a class="anchor" href="#%e8%bf%9b%e7%a8%8b%e7%ba%bf%e7%a8%8bgoroutine">#</a>
+</h2>
+<p>在仅支持进程的操作系统中，进程是拥有资源和独立调度的基本单位。在引入线程的操作系统中，<strong>线程是独立调度的基本单位，进程是资源拥有的基本单位</strong>。在同一进程中，线程的切换不会引起进程切换。在不同进程中进行线程切换,如从一个进程内的线程切换到另一个进程中的线程时，会引起进程切换</p>
+<p>线程创建、管理、调度等采用的方式称为线程模型。线程模型一般分为以下三种：</p>
+<ul>
+<li>内核级线程(Kernel Level Thread)模型</li>
+<li>用户级线程(User Level Thread)模型</li>
+<li>两级线程模型，也称混合型线程模型</li>
+</ul>
+<p>三大线程模型最大差异就在于用户级线程与内核调度实体KSE（KSE，Kernel Scheduling Entity）之间的对应关系。<strong>KSE是Kernel Scheduling Entity的缩写，其是可被操作系统内核调度器调度的对象实体，是操作系统内核的最小调度单元，可以简单理解为内核级线程</strong>。</p>
+<p><strong>用户级线程即协程</strong>，由应用程序创建与管理，协程必须与内核级线程绑定之后才能执行。<strong>线程由 CPU 调度是抢占式的，协程由用户态调度是协作式的，一个协程让出 CPU 后，才执行下一个协程</strong>。</p>
+<p>用户级线程(ULT)与内核级线程(KLT)比较：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>用户级线程</th>
+<th>内核级线程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>创建者</td>
+<td><strong>应用程序</strong></td>
+<td><strong>内核</strong></td>
+</tr>
+<tr>
+<td>操作系统是否感知存在</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>开销成本</td>
+<td><strong>创建成本低，上下文切换成本低</strong>，上下文切换不需要硬件支持</td>
+<td><strong>创建成本高，上下文切换成本高</strong>，上下文切换需要硬件支持</td>
+</tr>
+<tr>
+<td>如果线程阻塞</td>
+<td>整个进程将被阻塞。即不能利用多处理来发挥并发优势</td>
+<td>其他线程可以继续执行,进程不会阻塞</td>
+</tr>
+<tr>
+<td>案例</td>
+<td>Java thread, POSIX threads</td>
+<td>Window Solaris</td>
+</tr>
+</tbody>
+</table>
+<h3 id="内核级线程模型">
+  内核级线程模型
+  <a class="anchor" href="#%e5%86%85%e6%a0%b8%e7%ba%a7%e7%ba%bf%e7%a8%8b%e6%a8%a1%e5%9e%8b">#</a>
+</h3>
+<p>
+  <img src="https://static.cyub.vip/images/202008/ult_klt_1_1.jpg" alt="" /></p>
+<p><strong>内核级线程模型中用户线程与内核线程是一对一关系（1 : 1）</strong>。<strong>线程的创建、销毁、切换工作都是有内核完成的</strong>。应用程序不参与线程的管理工作，只能调用内核级线程编程接口(应用程序创建一个新线程或撤销一个已有线程时，都会进行一个系统调用）。每个用户线程都会被绑定到一个内核线程。用户线程在其生命期内都会绑定到该内核线程。一旦用户线程终止，两个线程都将离开系统。</p>
+<p>操作系统调度器管理、调度并分派这些线程。运行时库为每个用户级线程请求一个内核级线程。操作系统的内存管理和调度子系统必须要考虑到数量巨大的用户级线程。操作系统为每个线程创建上下文。进程的每个线程在资源可用时都可以被指派到处理器内核。</p>
+<p>内核级线程模型有如下优点：</p>
+<ul>
+<li>在多处理器系统中，内核能够并行执行同一进程内的多个线程</li>
+<li>如果进程中的一个线程被阻塞，不会阻塞其他线程，是能够切换同一进程内的其他线程继续执行</li>
+<li>当一个线程阻塞时，内核根据选择可以运行另一个进程的线程，而用户空间实现的线程中，运行时系统始终运行自己进程中的线程</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>线程的创建与删除都需要CPU参与，成本大</li>
+</ul>
+<h3 id="用户级线程模型">
+  用户级线程模型
+  <a class="anchor" href="#%e7%94%a8%e6%88%b7%e7%ba%a7%e7%ba%bf%e7%a8%8b%e6%a8%a1%e5%9e%8b">#</a>
+</h3>
+<p>
+  <img src="https://static.cyub.vip/images/202008/ult_klt_n_1.jpg" alt="" /></p>
+<p><strong>用户线程模型中的用户线程与内核线程KSE是多对一关系（N : 1）</strong>。<strong>线程的创建、销毁以及线程之间的协调、同步等工作都是在用户态完成</strong>，具体来说就是由应用程序的线程库来完成。<strong>内核对这些是无感知的，内核此时的调度都是基于进程的</strong>。线程的并发处理从宏观来看，任意时刻每个进程只能够有一个线程在运行，且只有一个处理器内核会被分配给该进程。</p>
+<p>从上图中可以看出来：库调度器从进程的多个线程中选择一个线程，然后该线程和该进程允许的一个内核线程关联起来。内核线程将被操作系统调度器指派到处理器内核。用户级线程是一种”多对一”的线程映射</p>
+<p>用户级线程有如下优点：</p>
+<ul>
+<li>创建和销毁线程、线程切换代价等线程管理的代价比内核线程少得多, 因为保存线程状态的过程和调用程序都只是本地过程</li>
+<li>线程能够利用的表空间和堆栈空间比内核级线程多</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>线程发生I/O或页面故障引起的阻塞时，如果调用阻塞系统调用则内核由于不知道有多线程的存在，而会阻塞整个进程从而阻塞所有线程, 因此同一进程中只能同时有一个线程在运行</li>
+<li>资源调度按照进程进行，多个处理机下，同一个进程中的线程只能在同一个处理机下分时复用</li>
+</ul>
+<h3 id="两级线程模型">
+  两级线程模型
+  <a class="anchor" href="#%e4%b8%a4%e7%ba%a7%e7%ba%bf%e7%a8%8b%e6%a8%a1%e5%9e%8b">#</a>
+</h3>
+<p>
+  <img src="https://static.cyub.vip/images/202008/ult_klt_n_m.jpg" alt="" /></p>
+<p><strong>两级线程模型中用户线程与内核线程是一对一关系（N : M）</strong>。两级线程模型充分吸收上面两种模型的优点，尽量规避缺点。其线程创建在用户空间中完成，线程的调度和同步也在应用程序中进行。一个应用程序中的多个用户级线程被绑定到一些（小于或等于用户级线程的数目）内核级线程上。</p>
+<h3 id="golang的线程模型">
+  Golang的线程模型
+  <a class="anchor" href="#golang%e7%9a%84%e7%ba%bf%e7%a8%8b%e6%a8%a1%e5%9e%8b">#</a>
+</h3>
+<p><strong>Golang在底层实现了混合型线程模型</strong>。M即系统线程，由系统调用产生，一个M关联一个KSE，即两级线程模型中的系统线程。G为Groutine，即两级线程模型的的应用及线程。M与G的关系是N:M。</p>
+<p>
+  <img src="https://static.cyub.vip/images/202008/golang_ult_klt.jpg" alt="" /></p>
+<h2 id="g-m-p模型概览">
+  G-M-P模型概览
+  <a class="anchor" href="#g-m-p%e6%a8%a1%e5%9e%8b%e6%a6%82%e8%a7%88">#</a>
+</h2>
+<p>
+  <img src="https://cdn.learnku.com/uploads/images/202003/11/58489/Ugu3C2WSpM.jpeg!large" alt="GMP模型概览图" /></p>
+<p>G-M-P分别代表：</p>
+<ul>
+<li>G - Goroutine，Go协程，是参与调度与执行的最小单位</li>
+<li>M - Machine，指的是系统级线程</li>
+<li>P - Processor，指的是逻辑处理器，P关联了的本地可运行G的队列(也称为LRQ)，最多可存放256个G。</li>
+</ul>
+<p>GMP调度流程大致如下：</p>
+<ul>
+<li>线程M想运行任务就需得获取 P，即与P关联。</li>
+<li>然从 P 的本地队列(LRQ)获取 G</li>
+<li>若LRQ中没有可运行的G，M 会尝试从全局队列(GRQ)拿一批G放到P的本地队列，</li>
+<li>若全局队列也未找到可运行的G时候，M会随机从其他 P 的本地队列偷一半放到自己 P 的本地队列。</li>
+<li>拿到可运行的G之后，M 运行 G，G 执行之后，M 会从 P 获取下一个 G，不断重复下去。</li>
+</ul>
+<h3 id="调度的生命周期">
+  调度的生命周期
+  <a class="anchor" href="#%e8%b0%83%e5%ba%a6%e7%9a%84%e7%94%9f%e5%91%bd%e5%91%a8%e6%9c%9f">#</a>
+</h3>
+<p>
+  <img src="https://static.cyub.vip/images/202008/golang_schedule_lifetime2.png" alt="golang调度器生命周期" /></p>
+<ul>
+<li>M0 是启动程序后的编号为 0 的主线程，这个 M 对应的实例会在全局变量 runtime.m0 中，不需要在 heap 上分配，M0 负责执行初始化操作和启动第一个 G， 在之后 M0 就和其他的 M 一样了</li>
+<li>G0 是每次启动一个 M 都会第一个创建的 gourtine，G0 仅用于负责调度的 G，G0 不指向任何可执行的函数，每个 M 都会有一个自己的 G0。在调度或系统调用时会使用 G0 的栈空间，全局变量的 G0 是 M0 的 G0</li>
+</ul>
+<p>上面生命周期流程说明：</p>
+<ul>
+<li>runtime 创建最初的线程 m0 和 goroutine g0，并把两者进行关联（g0.m = m0)</li>
+<li>调度器初始化：设置M最大数量，P个数，栈和内存出事，以及创建 GOMAXPROCS个P</li>
+<li>示例代码中的 main 函数是 main.main，runtime 中也有 1 个 main 函数 ——runtime.main，代码经过编译后，runtime.main 会调用 main.main，程序启动时会为 runtime.main 创建 goroutine，称它为 main goroutine 吧，然后把 main goroutine 加入到 P 的本地队列。</li>
+<li>启动 m0，m0 已经绑定了 P，会从 P 的本地队列获取 G，获取到 main goroutine。</li>
+<li>G 拥有栈，M 根据 G 中的栈信息和调度信息设置运行环境</li>
+<li>M 运行 G</li>
+<li>G 退出，再次回到 M 获取可运行的 G，这样重复下去，直到 main.main 退出，runtime.main 执行 Defer 和 Panic 处理，或调用 runtime.exit 退出程序。</li>
+</ul>
+<h3 id="g-m-p的数量">
+  G-M-P的数量
+  <a class="anchor" href="#g-m-p%e7%9a%84%e6%95%b0%e9%87%8f">#</a>
+</h3>
+<p>G 的数量：</p>
+<p>理论上没有数量上限限制的。查看当前G的数量可以使用<code>runtime. NumGoroutine()</code></p>
+<p>P 的数量：</p>
+<p>由启动时环境变量 <code>$GOMAXPROCS</code> 或者是由<code>runtime.GOMAXPROCS()</code> 决定。这意味着在程序执行的任意时刻都只有 $GOMAXPROCS 个 goroutine 在同时运行。</p>
+<p>M 的数量:</p>
+<p>go 语言本身的限制：go 程序启动时，会设置 M 的最大数量，默认 10000. 但是内核很难支持这么多的线程数，所以这个限制可以忽略。
+runtime/debug 中的 SetMaxThreads 函数，设置 M 的最大数量
+一个 M 阻塞了，会创建新的 M。M 与 P 的数量没有绝对关系，一个 M 阻塞，P 就会去创建或者切换另一个 M，所以，即使 P 的默认数量是 1，也有可能会创建很多个 M 出来。</p>
+<h3 id="调度的流程状态">
+  调度的流程状态
+  <a class="anchor" href="#%e8%b0%83%e5%ba%a6%e7%9a%84%e6%b5%81%e7%a8%8b%e7%8a%b6%e6%80%81">#</a>
+</h3>
+<p>
+  <img src="https://static.cyub.vip/images/202008/golang_schedule_status.jpeg" alt="" /></p>
+<p>从上图我们可以看出来：</p>
+<ul>
+<li>每个P有个局部队列，局部队列保存待执行的goroutine(流程2)，当M绑定的P的的局部队列已经满了之后就会把goroutine放到全局队列(流程2-1)</li>
+<li>每个P和一个M绑定，M是真正的执行P中goroutine的实体(流程3)，M从绑定的P中的局部队列获取G来执行</li>
+<li>当M绑定的P的局部队列为空时，M会从全局队列获取到本地队列来执行G(流程3.1)，当从全局队列中没有获取到可执行的G时候，M会从其他P的局部队列中偷取G来执行(流程3.2)，这种从其他P偷的方式称为<strong>work stealing</strong></li>
+<li>当G因系统调用(syscall)阻塞时会阻塞M，此时P会和M解绑即<strong>hand off</strong>，并寻找新的idle的M，若没有idle的M就会新建一个M(流程5.1)。</li>
+<li>当G因channel或者network I/O阻塞时，不会阻塞M，M会寻找其他runnable的G；当阻塞的G恢复后会重新进入runnable进入P队列等待执行(流程5.3)</li>
+</ul>
+<h3 id="调度过程中阻塞">
+  调度过程中阻塞
+  <a class="anchor" href="#%e8%b0%83%e5%ba%a6%e8%bf%87%e7%a8%8b%e4%b8%ad%e9%98%bb%e5%a1%9e">#</a>
+</h3>
+<p>GMP模型的阻塞可能发生在下面几种情况：</p>
+<ul>
+<li>I/O，select</li>
+<li>block on syscall</li>
+<li>channel</li>
+<li>等待锁</li>
+<li>runtime.Gosched()</li>
+</ul>
+<h4 id="用户态阻塞">
+  用户态阻塞
+  <a class="anchor" href="#%e7%94%a8%e6%88%b7%e6%80%81%e9%98%bb%e5%a1%9e">#</a>
+</h4>
+<p>当goroutine因为channel操作或者network I/O而阻塞时（实际上golang已经用netpoller实现了goroutine网络I/O阻塞不会导致M被阻塞，仅阻塞G），对应的G会被放置到某个wait队列(如channel的waitq)，该G的状态由_Gruning变为_Gwaitting，而M会跳过该G尝试获取并执行下一个G，如果此时没有runnable的G供M运行，那么M将解绑P，并进入sleep状态；当阻塞的G被另一端的G2唤醒时（比如channel的可读/写通知），G被标记为runnable，尝试加入G2所在P的runnext，然后再是P的Local队列和Global队列。</p>
+<h4 id="系统调用阻塞">
+  系统调用阻塞
+  <a class="anchor" href="#%e7%b3%bb%e7%bb%9f%e8%b0%83%e7%94%a8%e9%98%bb%e5%a1%9e">#</a>
+</h4>
+<p>当G被阻塞在某个系统调用上时，此时G会阻塞在_Gsyscall状态，M也处于 block on syscall 状态，此时的M可被抢占调度：执行该G的M会与P解绑，而P则尝试与其它idle的M绑定，继续执行其它G。如果没有其它idle的M，但P的Local队列中仍然有G需要执行，则创建一个新的M；当系统调用完成后，G会重新尝试获取一个idle的P进入它的Local队列恢复执行，如果没有idle的P，G会被标记为runnable加入到Global队列。</p>
+<h2 id="g-m-p内部结构">
+  G-M-P内部结构
+  <a class="anchor" href="#g-m-p%e5%86%85%e9%83%a8%e7%bb%93%e6%9e%84">#</a>
+</h2>
+<h3 id="g的内部结构">
+  G的内部结构
+  <a class="anchor" href="#g%e7%9a%84%e5%86%85%e9%83%a8%e7%bb%93%e6%9e%84">#</a>
+</h3>
+<p>G的内部结构中重要字段如下，完全结构参见
+  <a href="https://github.com/golang/go/blob/5622128a77b4af5e5dc02edf53ecac545e3af730/src/runtime/runtime2.go#L387">源码</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">g</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">stack</span>       <span style="color:#a6e22e">stack</span>   <span style="color:#75715e">// g自己的栈
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">m</span>            <span style="color:#f92672">*</span><span style="color:#a6e22e">m</span>      <span style="color:#75715e">// 隶属于哪个M
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">sched</span>        <span style="color:#a6e22e">gobuf</span>   <span style="color:#75715e">// 保存了g的现场，goroutine切换时通过它来恢复
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">atomicstatus</span> <span style="color:#66d9ef">uint32</span>  <span style="color:#75715e">// G的运行状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">goid</span>         <span style="color:#66d9ef">int64</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">schedlink</span>    <span style="color:#a6e22e">guintptr</span> <span style="color:#75715e">// 下一个g, g链表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">preempt</span>      <span style="color:#66d9ef">bool</span> <span style="color:#75715e">//抢占标记
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">lockedm</span>      <span style="color:#a6e22e">muintptr</span> <span style="color:#75715e">// 锁定的M,g中断恢复指定M执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">gopc</span>          <span style="color:#66d9ef">uintptr</span>  <span style="color:#75715e">// 创建该goroutine的指令地址
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">startpc</span>       <span style="color:#66d9ef">uintptr</span>  <span style="color:#75715e">// goroutine 函数的指令地址
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>G的状态有以下9种，可以参见
+  <a href="https://github.com/golang/go/blob/5622128a77b4af5e5dc02edf53ecac545e3af730/src/runtime/runtime2.go#L15">代码</a>：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>_Gidle</td>
+<td>0</td>
+<td>刚刚被分配，还没有进行初始化。</td>
+</tr>
+<tr>
+<td>_Grunnable</td>
+<td>1</td>
+<td>已经在运行队列中，还没有执行用户代码。</td>
+</tr>
+<tr>
+<td>_Grunning</td>
+<td>2</td>
+<td>不在运行队列里中，已经可以执行用户代码，此时已经分配了 M 和 P。</td>
+</tr>
+<tr>
+<td>_Gsyscall</td>
+<td>3</td>
+<td>正在执行系统调用，此时分配了 M。</td>
+</tr>
+<tr>
+<td>_Gwaiting</td>
+<td>4</td>
+<td>在运行时被阻止，没有执行用户代码，也不在运行队列中，此时它正在某处阻塞等待中。Groutine wait的原因有哪些参加
+  <a href="https://github.com/golang/go/blob/5622128a77b4af5e5dc02edf53ecac545e3af730/src/runtime/runtime2.go#L846">代码</a></td>
+</tr>
+<tr>
+<td>_Gmoribund_unused</td>
+<td>5</td>
+<td>尚未使用，但是在 gdb 中进行了硬编码。</td>
+</tr>
+<tr>
+<td>_Gdead</td>
+<td>6</td>
+<td>尚未使用，这个状态可能是刚退出或是刚被初始化，此时它并没有执行用户代码，有可能有也有可能没有分配堆栈。</td>
+</tr>
+<tr>
+<td>_Genqueue_unused</td>
+<td>7</td>
+<td>尚未使用。</td>
+</tr>
+<tr>
+<td>_Gcopystack</td>
+<td>8</td>
+<td>正在复制堆栈，并没有执行用户代码，也不在运行队列中。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="m的结构">
+  M的结构
+  <a class="anchor" href="#m%e7%9a%84%e7%bb%93%e6%9e%84">#</a>
+</h3>
+<p>M的内部结构，完整结构参见
+  <a href="https://github.com/golang/go/blob/5622128a77b4af5e5dc02edf53ecac545e3af730/src/runtime/runtime2.go#L452">源码</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">m</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">g0</span>      <span style="color:#f92672">*</span><span style="color:#a6e22e">g</span>     <span style="color:#75715e">// g0, 每个M都有自己独有的g0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">curg</span>          <span style="color:#f92672">*</span><span style="color:#a6e22e">g</span>       <span style="color:#75715e">// 当前正在运行的g
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">p</span>             <span style="color:#a6e22e">puintptr</span> <span style="color:#75715e">// 隶属于哪个P
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">nextp</span>         <span style="color:#a6e22e">puintptr</span> <span style="color:#75715e">// 当m被唤醒时，首先拥有这个p
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">id</span>            <span style="color:#66d9ef">int64</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">spinning</span>      <span style="color:#66d9ef">bool</span> <span style="color:#75715e">// 是否处于自旋
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">park</span>          <span style="color:#a6e22e">note</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">alllink</span>       <span style="color:#f92672">*</span><span style="color:#a6e22e">m</span> <span style="color:#75715e">// on allm
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">schedlink</span>     <span style="color:#a6e22e">muintptr</span> <span style="color:#75715e">// 下一个m, m链表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">mcache</span>        <span style="color:#f92672">*</span><span style="color:#a6e22e">mcache</span>  <span style="color:#75715e">// 内存分配
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">lockedg</span>       <span style="color:#a6e22e">guintptr</span> <span style="color:#75715e">// 和 G 的lockedm对应
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">freelink</span>      <span style="color:#f92672">*</span><span style="color:#a6e22e">m</span> <span style="color:#75715e">// on sched.freem
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h3 id="p的内部结构">
+  P的内部结构
+  <a class="anchor" href="#p%e7%9a%84%e5%86%85%e9%83%a8%e7%bb%93%e6%9e%84">#</a>
+</h3>
+<p>P的内部结构，完全结构参见
+  <a href="https://github.com/golang/go/blob/5622128a77b4af5e5dc02edf53ecac545e3af730/src/runtime/runtime2.go#L523">源码</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">p</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">id</span>          <span style="color:#66d9ef">int32</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">status</span>      <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// P的状态
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">link</span>        <span style="color:#a6e22e">puintptr</span> <span style="color:#75715e">// 下一个P, P链表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">m</span>           <span style="color:#a6e22e">muintptr</span> <span style="color:#75715e">// 拥有这个P的M
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">mcache</span>      <span style="color:#f92672">*</span><span style="color:#a6e22e">mcache</span>  
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// P本地runnable状态的G队列，无锁访问
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">runqhead</span> <span style="color:#66d9ef">uint32</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">runqtail</span> <span style="color:#66d9ef">uint32</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">runq</span>     [<span style="color:#ae81ff">256</span>]<span style="color:#a6e22e">guintptr</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">runnext</span> <span style="color:#a6e22e">guintptr</span> <span style="color:#75715e">// 一个比runq优先级更高的runnable G
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 状态为dead的G链表，在获取G时会从这里面获取
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">gFree</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">gList</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">n</span> <span style="color:#66d9ef">int32</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">gcBgMarkWorker</span>       <span style="color:#a6e22e">guintptr</span> <span style="color:#75715e">// (atomic)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">gcw</span> <span style="color:#a6e22e">gcWork</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>P有以下几种状态，参加
+  <a href="https://github.com/golang/go/blob/5622128a77b4af5e5dc02edf53ecac545e3af730/src/runtime/runtime2.go#L100">源码</a></p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>_Pidle</td>
+<td>0</td>
+<td>刚刚被分配，还没有进行进行初始化。</td>
+</tr>
+<tr>
+<td>_Prunning</td>
+<td>1</td>
+<td>当 M 与 P 绑定调用 acquirep 时，P 的状态会改变为 _Prunning。</td>
+</tr>
+<tr>
+<td>_Psyscall</td>
+<td>2</td>
+<td>正在执行系统调用。</td>
+</tr>
+<tr>
+<td>_Pgcstop</td>
+<td>3</td>
+<td>暂停运行，此时系统正在进行 GC，直至 GC 结束后才会转变到下一个状态阶段。</td>
+</tr>
+<tr>
+<td>_Pdead</td>
+<td>4</td>
+<td>废弃，不再使用。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="调度器的内部结构">
+  调度器的内部结构
+  <a class="anchor" href="#%e8%b0%83%e5%ba%a6%e5%99%a8%e7%9a%84%e5%86%85%e9%83%a8%e7%bb%93%e6%9e%84">#</a>
+</h3>
+<p>调度器内部结构，完全结构参见
+  <a href="https://github.com/golang/go/blob/5622128a77b4af5e5dc02edf53ecac545e3af730/src/runtime/runtime2.go#L604">源码</a></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">schedt</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">lock</span> <span style="color:#a6e22e">mutex</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">midle</span>        <span style="color:#a6e22e">muintptr</span> <span style="color:#75715e">// 空闲M链表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">nmidle</span>       <span style="color:#66d9ef">int32</span>    <span style="color:#75715e">// 空闲M数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">nmidlelocked</span> <span style="color:#66d9ef">int32</span>    <span style="color:#75715e">// 被锁住的M的数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">mnext</span>        <span style="color:#66d9ef">int64</span>    <span style="color:#75715e">// 已创建M的数量，以及下一个M ID
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">maxmcount</span>    <span style="color:#66d9ef">int32</span>    <span style="color:#75715e">// 允许创建最大的M数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">nmsys</span>        <span style="color:#66d9ef">int32</span>    <span style="color:#75715e">// 不计入死锁的M数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">nmfreed</span>      <span style="color:#66d9ef">int64</span>    <span style="color:#75715e">// 累计释放M的数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pidle</span>      <span style="color:#a6e22e">puintptr</span> <span style="color:#75715e">// 空闲的P链表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">npidle</span>     <span style="color:#66d9ef">uint32</span>   <span style="color:#75715e">// 空闲的P数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">runq</span>     <span style="color:#a6e22e">gQueue</span> <span style="color:#75715e">// 全局runnable的G队列
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">runqsize</span> <span style="color:#66d9ef">int32</span>  <span style="color:#75715e">// 全局runnable的G数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Global cache of dead G&#39;s.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">gFree</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">lock</span>    <span style="color:#a6e22e">mutex</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">stack</span>   <span style="color:#a6e22e">gList</span> <span style="color:#75715e">// Gs with stacks
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">noStack</span> <span style="color:#a6e22e">gList</span> <span style="color:#75715e">// Gs without stacks
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#a6e22e">n</span>       <span style="color:#66d9ef">int32</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// freem is the list of m&#39;s waiting to be freed when their
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// m.exited is set. Linked through m.freelink.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">freem</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">m</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="观察调度流程">
+  观察调度流程
+  <a class="anchor" href="#%e8%a7%82%e5%af%9f%e8%b0%83%e5%ba%a6%e6%b5%81%e7%a8%8b">#</a>
+</h2>
+<h3 id="godebug-trace方式">
+  GODEBUG trace方式
+  <a class="anchor" href="#godebug-trace%e6%96%b9%e5%bc%8f">#</a>
+</h3>
+<p>GODEBUG 变量可以控制运行时内的调试变量，参数以逗号分隔，格式为：name=val。观察GMP可以使用下面两个参数：</p>
+<ul>
+<li>
+<p>schedtrace：设置 schedtrace=X 参数可以使运行时在每 X 毫秒输出一行调度器的摘要信息到标准 err 输出中。</p>
+</li>
+<li>
+<p>scheddetail：设置 schedtrace=X 和 scheddetail=1 可以使运行时在每 X 毫秒输出一次详细的多行信息，信息内容主要包括调度程序、处理器、OS 线程 和 Goroutine 的状态。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;sync&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;time&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">wg</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">WaitGroup</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">2000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">1e6</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">a</span> <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Done</span>()
+</span></span><span style="display:flex;"><span>        }()
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">100</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Millisecond</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Wait</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>执行一下命令：</p>
+<blockquote>
+<p>GODEBUG=schedtrace=1000 go run ./test.go</p>
+</blockquote>
+<p>输出内容如下：</p>
+<pre tabindex="0"><code>SCHED 0ms: gomaxprocs=1 idleprocs=1 threads=4 spinningthreads=0 idlethreads=1 runqueue=0 [0]
+SCHED 1001ms: gomaxprocs=1 idleprocs=1 threads=4 spinningthreads=0 idlethreads=2 runqueue=0 [0]
+SCHED 2002ms: gomaxprocs=1 idleprocs=1 threads=4 spinningthreads=0 idlethreads=2 runqueue=0 [0]
+SCHED 3002ms: gomaxprocs=1 idleprocs=1 threads=4 spinningthreads=0 idlethreads=2 runqueue=0 [0]
+SCHED 4003ms: gomaxprocs=1 idleprocs=1 threads=4 spinningthreads=0 idlethreads=2 runqueue=0 [0]
+</code></pre><p>输出内容解释说明：</p>
+<ul>
+<li>SCHED XXms: SCHED是调度日志输出标志符。XXms是自程序启动之后到输出当前行时间</li>
+<li>gomaxprocs： P的数量，等于当前的 CPU 核心数，或者GOMAXPROCS环境变量的值</li>
+<li>idleprocs： 空闲P的数量，与gomaxprocs的差值即运行中P的数量</li>
+<li>threads： 线程数量，即M的数量</li>
+<li>spinningthreads：自旋状态线程的数量。当M没有找到可供其调度执行的 Goroutine 时，该线程并不会销毁，而是出于自旋状态</li>
+<li>idlethreads：空闲线程的数量</li>
+<li>runqueue：全局队列中G的数量</li>
+<li>[0]：表示P本地队列下G的数量，有几个P中括号里面就会有几个数字</li>
+</ul>
+<h3 id="go-tool-trace方式">
+  Go tool trace方式
+  <a class="anchor" href="#go-tool-trace%e6%96%b9%e5%bc%8f">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 创建trace文件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">f</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Create</span>(<span style="color:#e6db74">&#34;trace.out&#34;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		panic(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">f</span>.<span style="color:#a6e22e">Close</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 启动trace goroutine
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">trace</span>.<span style="color:#a6e22e">Start</span>(<span style="color:#a6e22e">f</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		panic(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">trace</span>.<span style="color:#a6e22e">Stop</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// main
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;Hello trace&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>执行下面命令产生trace文件trace.out：</p>
+<blockquote>
+<p>go run test.go</p>
+</blockquote>
+<p>执行下面命令，打开浏览器，打开控制台查看。</p>
+<blockquote>
+<p>go tool trace trace.out</p>
+</blockquote>
+<h3 id="总结">
+  总结
+  <a class="anchor" href="#%e6%80%bb%e7%bb%93">#</a>
+</h3>
+<ol>
+<li>Golang的线程模型采用的是混合型线程模型，线程与协程关系是N:M。</li>
+<li>Golang混合型线程模型实现采用GMP模型进行调度，G是goroutine，是golang实现的协程，M是OS线程，P是逻辑处理器。</li>
+<li>每一个M都需要与一个P绑定，P拥有本地可运行G队列，M是执行G的单元，M获取可运行G流程是先从P的本地队列获取，若未获取到，则从其他P偷取过来（即work steal)，若其他的P也没有则从全局G队列获取，若都未获取到，则M将处于自旋状态，并不会销毁。</li>
+<li>当执行G时候，发生通道阻塞等用户级别阻塞时候，此时M不会阻塞，M会继续寻找其他可运行的G，当阻塞的G恢复之后，重新进入P的队列等待执行，若G进行系统调用时候，会阻塞M，此时P会和M解绑(即hand off)，并寻找新的空闲的M。若没有空闲的就会创建一个新的M。</li>
+<li>Work Steal和Hand Off保证了线程的高效利用。</li>
+</ol>
+<p><strong>G-M-P高效的保证策略有：</strong></p>
+<ul>
+<li>M是可以复用的，不需要反复创建与销毁，当没有可执行的Goroutine时候就处于自旋状态，等待唤醒</li>
+<li>Work Stealing和Hand Off策略保证了M的高效利用</li>
+<li>内存分配状态(mcache)位于P，G可以跨M调度，不再存在跨M调度局部性差的问题</li>
+<li>M从关联的P中获取G，不需要使用锁，是lock free的</li>
+</ul>
+<h2 id="参考资料">
+  参考资料
+  <a class="anchor" href="#%e5%8f%82%e8%80%83%e8%b5%84%e6%96%99">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://learnku.com/articles/41728">Golang 调度器 GMP 原理与调度全分析</a></li>
+<li>
+  <a href="https://medium.com/a-journey-with-go/go-work-stealing-in-go-scheduler-d439231be64d">Go: Work-Stealing in Go Scheduler</a></li>
+<li>
+  <a href="https://blog.csdn.net/gatieme/article/details/51892437">线程的3种实现方式&ndash;内核级线程, 用户级线程和混合型线程</a></li>
+</ul></article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

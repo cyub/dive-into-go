@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Delve # Delve 是Go语言实现的，专门用来调试Go程序的工具。它跟 GDB工具类似，相比 GDB，它简单易用，能更好的理解Go语言数据结构和语言特性，支持打印goroutine以及defer函数等Go特有语法特性。Delve简称dlv，后文将以dlv代称Delve.
+安装 # go get -u github.com/go-delve/delve/cmd/dlv 使用 # 开始调试 # dlv使用debug命令进入调试界面：
+dlv debug main.go 如果当前目录是main包所在目录时候，可以不用指定main.go文件这个参数的。假定项目结构如下：
+. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在cmd/foo目录下，我们可以直接执行dlv debug命令开始调试。在任何目录下我们可以使用dlv debug github.com/me/foo/cmd/foo开始调试。
+如果已构建成二进制可执行文件，我们可以使用dlv exec命令开始调试：
+dlv exec /youpath/go_binary_file 对于需要命令行参数才能启动的程序，我们可以通过--来传递命令行参数，比如如下:
+dlv debug github.com/me/foo/cmd/foo -- -arg1 value dlv exec /mypath/binary -- --config=config.toml 对于已经运行的程序，可以使用attach命令，进行跟踪调试指定pid的Go应用：
+dlv attach pid 除了上面调试main包外，dlv通过test子命令还支持调试test文件：">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="Delve" />
+<meta property="og:description" content="Delve # Delve 是Go语言实现的，专门用来调试Go程序的工具。它跟 GDB工具类似，相比 GDB，它简单易用，能更好的理解Go语言数据结构和语言特性，支持打印goroutine以及defer函数等Go特有语法特性。Delve简称dlv，后文将以dlv代称Delve.
+安装 # go get -u github.com/go-delve/delve/cmd/dlv 使用 # 开始调试 # dlv使用debug命令进入调试界面：
+dlv debug main.go 如果当前目录是main包所在目录时候，可以不用指定main.go文件这个参数的。假定项目结构如下：
+. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在cmd/foo目录下，我们可以直接执行dlv debug命令开始调试。在任何目录下我们可以使用dlv debug github.com/me/foo/cmd/foo开始调试。
+如果已构建成二进制可执行文件，我们可以使用dlv exec命令开始调试：
+dlv exec /youpath/go_binary_file 对于需要命令行参数才能启动的程序，我们可以通过--来传递命令行参数，比如如下:
+dlv debug github.com/me/foo/cmd/foo -- -arg1 value dlv exec /mypath/binary -- --config=config.toml 对于已经运行的程序，可以使用attach命令，进行跟踪调试指定pid的Go应用：
+dlv attach pid 除了上面调试main包外，dlv通过test子命令还支持调试test文件：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/analysis-tools/dlv/" /><meta property="article:section" content="analysis-tools" />
+
+
+<title>Delve | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/"class=active>Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Delve</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="delve">
+  Delve
+  <a class="anchor" href="#delve">#</a>
+</h1>
+<p>
+  <a href="https://github.com/go-delve/delve">Delve</a> 是Go语言实现的，专门用来调试Go程序的工具。它跟
+  <a href="/analysis-tools/gdb/">GDB</a>工具类似，相比
+  <a href="/analysis-tools/gdb/">GDB</a>，它简单易用，能更好的理解Go语言数据结构和语言特性，支持打印goroutine以及defer函数等Go特有语法特性。Delve简称dlv，后文将以dlv代称Delve.</p>
+<h2 id="安装">
+  安装
+  <a class="anchor" href="#%e5%ae%89%e8%a3%85">#</a>
+</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go get -u github.com/go-delve/delve/cmd/dlv
+</span></span></code></pre></div><h2 id="使用">
+  使用
+  <a class="anchor" href="#%e4%bd%bf%e7%94%a8">#</a>
+</h2>
+<h3 id="开始调试">
+  开始调试
+  <a class="anchor" href="#%e5%bc%80%e5%a7%8b%e8%b0%83%e8%af%95">#</a>
+</h3>
+<p>dlv使用debug命令进入调试界面：</p>
+<pre tabindex="0"><code>dlv debug main.go
+</code></pre><p>如果当前目录是main包所在目录时候，可以不用指定main.go文件这个参数的。假定项目结构如下：</p>
+<pre tabindex="0"><code>.
+├── github.com/me/foo
+├── cmd
+│   └── foo
+│       └── main.go
+├── pkg
+│   └── baz
+│       ├── bar.go
+│       └── bar_test.go
+</code></pre><p>如果当前已在cmd/foo目录下，我们可以直接执行<code>dlv debug</code>命令开始调试。在任何目录下我们可以使用<code>dlv debug github.com/me/foo/cmd/foo</code>开始调试。</p>
+<p>如果已构建成二进制可执行文件，我们可以使用<code>dlv exec</code>命令开始调试：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>dlv exec /youpath/go_binary_file
+</span></span></code></pre></div><p><strong>对于需要命令行参数才能启动的程序，我们可以通过<code>--</code>来传递命令行参数</strong>，比如如下:</p>
+<pre tabindex="0"><code>dlv debug github.com/me/foo/cmd/foo -- -arg1 value
+dlv exec /mypath/binary -- --config=config.toml
+</code></pre><p>对于已经运行的程序，可以使用attach命令，进行跟踪调试指定pid的Go应用：</p>
+<pre tabindex="0"><code>dlv attach pid
+</code></pre><p>除了上面调试main包外，dlv通过test子命令还支持调试test文件：</p>
+<pre tabindex="0"><code>dlv test github.com/me/foo/pkg/baz
+</code></pre><p>接下来我们可以使用help命令查看dlv支持的命令有哪些：</p>
+<pre tabindex="0"><code>(dlv) help
+The following commands are available:
+
+Running the program:
+    call ------------------------ Resumes process, injecting a function call (EXPERIMENTAL!!!)
+    continue (alias: c) --------- Run until breakpoint or program termination.
+    next (alias: n) ------------- Step over to next source line.
+    rebuild --------------------- Rebuild the target executable and restarts it. It does not work if the executable was not built by delve.
+    restart (alias: r) ---------- Restart process.
+    step (alias: s) ------------- Single step through program.
+    step-instruction (alias: si)  Single step a single cpu instruction.
+    stepout (alias: so) --------- Step out of the current function.
+
+Manipulating breakpoints:
+    break (alias: b) ------- Sets a breakpoint.
+    breakpoints (alias: bp)  Print out info for active breakpoints.
+    clear ------------------ Deletes breakpoint.
+    clearall --------------- Deletes multiple breakpoints.
+    condition (alias: cond)  Set breakpoint condition.
+    on --------------------- Executes a command when a breakpoint is hit.
+    trace (alias: t) ------- Set tracepoint.
+
+Viewing program variables and memory:
+    args ----------------- Print function arguments.
+    display -------------- Print value of an expression every time the program stops.
+    examinemem (alias: x)  Examine memory:
+    locals --------------- Print local variables.
+    print (alias: p) ----- Evaluate an expression.
+    regs ----------------- Print contents of CPU registers.
+    set ------------------ Changes the value of a variable.
+    vars ----------------- Print package variables.
+    whatis --------------- Prints type of an expression.
+
+Listing and switching between threads and goroutines:
+    goroutine (alias: gr) -- Shows or changes current goroutine
+    goroutines (alias: grs)  List program goroutines.
+    thread (alias: tr) ----- Switch to the specified thread.
+    threads ---------------- Print out info for every traced thread.
+
+Viewing the call stack and selecting frames:
+    deferred --------- Executes command in the context of a deferred call.
+    down ------------- Move the current frame down.
+    frame ------------ Set the current frame, or execute command on a different frame.
+    stack (alias: bt)  Print stack trace.
+    up --------------- Move the current frame up.
+
+Other commands:
+    config --------------------- Changes configuration parameters.
+    disassemble (alias: disass)  Disassembler.
+    edit (alias: ed) ----------- Open where you are in $DELVE_EDITOR or $EDITOR
+    exit (alias: quit | q) ----- Exit the debugger.
+    funcs ---------------------- Print list of functions.
+    help (alias: h) ------------ Prints the help message.
+    libraries ------------------ List loaded dynamic libraries
+    list (alias: ls | l) ------- Show source code.
+    source --------------------- Executes a file containing a list of delve commands
+    sources -------------------- Print list of source files.
+    types ---------------------- Print list of types
+
+Type help followed by a command for full documentation.
+</code></pre><p>接下来我们将以下面代码作为示例演示如何dlv进行调试。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;go&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="设置断点">
+  设置断点
+  <a class="anchor" href="#%e8%ae%be%e7%bd%ae%e6%96%ad%e7%82%b9">#</a>
+</h3>
+<p>当我们使用<code>dlv debug main.go</code>命令进行dlv调试之后，我们可以设置断点。</p>
+<pre tabindex="0"><code>(dlv) b main.main # 在main函数处设置断点
+Breakpoint 1 set at 0x4adf8f for main.main() ./main.go:5
+</code></pre><h3 id="继续执行">
+  继续执行
+  <a class="anchor" href="#%e7%bb%a7%e7%bb%ad%e6%89%a7%e8%a1%8c">#</a>
+</h3>
+<p>设置断点之后，我们可以通过<code>continue</code>命令（简写c）继续执行到我们设置的断点处。</p>
+<pre tabindex="0"><code>(dlv) c
+&gt; main.main() ./main.go:5 (hits goroutine(1):1 total:1) (PC: 0x4adf8f)
+     1:	package main
+     2:
+     3:	import &#34;fmt&#34;
+     4:
+=&gt;   5:	func main() {
+     6:		fmt.Println(&#34;go&#34;)
+     7:	}
+</code></pre><p>注意不同于
+  <a href="/analysis-tools/gdb/">GDB</a>需要执行run命令启动应用之后，才能执行continue命令。而dlv在进入调试界面之后，已经指向程序的入口地址处，可以直接执行continue命令</p>
+<h3 id="执行下一条指令">
+  执行下一条指令
+  <a class="anchor" href="#%e6%89%a7%e8%a1%8c%e4%b8%8b%e4%b8%80%e6%9d%a1%e6%8c%87%e4%bb%a4">#</a>
+</h3>
+<p>我们可以通过next命令（简写n）来执行下一行源码。同
+  <a href="/analysis-tools/gdb/">GDB</a>一样，next命令是Step over操作，遇到函数时不会进入函数内部一行行代码执行，而是直接执行函数，然后跳过到函数下面的一行代码。</p>
+<pre tabindex="0"><code>(dlv) n
+go
+&gt; main.main() ./main.go:7 (PC: 0x4adfff)
+     2:
+     3:	import &#34;fmt&#34;
+     4:
+     5:	func main() {
+     6:		fmt.Println(&#34;go&#34;)
+=&gt;   7:	}
+</code></pre><h3 id="打印栈信息">
+  打印栈信息
+  <a class="anchor" href="#%e6%89%93%e5%8d%b0%e6%a0%88%e4%bf%a1%e6%81%af">#</a>
+</h3>
+<p>通过stack命令，我们可以查看函数栈信息：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span>(<span style="color:#a6e22e">dlv</span>) <span style="color:#a6e22e">stack</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">0x00000000004adfff</span> <span style="color:#a6e22e">in</span> <span style="color:#a6e22e">main</span>.<span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">at</span> .<span style="color:#f92672">/</span><span style="color:#a6e22e">main</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">1</span>  <span style="color:#ae81ff">0x0000000000436be8</span> <span style="color:#a6e22e">in</span> <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">at</span> <span style="color:#f92672">/</span><span style="color:#a6e22e">usr</span><span style="color:#f92672">/</span><span style="color:#a6e22e">lib</span><span style="color:#f92672">/</span><span style="color:#66d9ef">go</span><span style="color:#f92672">/</span><span style="color:#a6e22e">src</span><span style="color:#f92672">/</span><span style="color:#a6e22e">runtime</span><span style="color:#f92672">/</span><span style="color:#a6e22e">proc</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">203</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">2</span>  <span style="color:#ae81ff">0x0000000000464621</span> <span style="color:#a6e22e">in</span> <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">goexit</span>
+</span></span><span style="display:flex;"><span>   <span style="color:#a6e22e">at</span> <span style="color:#f92672">/</span><span style="color:#a6e22e">usr</span><span style="color:#f92672">/</span><span style="color:#a6e22e">lib</span><span style="color:#f92672">/</span><span style="color:#66d9ef">go</span><span style="color:#f92672">/</span><span style="color:#a6e22e">src</span><span style="color:#f92672">/</span><span style="color:#a6e22e">runtime</span><span style="color:#f92672">/</span><span style="color:#a6e22e">asm_amd64</span>.<span style="color:#a6e22e">s</span>:<span style="color:#ae81ff">1373</span>
+</span></span></code></pre></div><h3 id="打印gorountine信息">
+  打印gorountine信息
+  <a class="anchor" href="#%e6%89%93%e5%8d%b0gorountine%e4%bf%a1%e6%81%af">#</a>
+</h3>
+<p>通过<code>goroutines</code>命令（简写grs），我们可以查看所有goroutine：</p>
+<pre tabindex="0"><code>(dlv) goroutines
+* Goroutine 1 - User: ./main.go:7 main.main (0x4adfff) (thread 14358)
+  Goroutine 2 - User: /usr/lib/go/src/runtime/proc.go:305 runtime.gopark (0x436f9b)
+  Goroutine 3 - User: /usr/lib/go/src/runtime/proc.go:305 runtime.gopark (0x436f9b)
+  Goroutine 4 - User: /usr/lib/go/src/runtime/proc.go:305 runtime.gopark (0x436f9b)
+  Goroutine 5 - User: /usr/lib/go/src/runtime/mfinal.go:161 runtime.runfinq (0x418f80)
+[5 goroutines]
+</code></pre><p><code>goroutine</code>命令（简写gr）用来显示当前goroutine信息：</p>
+<pre tabindex="0"><code>(dlv) goroutine
+Thread 14358 at ./main.go:7
+Goroutine 1:
+	Runtime: ./main.go:7 main.main (0x4adfff)
+	User: ./main.go:7 main.main (0x4adfff)
+	Go: /usr/lib/go/src/runtime/asm_amd64.s:220 runtime.rt0_go (0x462594)
+	Start: /usr/lib/go/src/runtime/proc.go:113 runtime.main (0x436a20)
+</code></pre><h3 id="查看汇编代码">
+  查看汇编代码
+  <a class="anchor" href="#%e6%9f%a5%e7%9c%8b%e6%b1%87%e7%bc%96%e4%bb%a3%e7%a0%81">#</a>
+</h3>
+<p>通过<code>disassemble</code>命令（简写disass），我们可以查看汇编代码：</p>
+<pre tabindex="0"><code>(dlv) disass
+TEXT main.main(SB) /tmp/dlv/main.go
+	main.go:5		0x4adf80	64488b0c25f8ffffff	mov rcx, qword ptr fs:[0xfffffff8]
+	main.go:5		0x4adf89	483b6110		cmp rsp, qword ptr [rcx+0x10]
+	main.go:5		0x4adf8d	767a			jbe 0x4ae009
+	main.go:5		0x4adf8f*	4883ec68		sub rsp, 0x68
+	main.go:5		0x4adf93	48896c2460		mov qword ptr [rsp+0x60], rbp
+	main.go:5		0x4adf98	488d6c2460		lea rbp, ptr [rsp+0x60]
+	main.go:6		0x4adf9d	0f57c0			xorps xmm0, xmm0
+	main.go:6		0x4adfa0	0f11442438		movups xmmword ptr [rsp+0x38], xmm0
+	main.go:6		0x4adfa5	488d442438		lea rax, ptr [rsp+0x38]
+	main.go:6		0x4adfaa	4889442430		mov qword ptr [rsp+0x30], rax
+	main.go:6		0x4adfaf	8400			test byte ptr [rax], al
+	main.go:6		0x4adfb1	488d0d28ed0000		lea rcx, ptr [rip+0xed28]
+	main.go:6		0x4adfb8	48894c2438		mov qword ptr [rsp+0x38], rcx
+	main.go:6		0x4adfbd	488d0dcce10300		lea rcx, ptr [rip+0x3e1cc]
+	main.go:6		0x4adfc4	48894c2440		mov qword ptr [rsp+0x40], rcx
+	main.go:6		0x4adfc9	8400			test byte ptr [rax], al
+	main.go:6		0x4adfcb	eb00			jmp 0x4adfcd
+	main.go:6		0x4adfcd	4889442448		mov qword ptr [rsp+0x48], rax
+	main.go:6		0x4adfd2	48c744245001000000	mov qword ptr [rsp+0x50], 0x1
+	main.go:6		0x4adfdb	48c744245801000000	mov qword ptr [rsp+0x58], 0x1
+	main.go:6		0x4adfe4	48890424		mov qword ptr [rsp], rax
+	main.go:6		0x4adfe8	48c744240801000000	mov qword ptr [rsp+0x8], 0x1
+	main.go:6		0x4adff1	48c744241001000000	mov qword ptr [rsp+0x10], 0x1
+	main.go:6		0x4adffa	e811a1ffff		call $fmt.Println
+=&gt;	main.go:7		0x4adfff	488b6c2460		mov rbp, qword ptr [rsp+0x60]
+	main.go:7		0x4ae004	4883c468		add rsp, 0x68
+	main.go:7		0x4ae008	c3			ret
+	main.go:5		0x4ae009	e8e247fbff		call $runtime.morestack_noctxt
+	&lt;autogenerated&gt;:1	0x4ae00e	e96dffffff		jmp $main.main
+</code></pre><p>dlv默认显示的是<code>intel</code>风格汇编代码，我们可以通过<code>config</code>命令设置<code>gnu</code>或者<code>go</code>风格代码：</p>
+<pre tabindex="0"><code>(dlv) config disassemble-flavor go
+</code></pre><p>这种方式更改的配置只会对此次调试有效，若保证下次调试一样有效，我们需要将其配置到配置文件中。dlv默认配置文件是<code>HOME/.config/dlv/config.yml</code>。我们只需要在配置文件加入以下内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">disassemble-flavor</span>: <span style="color:#ae81ff">go</span>
+</span></span></code></pre></div></article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

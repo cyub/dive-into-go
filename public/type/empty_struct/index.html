@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="空结构体 # 空结构体指的是没有任何字段的结构体。
+大小与内存地址 # 空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向runtime.zerobase。
+// empty_struct.go type Empty struct{} //go:linkname zerobase runtime.zerobase var zerobase uintptr // 使用go:linkname编译指令，将zerobase变量指向runtime.zerobase func main() { a := Empty{} b := struct{}{} fmt.Println(unsafe.Sizeof(a) == 0) // true fmt.Println(unsafe.Sizeof(b) == 0) // true fmt.Printf(&#34;%p\n&#34;, &amp;a) // 0x590d00 fmt.Printf(&#34;%p\n&#34;, &amp;b) // 0x590d00 fmt.Printf(&#34;%p\n&#34;, &amp;zerobase) // 0x590d00 c := new(Empty) d := new(Empty) fmt.Sprint(c, d) // 目的是让变量c和d发生逃逸 println(c) // 0x590d00 println(d) // 0x590d00 fmt.Println(c == d) // true e := new(Empty) f := new(Empty) println(e) // 0xc00008ef47 println(f) // 0xc00008ef47 fmt.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="空结构体" />
+<meta property="og:description" content="空结构体 # 空结构体指的是没有任何字段的结构体。
+大小与内存地址 # 空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向runtime.zerobase。
+// empty_struct.go type Empty struct{} //go:linkname zerobase runtime.zerobase var zerobase uintptr // 使用go:linkname编译指令，将zerobase变量指向runtime.zerobase func main() { a := Empty{} b := struct{}{} fmt.Println(unsafe.Sizeof(a) == 0) // true fmt.Println(unsafe.Sizeof(b) == 0) // true fmt.Printf(&#34;%p\n&#34;, &amp;a) // 0x590d00 fmt.Printf(&#34;%p\n&#34;, &amp;b) // 0x590d00 fmt.Printf(&#34;%p\n&#34;, &amp;zerobase) // 0x590d00 c := new(Empty) d := new(Empty) fmt.Sprint(c, d) // 目的是让变量c和d发生逃逸 println(c) // 0x590d00 println(d) // 0x590d00 fmt.Println(c == d) // true e := new(Empty) f := new(Empty) println(e) // 0xc00008ef47 println(f) // 0xc00008ef47 fmt." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/type/empty_struct/" /><meta property="article:section" content="type" />
+
+
+<title>空结构体 | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/"class=active>空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>空结构体</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="空结构体">
+  空结构体
+  <a class="anchor" href="#%e7%a9%ba%e7%bb%93%e6%9e%84%e4%bd%93">#</a>
+</h1>
+<p>空结构体指的是没有任何字段的结构体。</p>
+<h2 id="大小与内存地址">
+  大小与内存地址
+  <a class="anchor" href="#%e5%a4%a7%e5%b0%8f%e4%b8%8e%e5%86%85%e5%ad%98%e5%9c%b0%e5%9d%80">#</a>
+</h2>
+<p>空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向<code>runtime.zerobase</code>。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// empty_struct.go
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Empty</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//go:linkname zerobase runtime.zerobase
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">zerobase</span> <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 使用go:linkname编译指令，将zerobase变量指向runtime.zerobase
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">Empty</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">struct</span>{}{}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">a</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) <span style="color:#75715e">// true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">b</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) <span style="color:#75715e">// true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%p\n&#34;</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">a</span>)             <span style="color:#75715e">// 0x590d00
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%p\n&#34;</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>)             <span style="color:#75715e">// 0x590d00
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%p\n&#34;</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">zerobase</span>)      <span style="color:#75715e">// 0x590d00
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> new(<span style="color:#a6e22e">Empty</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">d</span> <span style="color:#f92672">:=</span> new(<span style="color:#a6e22e">Empty</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Sprint</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">d</span>) <span style="color:#75715e">// 目的是让变量c和d发生逃逸
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	println(<span style="color:#a6e22e">c</span>) <span style="color:#75715e">// 0x590d00
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	println(<span style="color:#a6e22e">d</span>) <span style="color:#75715e">// 0x590d00
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">d</span>) <span style="color:#75715e">// true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">e</span> <span style="color:#f92672">:=</span> new(<span style="color:#a6e22e">Empty</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">f</span> <span style="color:#f92672">:=</span> new(<span style="color:#a6e22e">Empty</span>)
+</span></span><span style="display:flex;"><span>	println(<span style="color:#a6e22e">e</span>)          <span style="color:#75715e">// 0xc00008ef47
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	println(<span style="color:#a6e22e">f</span>)          <span style="color:#75715e">// 0xc00008ef47
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">e</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">f</span>) <span style="color:#75715e">// flase
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>从上面代码输出可以看到<code>a</code>, <code>b</code>, <code>zerobase</code>这三个变量的地址都是一样的，最终指向的都是全局变量<code>runtime.zerobase</code>(
+  <a href="https://github.com/golang/go/blob/go1.14.13/src/runtime/malloc.go#L827">runtime/malloc.go</a>)。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// base address for all 0-byte allocations
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">zerobase</span> <span style="color:#66d9ef">uintptr</span>
+</span></span></code></pre></div><p>我们可以通过下面方法再次来验证一下<code>runtime.zerobase</code>变量的地址是不是也是<code>0x590d00</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go build -o empty_struct empty_struct.go
+</span></span><span style="display:flex;"><span>go tool nm ./empty_struct | grep 590d00
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 或者</span>
+</span></span><span style="display:flex;"><span>objdump -t empty_struct | grep 590d00
+</span></span></code></pre></div><p>执行上面命令输出以下的内容：</p>
+<pre tabindex="0"><code>590d00 D runtime.zerobase
+# 或者
+0000000000590d00 g     O .noptrbss	0000000000000008 runtime.zerobase
+</code></pre><p>从上面输出的内容可以看到<code>runtime.zerobase</code>的地址也是<code>0x590d00</code>。</p>
+<p>接下来我们看看变量逃逸的情况：</p>
+<pre tabindex="0"><code> go run -gcflags=&#34;-m -l&#34; empty_struct.go
+# command-line-arguments
+./empty_struct.go:15:2: moved to heap: a
+./empty_struct.go:16:2: moved to heap: b
+./empty_struct.go:18:13: ... argument does not escape
+./empty_struct.go:18:31: unsafe.Sizeof(a) == 0 escapes to heap
+./empty_struct.go:19:13: ... argument does not escape
+./empty_struct.go:19:31: unsafe.Sizeof(b) == 0 escapes to heap
+./empty_struct.go:20:12: ... argument does not escape
+./empty_struct.go:21:12: ... argument does not escape
+./empty_struct.go:22:12: ... argument does not escape
+./empty_struct.go:24:10: new(Empty) escapes to heap
+./empty_struct.go:25:10: new(Empty) escapes to heap
+./empty_struct.go:26:12: ... argument does not escape
+./empty_struct.go:29:13: ... argument does not escape
+./empty_struct.go:29:16: c == d escapes to heap
+./empty_struct.go:31:10: new(Empty) does not escape
+./empty_struct.go:32:10: new(Empty) does not escape
+./empty_struct.go:35:13: ... argument does not escape
+./empty_struct.go:35:16: e == f escapes to heap
+</code></pre><p>可以看到变量<code>c</code>和<code>d</code>逃逸到堆上，它们打印出来的都是<code>0x591d00</code>，且两者进行相等比较时候返回<code>true</code>。而变量<code>e</code>和<code>f</code>打印出来的都是<code>0xc00008ef47</code>，但两者进行相等比较时候却返回<code>false</code>。这因为Go有意为之的，当空结构体变量未发生逃逸时候，指向该变量的指针是不等的，当空结构体变量发生逃逸之后，指向该变量是相等的。这也就是
+  <a href="https://go.dev/ref/spec">Go官方语法指南</a>所说的：</p>
+<blockquote>
+<p>Pointers to distinct zero-size variables may or may not be equal</p>
+</blockquote>
+<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: http://static.cyub.vip/images/202201/go-compare-operators.png
+    :alt: Go比较操作符
+    :width: 800px
+    :align: center
+</code></pre><h2 id="当一个结构体嵌入空结构体时占用空间怎么计算">
+  当一个结构体嵌入空结构体时，占用空间怎么计算？
+  <a class="anchor" href="#%e5%bd%93%e4%b8%80%e4%b8%aa%e7%bb%93%e6%9e%84%e4%bd%93%e5%b5%8c%e5%85%a5%e7%a9%ba%e7%bb%93%e6%9e%84%e4%bd%93%e6%97%b6%e5%8d%a0%e7%94%a8%e7%a9%ba%e9%97%b4%e6%80%8e%e4%b9%88%e8%ae%a1%e7%ae%97">#</a>
+</h2>
+<p>空结构体本身不占用空间，但是作为某结构体内嵌字段时候，有可能是占用空间的：</p>
+<ul>
+<li>当空结构体是该结构体唯一的字段时，该结构体是不占用空间的，空结构体自然也不占用空间</li>
+<li>当空结构体作为第一个字段或者中间字段时候，是不占用空间的</li>
+<li>当空结构体作为最后一个字段时候，是占用空间的，大小跟其前一个字段保持一致</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">s1</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">s2</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">_</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">s3</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#66d9ef">byte</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">s4</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#66d9ef">int64</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">s5</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#66d9ef">byte</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span> <span style="color:#66d9ef">int64</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">s6</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#66d9ef">byte</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">s7</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#66d9ef">int64</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">s8</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s1</span>{})) <span style="color:#75715e">// 0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s2</span>{})) <span style="color:#75715e">// 0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s3</span>{})) <span style="color:#75715e">// 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s4</span>{})) <span style="color:#75715e">// 8
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s5</span>{})) <span style="color:#75715e">// 16
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s6</span>{})) <span style="color:#75715e">// 2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s7</span>{})) <span style="color:#75715e">// 16
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">s8</span>{})) <span style="color:#75715e">// 0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>当空结构体作为数组、切片的元素时候：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span> [<span style="color:#ae81ff">10</span>]<span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">a</span>)) <span style="color:#75715e">// 80
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">b</span> [<span style="color:#ae81ff">10</span>]<span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">b</span>)) <span style="color:#75715e">// 0
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">c</span> = make([]<span style="color:#66d9ef">struct</span>{}, <span style="color:#ae81ff">10</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">c</span>)) <span style="color:#75715e">// 24，即slice header的大小
+</span></span></span></code></pre></div><h2 id="用途">
+  用途
+  <a class="anchor" href="#%e7%94%a8%e9%80%94">#</a>
+</h2>
+<p>由于空结构体占用的空间大小为零，我们可以利用这个特性，完成一些功能，却不需要占用额外空间。</p>
+<h3 id="阻止unkeyed方式初始化结构体">
+  阻止<code>unkeyed</code>方式初始化结构体
+  <a class="anchor" href="#%e9%98%bb%e6%ad%a2unkeyed%e6%96%b9%e5%bc%8f%e5%88%9d%e5%a7%8b%e5%8c%96%e7%bb%93%e6%9e%84%e4%bd%93">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">MustKeydStruct</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Name</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Age</span>  <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">_</span>    <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">persion</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">MustKeydStruct</span>{<span style="color:#a6e22e">Name</span>: <span style="color:#e6db74">&#34;hello&#34;</span>, <span style="color:#a6e22e">Age</span>: <span style="color:#ae81ff">10</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">persion</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">persion2</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">MustKeydStruct</span>{<span style="color:#e6db74">&#34;hello&#34;</span>, <span style="color:#ae81ff">10</span>} <span style="color:#75715e">//编译失败，提示： too few values in MustKeydStruct{...}
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">persion2</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="实现集合数据结构">
+  实现集合数据结构
+  <a class="anchor" href="#%e5%ae%9e%e7%8e%b0%e9%9b%86%e5%90%88%e6%95%b0%e6%8d%ae%e7%bb%93%e6%9e%84">#</a>
+</h3>
+<p>集合数据结构我们可以使用map来实现：只关心key，不必关心value，我们就可以值设置为空结构体类型变量（或者底层类型是空结构体的变量）。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>	<span style="color:#e6db74">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Set</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">items</span> <span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">interface</span>{}]<span style="color:#a6e22e">emptyItem</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">emptyItem</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">itemExists</span> = <span style="color:#a6e22e">emptyItem</span>{}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">NewSet</span>() <span style="color:#f92672">*</span><span style="color:#a6e22e">Set</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">set</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">Set</span>{<span style="color:#a6e22e">items</span>: make(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">interface</span>{}]<span style="color:#a6e22e">emptyItem</span>)}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">set</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 添加元素到集合
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">set</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Set</span>) <span style="color:#a6e22e">Add</span>(<span style="color:#a6e22e">item</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">items</span>[<span style="color:#a6e22e">item</span>] = <span style="color:#a6e22e">itemExists</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 从集合中删除元素
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">set</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Set</span>) <span style="color:#a6e22e">Remove</span>(<span style="color:#a6e22e">item</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>	delete(<span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">items</span>, <span style="color:#a6e22e">item</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 判断元素是否存在集合中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">set</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Set</span>) <span style="color:#a6e22e">Contains</span>(<span style="color:#a6e22e">item</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#66d9ef">bool</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">contains</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">items</span>[<span style="color:#a6e22e">item</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">contains</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 返回集合大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">set</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Set</span>) <span style="color:#a6e22e">Size</span>() <span style="color:#66d9ef">int</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> len(<span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">items</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">set</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">NewSet</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#e6db74">&#34;hello&#34;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#e6db74">&#34;world&#34;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">Contains</span>(<span style="color:#e6db74">&#34;hello&#34;</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">Contains</span>(<span style="color:#e6db74">&#34;Hello&#34;</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">set</span>.<span style="color:#a6e22e">Size</span>())
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="作为通道的信号传输">
+  作为通道的信号传输
+  <a class="anchor" href="#%e4%bd%9c%e4%b8%ba%e9%80%9a%e9%81%93%e7%9a%84%e4%bf%a1%e5%8f%b7%e4%bc%a0%e8%be%93">#</a>
+</h3>
+<p>使用通道时候，有时候我们只关心是否有数据从通道内传输出来，而不关心数据内容，这时候通道数据相当于一个信号，比如我们实现退出时候。下面例子是基于通道实现的信号量。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// empty struct
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">empty</span> = <span style="color:#66d9ef">struct</span>{}{}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Semaphore is empty type chan
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Semaphore</span> <span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// P used to acquire n resources
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#a6e22e">Semaphore</span>) <span style="color:#a6e22e">P</span>(<span style="color:#a6e22e">n</span> <span style="color:#66d9ef">int</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#a6e22e">n</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">empty</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// V used to release n resouces
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#a6e22e">Semaphore</span>) <span style="color:#a6e22e">V</span>(<span style="color:#a6e22e">n</span> <span style="color:#66d9ef">int</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#a6e22e">n</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">s</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Lock used to lock resource
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#a6e22e">Semaphore</span>) <span style="color:#a6e22e">Lock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">P</span>(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Unlock used to unlock resource
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#a6e22e">Semaphore</span>) <span style="color:#a6e22e">Unlock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">V</span>(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// NewSemaphore return semaphore
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">NewSemaphore</span>(<span style="color:#a6e22e">N</span> <span style="color:#66d9ef">int</span>) <span style="color:#a6e22e">Semaphore</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> make(<span style="color:#a6e22e">Semaphore</span>, <span style="color:#a6e22e">N</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="进一步阅读">
+  进一步阅读
+  <a class="anchor" href="#%e8%bf%9b%e4%b8%80%e6%ad%a5%e9%98%85%e8%af%bb">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://dave.cheney.net/2014/03/25/the-empty-struct">The empty struct</a></li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

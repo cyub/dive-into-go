@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="GC # 三色标记清除算法 # Golang中采用 三色标记清除算法（tricolor mark-and-sweep algorithm） 进行GC。由于支持写屏障（write barrier)了，GC过程和程序可以并发运行。
+三色标记清除算核心原则就是根据每个对象的颜色，分到不同的颜色集合中，对象的颜色是在标记阶段完成的。三色是黑白灰三种颜色，每种颜色的集合都有特别的含义：
+黑色集合
+该集合下的对象没有引用任何白色对象（即该对象没有指针指向白色对象）
+白色集合
+扫描标记结束之后，白色集合里面的对象就是要进行垃圾回收的，该对象允许有指针指向黑色对象。
+灰色集合
+可能有指针指向白色对象。它是一个中间状态，只有该集合下不在存在任何对象时候，才能进行最终的清除操作。
+过程 # 标记清除算法核心不变要素是没有黑色的对象能够指向白色集合对象。当垃圾回收开始，全部对象标记为白色，然后垃圾回收器会遍历所有根对象并把它们标记为灰色。根对象就是程序能直接访问到的对象，包括全局变量以及栈、寄存器上的里面的变量。在这之后，垃圾回收器选取一个灰色的对象，首先把它变为黑色，然后开始寻找去确定这个对象是否有指针指向白色集合的对象，若找到则把找到的对象由标记为灰色，并将其白色集合中移入到灰色集合中。就这样持续下去，直到灰色集合中没有任何对象为止。
+为了支持能够并发进行垃圾回收，Golang在垃圾回收过程中采用写屏障，每次堆中的指针被修改时候写屏障都会执行，写屏障会将该指针指向的对象标记为灰色，然后放入灰色集合（因为才对象现在是可触达的了），然后继续扫描该对象。
+举个例子说明写屏障的重要性：
+假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="" />
+<meta property="og:description" content="GC # 三色标记清除算法 # Golang中采用 三色标记清除算法（tricolor mark-and-sweep algorithm） 进行GC。由于支持写屏障（write barrier)了，GC过程和程序可以并发运行。
+三色标记清除算核心原则就是根据每个对象的颜色，分到不同的颜色集合中，对象的颜色是在标记阶段完成的。三色是黑白灰三种颜色，每种颜色的集合都有特别的含义：
+黑色集合
+该集合下的对象没有引用任何白色对象（即该对象没有指针指向白色对象）
+白色集合
+扫描标记结束之后，白色集合里面的对象就是要进行垃圾回收的，该对象允许有指针指向黑色对象。
+灰色集合
+可能有指针指向白色对象。它是一个中间状态，只有该集合下不在存在任何对象时候，才能进行最终的清除操作。
+过程 # 标记清除算法核心不变要素是没有黑色的对象能够指向白色集合对象。当垃圾回收开始，全部对象标记为白色，然后垃圾回收器会遍历所有根对象并把它们标记为灰色。根对象就是程序能直接访问到的对象，包括全局变量以及栈、寄存器上的里面的变量。在这之后，垃圾回收器选取一个灰色的对象，首先把它变为黑色，然后开始寻找去确定这个对象是否有指针指向白色集合的对象，若找到则把找到的对象由标记为灰色，并将其白色集合中移入到灰色集合中。就这样持续下去，直到灰色集合中没有任何对象为止。
+为了支持能够并发进行垃圾回收，Golang在垃圾回收过程中采用写屏障，每次堆中的指针被修改时候写屏障都会执行，写屏障会将该指针指向的对象标记为灰色，然后放入灰色集合（因为才对象现在是可触达的了），然后继续扫描该对象。
+举个例子说明写屏障的重要性：
+假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/memory/gc/" /><meta property="article:section" content="memory" />
+
+
+<title>Gc | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/"class=active>GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Gc</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="gc">
+  GC
+  <a class="anchor" href="#gc">#</a>
+</h1>
+<h2 id="三色标记清除算法">
+  三色标记清除算法
+  <a class="anchor" href="#%e4%b8%89%e8%89%b2%e6%a0%87%e8%ae%b0%e6%b8%85%e9%99%a4%e7%ae%97%e6%b3%95">#</a>
+</h2>
+<p>Golang中采用 <strong>三色标记清除算法（tricolor mark-and-sweep algorithm）</strong> 进行GC。由于支持写屏障（write barrier)了，GC过程和程序可以并发运行。</p>
+<p>三色标记清除算核心原则就是根据每个对象的颜色，分到不同的颜色集合中，对象的颜色是在标记阶段完成的。三色是黑白灰三种颜色，每种颜色的集合都有特别的含义：</p>
+<ul>
+<li>
+<p>黑色集合</p>
+<p>该集合下的对象没有引用任何白色对象（即该对象没有指针指向白色对象）</p>
+</li>
+<li>
+<p>白色集合</p>
+<p>扫描标记结束之后，白色集合里面的对象就是要进行垃圾回收的，该对象允许有指针指向黑色对象。</p>
+</li>
+<li>
+<p>灰色集合</p>
+<p>可能有指针指向白色对象。它是一个中间状态，只有该集合下不在存在任何对象时候，才能进行最终的清除操作。</p>
+</li>
+</ul>
+<h3 id="过程">
+  过程
+  <a class="anchor" href="#%e8%bf%87%e7%a8%8b">#</a>
+</h3>
+<p><strong>标记清除算法核心不变要素是没有黑色的对象能够指向白色集合对象</strong>。当垃圾回收开始，全部对象标记为白色，然后垃圾回收器会遍历所有根对象并把它们标记为灰色。<strong>根对象</strong>就是程序能直接访问到的对象，包括全局变量以及栈、寄存器上的里面的变量。在这之后，垃圾回收器选取一个灰色的对象，首先把它变为黑色，然后开始寻找去确定这个对象是否有指针指向白色集合的对象，若找到则把找到的对象由标记为灰色，并将其白色集合中移入到灰色集合中。就这样持续下去，直到灰色集合中没有任何对象为止。</p>
+<p>为了支持能够并发进行垃圾回收，Golang在垃圾回收过程中采用写屏障，每次堆中的指针被修改时候写屏障都会执行，写屏障会将该指针指向的对象标记为灰色，然后放入灰色集合（因为才对象现在是可触达的了），然后继续扫描该对象。</p>
+<p>举个例子说明写屏障的重要性：</p>
+<p>假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。</p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

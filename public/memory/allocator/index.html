@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="内存分配器 # 概述 # Golang内存分配管理策略是按照不同大小的对象和不同的内存层级来分配管理内存。通过这种多层级分配策略，形成无锁化或者降低锁的粒度，以及尽量减少内存碎片，来提高内存分配效率。
+Golang中内存分配管理的对象按照大小可以分为：
+类别 大小 微对象 tiny object (0, 16B) 小对象 small object [16B, 32KB] 大对象 large object (32KB, &#43;∞) Golang中内存管理的层级从最下到最上可以分为：mspan -&gt; mcache -&gt; mcentral -&gt; mheap -&gt; heapArena。golang中对象的内存分配流程如下：
+小于16个字节的对象使用mcache的微对象分配器进行分配内存 大小在16个字节到32k字节之间的对象，首先计算出需要使用的span大小规格，然后使用mcache中相同大小规格的mspan分配 如果对应的大小规格在mcache中没有可用的mspan，则向mcentral申请 如果mcentral中没有可用的mspan，则向mheap申请，并根据BestFit算法找到最合适的mspan。如果申请到的mspan超出申请大小，将会根据需求进行切分，以返回用户所需的页数，剩余的页构成一个新的mspan放回mheap的空闲列表 如果mheap中没有可用span，则向操作系统申请一系列新的页（最小 1MB） 对于大于32K的大对象直接从mheap分配 mspan # mspan是一个双向链表结构。mspan是golang中内存分配管理的基本单位。
+// file: mheap.go type mspan struct { next *mspan // 指向下一个mspan prev *mspan // 指向上一个mspan startAddr uintptr // 该span在arena区域起始地址 npages uintptr // 该span在arena区域中占用page个数 manualFreeList gclinkptr // 空闲对象列表 freeindex uintptr // 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了 // freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用 // freeindex 和 allocCache配合使用来定位出可用span的位置 nelems uintptr // span链表中元素个数 allocCache uint64 // 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex&#43;pos位置的span未使用 allocBits *gcBits // 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配 gcmarkBits *gcBits // 用来sweep过程进行标记垃圾对象的，用于后续gc。 allocCount uint16 // 已分配的对象个数 spanclass spanClass // span类别 state mSpanState // mspaninuse etc needzero uint8 // needs to be zeroed before allocation elemsize uintptr // 能存储的对象大小 } // file: mheap.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="" />
+<meta property="og:description" content="内存分配器 # 概述 # Golang内存分配管理策略是按照不同大小的对象和不同的内存层级来分配管理内存。通过这种多层级分配策略，形成无锁化或者降低锁的粒度，以及尽量减少内存碎片，来提高内存分配效率。
+Golang中内存分配管理的对象按照大小可以分为：
+类别 大小 微对象 tiny object (0, 16B) 小对象 small object [16B, 32KB] 大对象 large object (32KB, &#43;∞) Golang中内存管理的层级从最下到最上可以分为：mspan -&gt; mcache -&gt; mcentral -&gt; mheap -&gt; heapArena。golang中对象的内存分配流程如下：
+小于16个字节的对象使用mcache的微对象分配器进行分配内存 大小在16个字节到32k字节之间的对象，首先计算出需要使用的span大小规格，然后使用mcache中相同大小规格的mspan分配 如果对应的大小规格在mcache中没有可用的mspan，则向mcentral申请 如果mcentral中没有可用的mspan，则向mheap申请，并根据BestFit算法找到最合适的mspan。如果申请到的mspan超出申请大小，将会根据需求进行切分，以返回用户所需的页数，剩余的页构成一个新的mspan放回mheap的空闲列表 如果mheap中没有可用span，则向操作系统申请一系列新的页（最小 1MB） 对于大于32K的大对象直接从mheap分配 mspan # mspan是一个双向链表结构。mspan是golang中内存分配管理的基本单位。
+// file: mheap.go type mspan struct { next *mspan // 指向下一个mspan prev *mspan // 指向上一个mspan startAddr uintptr // 该span在arena区域起始地址 npages uintptr // 该span在arena区域中占用page个数 manualFreeList gclinkptr // 空闲对象列表 freeindex uintptr // 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了 // freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用 // freeindex 和 allocCache配合使用来定位出可用span的位置 nelems uintptr // span链表中元素个数 allocCache uint64 // 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex&#43;pos位置的span未使用 allocBits *gcBits // 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配 gcmarkBits *gcBits // 用来sweep过程进行标记垃圾对象的，用于后续gc。 allocCount uint16 // 已分配的对象个数 spanclass spanClass // span类别 state mSpanState // mspaninuse etc needzero uint8 // needs to be zeroed before allocation elemsize uintptr // 能存储的对象大小 } // file: mheap." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/memory/allocator/" /><meta property="article:section" content="memory" />
+
+
+<title>Allocator | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/"class=active>内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Allocator</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="内存分配器">
+  内存分配器
+  <a class="anchor" href="#%e5%86%85%e5%ad%98%e5%88%86%e9%85%8d%e5%99%a8">#</a>
+</h1>
+<h2 id="概述">
+  概述
+  <a class="anchor" href="#%e6%a6%82%e8%bf%b0">#</a>
+</h2>
+<p>Golang内存分配管理策略是<strong>按照不同大小的对象和不同的内存层级来分配管理内存</strong>。通过这种多层级分配策略，形成无锁化或者降低锁的粒度，以及尽量减少内存碎片，来提高内存分配效率。</p>
+<p>Golang中内存分配管理的对象按照大小可以分为：</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>大小</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>微对象 tiny object</td>
+<td>(0, 16B)</td>
+</tr>
+<tr>
+<td>小对象 small object</td>
+<td>[16B, 32KB]</td>
+</tr>
+<tr>
+<td>大对象 large object</td>
+<td>(32KB, +∞)</td>
+</tr>
+</tbody>
+</table>
+<p>Golang中内存管理的层级从最下到最上可以分为：mspan -&gt; mcache -&gt; mcentral -&gt; mheap -&gt; heapArena。golang中对象的内存分配流程如下：</p>
+<ol>
+<li>小于16个字节的对象使用<code>mcache</code>的微对象分配器进行分配内存</li>
+<li>大小在16个字节到32k字节之间的对象，首先计算出需要使用的<code>span</code>大小规格，然后使用<code>mcache</code>中相同大小规格的<code>mspan</code>分配</li>
+<li>如果对应的大小规格在<code>mcache</code>中没有可用的<code>mspan</code>，则向<code>mcentral</code>申请</li>
+<li>如果<code>mcentral</code>中没有可用的<code>mspan</code>，则向<code>mheap</code>申请，并根据BestFit算法找到最合适的<code>mspan</code>。如果申请到的<code>mspan</code>超出申请大小，将会根据需求进行切分，以返回用户所需的页数，剩余的页构成一个新的<code>mspan</code>放回<code>mheap</code>的空闲列表</li>
+<li>如果<code>mheap</code>中没有可用<code>span</code>，则向操作系统申请一系列新的页（最小 1MB）</li>
+<li>对于大于32K的大对象直接从<code>mheap</code>分配</li>
+</ol>
+<h2 id="mspan">
+  mspan
+  <a class="anchor" href="#mspan">#</a>
+</h2>
+<p>mspan是一个双向链表结构。mspan是golang中内存分配管理的基本单位。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// file: mheap.go
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">mspan</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">next</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">mspan</span>     <span style="color:#75715e">// 指向下一个mspan
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">prev</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">mspan</span>     <span style="color:#75715e">// 指向上一个mspan
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">startAddr</span> <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 该span在arena区域起始地址
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">npages</span>    <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 该span在arena区域中占用page个数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">manualFreeList</span> <span style="color:#a6e22e">gclinkptr</span> <span style="color:#75715e">// 空闲对象列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">freeindex</span> <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// freeindex 和 allocCache配合使用来定位出可用span的位置
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">nelems</span> <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// span链表中元素个数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">allocCache</span> <span style="color:#66d9ef">uint64</span> <span style="color:#75715e">// 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex+pos位置的span未使用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">allocBits</span>  <span style="color:#f92672">*</span><span style="color:#a6e22e">gcBits</span> <span style="color:#75715e">// 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">gcmarkBits</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">gcBits</span> <span style="color:#75715e">// 用来sweep过程进行标记垃圾对象的，用于后续gc。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">allocCount</span>  <span style="color:#66d9ef">uint16</span>     <span style="color:#75715e">// 已分配的对象个数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">spanclass</span>   <span style="color:#a6e22e">spanClass</span>  <span style="color:#75715e">// span类别
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">state</span>       <span style="color:#a6e22e">mSpanState</span> <span style="color:#75715e">// mspaninuse etc
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">needzero</span>    <span style="color:#66d9ef">uint8</span>      <span style="color:#75715e">// needs to be zeroed before allocation
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">elemsize</span>    <span style="color:#66d9ef">uintptr</span>    <span style="color:#75715e">// 能存储的对象大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// file: mheap.go
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">spanClass</span> <span style="color:#66d9ef">uint8</span> <span style="color:#75715e">// span规格类型
+</span></span></span></code></pre></div><p>span大小一共有67个规格。规格列表如下， 其中class = 0 是特殊的span，用于大于32kb对象分配，是直接从mheap上分配的：</p>
+<pre tabindex="0"><code># file: sizeclasses.go
+// class  bytes/obj  bytes/span  objects  tail waste  max waste
+//     1          8        8192     1024           0     87.50%
+//     2         16        8192      512           0     43.75%
+//     3         32        8192      256           0     46.88%
+//     4         48        8192      170          32     31.52%
+//     5         64        8192      128           0     23.44%
+...
+//    64      27264       81920        3         128     10.00%
+//    65      28672       57344        2           0      4.91%
+//    66      32768       32768        1           0     12.50%
+</code></pre><ul>
+<li>class - 规格id，即spanClass</li>
+<li>bytes/obj - 能够存储的对象大小，对应的是mspan的elemsize字段</li>
+<li>bytes/span - 每个span的大小，大小等于页数*页大小，即8k * npages</li>
+<li>object - 每个span能够存储的objects个数，即nelems，也等于(bytes/span)/(bytes/obj)</li>
+<li>tail waste - 每个span产生的内存碎片，即（bytes/span）%（bytes/obj）</li>
+<li>max waste - 最大浪费比例，（bytes/obj-span最小使用量）*objects/(bytes/span)*100,比如class =2时，span运行的最小使用量是9bytes，则max waste=（16-9）<em>512/8192</em>100=43.75%</li>
+</ul>
+<h3 id="mcache">
+  mcache
+  <a class="anchor" href="#mcache">#</a>
+</h3>
+<p>mcache持有一系列不同大小的mspan。mcache属于per-P cache，由于M运行G时候，必须绑定一个P，这样当G中申请从mcache分配对象内存时候，无需加锁处理。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// file: mcache.go
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">mcache</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">next_sample</span> <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// trigger heap sample after allocating this many bytes
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">local_scan</span>  <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// bytes of scannable heap allocated
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 微对象分配器，对象大小需要小于16byte
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">tiny</span>             <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 微对象起始地址
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">tinyoffset</span>       <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 从tiny开始的偏移值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">local_tinyallocs</span> <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// tiny对象的个数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 大小为134的指针数组，数组元素指向mspan，SpanClasses一共有67种，为了满足指针对象和非指针对象，这里为每种规格的span同时准备scan和noscan两个，分别用于存储指针对象和非指针对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">alloc</span> [<span style="color:#a6e22e">numSpanClasses</span>]<span style="color:#f92672">*</span><span style="color:#a6e22e">mspan</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">stackcache</span> [<span style="color:#a6e22e">_NumStackOrders</span>]<span style="color:#a6e22e">stackfreelist</span> <span style="color:#75715e">// 栈缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Local allocator stats, flushed during GC.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">local_largefree</span>  <span style="color:#66d9ef">uintptr</span>                  <span style="color:#75715e">// 大对象释放的字节数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">local_nlargefree</span> <span style="color:#66d9ef">uintptr</span>                  <span style="color:#75715e">// 释放的大对象个数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">local_nsmallfree</span> [<span style="color:#a6e22e">_NumSizeClasses</span>]<span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// 大小为64的数组，每种规格span是否的小对象个数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">flushGen</span> <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// 扫描计数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// file: malloc.go
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">size</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">maxSmallSize</span> {                <span style="color:#75715e">// 如果size &lt;= 32k
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">noscan</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">size</span> &lt; <span style="color:#a6e22e">maxTinySize</span> { <span style="color:#75715e">// 不需要扫描，且size&lt;16
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">size</span><span style="color:#f92672">&amp;</span><span style="color:#ae81ff">7</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">off</span> = <span style="color:#a6e22e">round</span>(<span style="color:#a6e22e">off</span>, <span style="color:#ae81ff">8</span>)
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">size</span><span style="color:#f92672">&amp;</span><span style="color:#ae81ff">3</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">off</span> = <span style="color:#a6e22e">round</span>(<span style="color:#a6e22e">off</span>, <span style="color:#ae81ff">4</span>)
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">size</span><span style="color:#f92672">&amp;</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">off</span> = <span style="color:#a6e22e">round</span>(<span style="color:#a6e22e">off</span>, <span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">off</span><span style="color:#f92672">+</span><span style="color:#a6e22e">size</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">maxTinySize</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">tiny</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// The object fits into existing tiny block.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">x</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">tiny</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">off</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">tinyoffset</span> = <span style="color:#a6e22e">off</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">size</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">local_tinyallocs</span><span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">mp</span>.<span style="color:#a6e22e">mallocing</span> = <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">releasem</span>(<span style="color:#a6e22e">mp</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">x</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// Allocate a new maxTinySize block.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">span</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">alloc</span>[<span style="color:#a6e22e">tinySpanClass</span>]
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">v</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">nextFreeFast</span>(<span style="color:#a6e22e">span</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">v</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">v</span>, <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">shouldhelpgc</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">nextFree</span>(<span style="color:#a6e22e">tinySpanClass</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">x</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">v</span>)
+</span></span><span style="display:flex;"><span>		(<span style="color:#f92672">*</span>[<span style="color:#ae81ff">2</span>]<span style="color:#66d9ef">uint64</span>)(<span style="color:#a6e22e">x</span>)[<span style="color:#ae81ff">0</span>] = <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>		(<span style="color:#f92672">*</span>[<span style="color:#ae81ff">2</span>]<span style="color:#66d9ef">uint64</span>)(<span style="color:#a6e22e">x</span>)[<span style="color:#ae81ff">1</span>] = <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// See if we need to replace the existing tiny block with the new one
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#75715e">// based on amount of remaining free space.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">size</span> &lt; <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">tinyoffset</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">tiny</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">tiny</span> = uintptr(<span style="color:#a6e22e">x</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">tinyoffset</span> = <span style="color:#a6e22e">size</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">size</span> = <span style="color:#a6e22e">maxTinySize</span>
+</span></span><span style="display:flex;"><span>	} <span style="color:#66d9ef">else</span> { <span style="color:#75715e">// 16b ~ 32kb
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">sizeclass</span> <span style="color:#66d9ef">uint8</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">size</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">smallSizeMax</span><span style="color:#f92672">-</span><span style="color:#ae81ff">8</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">sizeclass</span> = <span style="color:#a6e22e">size_to_class8</span>[(<span style="color:#a6e22e">size</span><span style="color:#f92672">+</span><span style="color:#a6e22e">smallSizeDiv</span><span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)<span style="color:#f92672">/</span><span style="color:#a6e22e">smallSizeDiv</span>]
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">sizeclass</span> = <span style="color:#a6e22e">size_to_class128</span>[(<span style="color:#a6e22e">size</span><span style="color:#f92672">-</span><span style="color:#a6e22e">smallSizeMax</span><span style="color:#f92672">+</span><span style="color:#a6e22e">largeSizeDiv</span><span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)<span style="color:#f92672">/</span><span style="color:#a6e22e">largeSizeDiv</span>]
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">size</span> = uintptr(<span style="color:#a6e22e">class_to_size</span>[<span style="color:#a6e22e">sizeclass</span>])
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">spc</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">makeSpanClass</span>(<span style="color:#a6e22e">sizeclass</span>, <span style="color:#a6e22e">noscan</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">span</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">alloc</span>[<span style="color:#a6e22e">spc</span>]
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">v</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">nextFreeFast</span>(<span style="color:#a6e22e">span</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">v</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">v</span>, <span style="color:#a6e22e">span</span>, <span style="color:#a6e22e">shouldhelpgc</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">nextFree</span>(<span style="color:#a6e22e">spc</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">x</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">v</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">needzero</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">span</span>.<span style="color:#a6e22e">needzero</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">memclrNoHeapPointers</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">v</span>), <span style="color:#a6e22e">size</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">else</span> {<span style="color:#75715e">// &gt; 32kb
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">mspan</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">shouldhelpgc</span> = <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">systemstack</span>(<span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span> = <span style="color:#a6e22e">largeAlloc</span>(<span style="color:#a6e22e">size</span>, <span style="color:#a6e22e">needzero</span>, <span style="color:#a6e22e">noscan</span>)
+</span></span><span style="display:flex;"><span>	})
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">freeindex</span> = <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">allocCount</span> = <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">x</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">base</span>())
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">size</span> = <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">elemsize</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="mcentral">
+  mcentral
+  <a class="anchor" href="#mcentral">#</a>
+</h2>
+<p>当mcache的中没有可用的span时候，会向mcentral申请，mcetral结构如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">mcentral</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">lock</span>      <span style="color:#a6e22e">mutex</span> <span style="color:#75715e">// 锁，由于每个p关联的mcache都可能会向mcentral申请空闲的span，所以需要加锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">spanclass</span> <span style="color:#a6e22e">spanClass</span> <span style="color:#75715e">// mcentral负责的span规格
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">nonempty</span>  <span style="color:#a6e22e">mSpanList</span> <span style="color:#75715e">// 空闲span列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">empty</span>     <span style="color:#a6e22e">mSpanList</span> <span style="color:#75715e">// 已经使用的span列表
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">nmalloc</span> <span style="color:#66d9ef">uint64</span> <span style="color:#75715e">// mcentral已分配的span计数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p><strong>一个mecentral只负责一个规格span</strong>，规格类型记录在mcentral的spanClass字段中。mcentral维护着两个双向链表，nonempty表示链表里还有空闲的mspan待分配。empty表示这条链表里的mspan都被分配了object。mcache从mcentrl中获取和归还span流程如下：</p>
+<ul>
+<li>获取时候先加锁，先从nonempty中获取一个没有分配使用的span，将其从nonempty中删除，并将span加入empty链表，mcache获取之后释放锁。</li>
+<li>归还时候先加锁，先将span加入nonempty链表中，并从empty链表中删除，最后释放锁。</li>
+</ul>
+<h2 id="mheap">
+  mheap
+  <a class="anchor" href="#mheap">#</a>
+</h2>
+<p>当mecentral没有可用的span时候，会向mheap申请。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">mheap</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// lock must only be acquired on the system stack, otherwise a g
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// could self-deadlock if its stack grows with the lock held.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">lock</span>      <span style="color:#a6e22e">mutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">free</span>      <span style="color:#a6e22e">mTreap</span> <span style="color:#75715e">// 空闲的并且没有被os收回的二叉树堆，大对象用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sweepgen</span>  <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// 扫描计数值，每次gc后自增2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sweepdone</span> <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// all spans are swept
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sweepers</span>  <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// number of active sweepone calls
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">allspans</span> []<span style="color:#f92672">*</span><span style="color:#a6e22e">mspan</span> <span style="color:#75715e">// 所有的span
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sweepSpans</span> [<span style="color:#ae81ff">2</span>]<span style="color:#a6e22e">gcSweepBuf</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">_</span> <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// align uint64 fields on 32-bit for atomics
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">pagesInUse</span>         <span style="color:#66d9ef">uint64</span>  <span style="color:#75715e">// pages of spans in stats mSpanInUse; R/W with mheap.lock
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">pagesSwept</span>         <span style="color:#66d9ef">uint64</span>  <span style="color:#75715e">// pages swept this cycle; updated atomically
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">pagesSweptBasis</span>    <span style="color:#66d9ef">uint64</span>  <span style="color:#75715e">// pagesSwept to use as the origin of the sweep ratio; updated atomically
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sweepHeapLiveBasis</span> <span style="color:#66d9ef">uint64</span>  <span style="color:#75715e">// value of heap_live to use as the origin of sweep ratio; written with lock, read without
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sweepPagesPerByte</span>  <span style="color:#66d9ef">float64</span> <span style="color:#75715e">// proportional sweep ratio; written with lock, read without
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// TODO(austin): pagesInUse should be a uintptr, but the 386
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// compiler can&#39;t 8-byte align fields.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">scavengeTimeBasis</span>     <span style="color:#66d9ef">int64</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">scavengeRetainedBasis</span> <span style="color:#66d9ef">uint64</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">scavengeBytesPerNS</span>    <span style="color:#66d9ef">float64</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">scavengeRetainedGoal</span>  <span style="color:#66d9ef">uint64</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">scavengeGen</span>           <span style="color:#66d9ef">uint64</span> <span style="color:#75715e">// incremented on each pacing update
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">reclaimIndex</span> <span style="color:#66d9ef">uint64</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">reclaimCredit</span> <span style="color:#66d9ef">uintptr</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Malloc stats.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">largealloc</span>  <span style="color:#66d9ef">uint64</span>                  <span style="color:#75715e">// bytes allocated for large objects
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">nlargealloc</span> <span style="color:#66d9ef">uint64</span>                  <span style="color:#75715e">// number of large object allocations
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">largefree</span>   <span style="color:#66d9ef">uint64</span>                  <span style="color:#75715e">// bytes freed for large objects (&gt;maxsmallsize)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">nlargefree</span>  <span style="color:#66d9ef">uint64</span>                  <span style="color:#75715e">// number of frees for large objects (&gt;maxsmallsize)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">nsmallfree</span>  [<span style="color:#a6e22e">_NumSizeClasses</span>]<span style="color:#66d9ef">uint64</span> <span style="color:#75715e">// number of frees for small objects (&lt;=maxsmallsize)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">arenas</span> [<span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#a6e22e">arenaL1Bits</span>]<span style="color:#f92672">*</span>[<span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#a6e22e">arenaL2Bits</span>]<span style="color:#f92672">*</span><span style="color:#a6e22e">heapArena</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">heapArenaAlloc</span> <span style="color:#a6e22e">linearAlloc</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">arenaHints</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">arenaHint</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">arena</span> <span style="color:#a6e22e">linearAlloc</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">allArenas</span> []<span style="color:#a6e22e">arenaIdx</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sweepArenas</span> []<span style="color:#a6e22e">arenaIdx</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">curArena</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">base</span>, <span style="color:#a6e22e">end</span> <span style="color:#66d9ef">uintptr</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">_</span> <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// ensure 64-bit alignment of central
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 各个尺寸的central
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">central</span> [<span style="color:#a6e22e">numSpanClasses</span>]<span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">mcentral</span> <span style="color:#a6e22e">mcentral</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">pad</span>      [<span style="color:#a6e22e">cpu</span>.<span style="color:#a6e22e">CacheLinePadSize</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>(<span style="color:#a6e22e">mcentral</span>{})<span style="color:#f92672">%</span><span style="color:#a6e22e">cpu</span>.<span style="color:#a6e22e">CacheLinePadSize</span>]<span style="color:#66d9ef">byte</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">spanalloc</span>             <span style="color:#a6e22e">fixalloc</span> <span style="color:#75715e">// allocator for span*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">cachealloc</span>            <span style="color:#a6e22e">fixalloc</span> <span style="color:#75715e">// allocator for mcache*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">treapalloc</span>            <span style="color:#a6e22e">fixalloc</span> <span style="color:#75715e">// allocator for treapNodes*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">specialfinalizeralloc</span> <span style="color:#a6e22e">fixalloc</span> <span style="color:#75715e">// allocator for specialfinalizer*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">specialprofilealloc</span>   <span style="color:#a6e22e">fixalloc</span> <span style="color:#75715e">// allocator for specialprofile*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">speciallock</span>           <span style="color:#a6e22e">mutex</span>    <span style="color:#75715e">// lock for special record allocators.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">arenaHintAlloc</span>        <span style="color:#a6e22e">fixalloc</span> <span style="color:#75715e">// allocator for arenaHints
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">unused</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">specialfinalizer</span> <span style="color:#75715e">// never set, just here to force the specialfinalizer type into DWARF
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h2 id="heaparena">
+  heapArena
+  <a class="anchor" href="#heaparena">#</a>
+</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">heapArenaBytes</span> = <span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#a6e22e">logHeapArenaBytes</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">logHeapArenaBytes</span> = (<span style="color:#ae81ff">6</span><span style="color:#f92672">+</span><span style="color:#ae81ff">20</span>)<span style="color:#f92672">*</span>(<span style="color:#a6e22e">_64bit</span><span style="color:#f92672">*</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">-</span><span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">GoosWindows</span>)<span style="color:#f92672">*</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">-</span><span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">GoosAix</span>)<span style="color:#f92672">*</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">-</span><span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">GoarchWasm</span>)) <span style="color:#f92672">+</span> (<span style="color:#ae81ff">2</span><span style="color:#f92672">+</span><span style="color:#ae81ff">20</span>)<span style="color:#f92672">*</span>(<span style="color:#a6e22e">_64bit</span><span style="color:#f92672">*</span><span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">GoosWindows</span>) <span style="color:#f92672">+</span> (<span style="color:#ae81ff">2</span><span style="color:#f92672">+</span><span style="color:#ae81ff">20</span>)<span style="color:#f92672">*</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">-</span><span style="color:#a6e22e">_64bit</span>) <span style="color:#f92672">+</span> (<span style="color:#ae81ff">8</span><span style="color:#f92672">+</span><span style="color:#ae81ff">20</span>)<span style="color:#f92672">*</span><span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">GoosAix</span> <span style="color:#f92672">+</span> (<span style="color:#ae81ff">2</span><span style="color:#f92672">+</span><span style="color:#ae81ff">20</span>)<span style="color:#f92672">*</span><span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">GoarchWasm</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// heapArenaBitmapBytes is the size of each heap arena&#39;s bitmap.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">heapArenaBitmapBytes</span> = <span style="color:#a6e22e">heapArenaBytes</span> <span style="color:#f92672">/</span> (<span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">PtrSize</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">8</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pagesPerArena</span> = <span style="color:#a6e22e">heapArenaBytes</span> <span style="color:#f92672">/</span> <span style="color:#a6e22e">pageSize</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">heapArena</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">bitmap</span> [<span style="color:#a6e22e">heapArenaBitmapBytes</span>]<span style="color:#66d9ef">byte</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">spans</span> [<span style="color:#a6e22e">pagesPerArena</span>]<span style="color:#f92672">*</span><span style="color:#a6e22e">mspan</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">pageInUse</span> [<span style="color:#a6e22e">pagesPerArena</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">8</span>]<span style="color:#66d9ef">uint8</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">pageMarks</span> [<span style="color:#a6e22e">pagesPerArena</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">8</span>]<span style="color:#66d9ef">uint8</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>heapArena中arena区域是真正的堆区，所有分配的span都是从这个地方分配。arena区域管理的单元大小是page，page页数为<code>pagesPerArena</code>。</p>
+<p>在64位linux系统，runtime.mheap会持有 4,194,304 runtime.heapArena，每个 runtime.heapArena 都会管理 64MB 的内存，所有golang的内存上限是256TB。</p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="
+  上下文 - context
+  #
+
+Context是由Golang官方开发的并发控制包，一方面可以用于当请求超时或者取消时候，相关的goroutine马上退出释放资源，另一方面Context本身含义就是上下文，其可以在多个goroutine或者多个处理函数之间传递共享的信息。
+创建一个新的context，必须基于一个父context，新的context又可以作为其他context的父context。所有context在一起构造成一个context树。
+
+  ">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="上下文 - context" />
+<meta property="og:description" content="
+  上下文 - context
+  #
+
+Context是由Golang官方开发的并发控制包，一方面可以用于当请求超时或者取消时候，相关的goroutine马上退出释放资源，另一方面Context本身含义就是上下文，其可以在多个goroutine或者多个处理函数之间传递共享的信息。
+创建一个新的context，必须基于一个父context，新的context又可以作为其他context的父context。所有context在一起构造成一个context树。
+
+  " />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/concurrency/context/" /><meta property="article:section" content="concurrency" />
+
+
+<title>上下文 - context | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/"class=active>上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>上下文 - context</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="上下文---context">
+  上下文 - context
+  <a class="anchor" href="#%e4%b8%8a%e4%b8%8b%e6%96%87---context">#</a>
+</h1>
+<p>Context是由Golang官方开发的并发控制包，一方面可以用于当请求超时或者取消时候，相关的goroutine马上退出释放资源，另一方面Context本身含义就是上下文，其可以在多个goroutine或者多个处理函数之间传递共享的信息。</p>
+<p>创建一个新的context，必须基于一个父context，新的context又可以作为其他context的父context。所有context在一起构造成一个context树。</p>
+<p>
+  <img src="https://static.cyub.vip/images/202008/context-tree.jpg" alt="context tree" /></p>
+<h2 id="context使用示例">
+  Context使用示例
+  <a class="anchor" href="#context%e4%bd%bf%e7%94%a8%e7%a4%ba%e4%be%8b">#</a>
+</h2>
+<p>Context一大用处就是超时控制。我们先看一个简单用法。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">WithTimeout</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Background</span>(), <span style="color:#ae81ff">3</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">cancel</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">SlowOperation</span>(<span style="color:#a6e22e">ctx</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">300</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Millisecond</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;goroutine:&#34;</span>, <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">NumGoroutine</span>())
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">4</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">SlowOperation</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">done</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() { <span style="color:#75715e">// 模拟慢操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">dur</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>(<span style="color:#a6e22e">rand</span>.<span style="color:#a6e22e">Intn</span>(<span style="color:#ae81ff">5</span>)<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#a6e22e">dur</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">done</span> <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Done</span>():
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;SlowOperation timeout:&#34;</span>, <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Err</span>())
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">done</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;Complete work&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码会不停打印当前groutine数量，可以观察到SlowOperation函数执行超时之后，goroutine数量由4个变成2个，相关goroutetine退出了。源码可以去
+  <a href="https://play.golang.org/p/fjGJgMwtIl3">go playground</a>查看。</p>
+<p>再看一个关于超时处理的例子， 源码可以去
+  <a href="https://play.golang.org/p/DctV9268FTD">go playground</a>查看：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 根据github仓库统计信息接口查询某个仓库信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">QueryFrameworkStats</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">framework</span> <span style="color:#66d9ef">string</span>) <span style="color:#f92672">&lt;-</span><span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">stats</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">string</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">repos</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;https://api.github.com/repos/&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">framework</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">req</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">NewRequest</span>(<span style="color:#e6db74">&#34;GET&#34;</span>, <span style="color:#a6e22e">repos</span>, <span style="color:#66d9ef">nil</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">req</span> = <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">WithContext</span>(<span style="color:#a6e22e">ctx</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">client</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Client</span>{}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Do</span>(<span style="color:#a6e22e">req</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">ioutil</span>.<span style="color:#a6e22e">ReadAll</span>(<span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">Body</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">Body</span>.<span style="color:#a6e22e">Close</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">stats</span> <span style="color:#f92672">&lt;-</span> string(<span style="color:#a6e22e">data</span>)
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">stats</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">WithTimeout</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Background</span>(), <span style="color:#ae81ff">3</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">cancel</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">framework</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;gin-gonic/gin&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Done</span>():
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Err</span>())
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">statsInfo</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">QueryFrameworkStats</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">framework</span>):
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">framework</span>, <span style="color:#e6db74">&#34; fork and start info : &#34;</span>, <span style="color:#a6e22e">statsInfo</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Context另外一个用途就是传递上下文信息。从WithValue方法我们可以创建一个可以储存键值的context</p>
+<h2 id="context源码分析">
+  Context源码分析
+  <a class="anchor" href="#context%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90">#</a>
+</h2>
+<h3 id="context接口">
+  Context接口
+  <a class="anchor" href="#context%e6%8e%a5%e5%8f%a3">#</a>
+</h3>
+<p>首先我们来看下Context接口</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Context</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Deadline</span>() (<span style="color:#a6e22e">deadline</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Time</span>, <span style="color:#a6e22e">ok</span> <span style="color:#66d9ef">bool</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Done</span>() <span style="color:#f92672">&lt;-</span><span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Err</span>() <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Value</span>(<span style="color:#a6e22e">key</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#66d9ef">interface</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Context接口一共包含四个方法：</p>
+<ul>
+<li>Deadline：返回绑定该context任务的执行超时时间，若未设置，则ok等于false</li>
+<li>Done：返回一个只读通道，当绑定该context的任务执行完成并调用cancel方法或者任务执行超时时候，该通道会被关闭</li>
+<li>Err：返回一个错误，如果Done返回的通道未关闭则返回nil,如果context如果被取消，返回<code>Canceled</code>错误，如果超时则会返回<code>DeadlineExceeded</code>错误</li>
+<li>Value：根据key返回，存储在context中k-v数据</li>
+</ul>
+<h3 id="实现context接口的类型">
+  实现Context接口的类型
+  <a class="anchor" href="#%e5%ae%9e%e7%8e%b0context%e6%8e%a5%e5%8f%a3%e7%9a%84%e7%b1%bb%e5%9e%8b">#</a>
+</h3>
+<p>Context一共有4个类型实现了Context接口, 分别是emptyCtx, cancelCtx,timerCtx,valueCtx。每个类型都关联一个创建方法。</p>
+<p>
+  <img src="https://static.cyub.vip/images/202009/context_implement.jpg" alt="" /></p>
+<h4 id="emptyctx">
+  emptyCtx
+  <a class="anchor" href="#emptyctx">#</a>
+</h4>
+<p>emptyCtx是int类型，<strong>emptyCtx实现了Context接口，是一个空context，只能作为根context</strong>。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">emptyCtx</span> <span style="color:#66d9ef">int</span> <span style="color:#75715e">// 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">emptyCtx</span>) <span style="color:#a6e22e">Deadline</span>() (<span style="color:#a6e22e">deadline</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Time</span>, <span style="color:#a6e22e">ok</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">emptyCtx</span>) <span style="color:#a6e22e">Done</span>() <span style="color:#f92672">&lt;-</span><span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{} {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">emptyCtx</span>) <span style="color:#a6e22e">Err</span>() <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">emptyCtx</span>) <span style="color:#a6e22e">Value</span>(<span style="color:#a6e22e">key</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#66d9ef">interface</span>{} {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">e</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">emptyCtx</span>) <span style="color:#a6e22e">String</span>() <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">switch</span> <span style="color:#a6e22e">e</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">background</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;context.Background&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">todo</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;context.TODO&#34;</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#34;unknown empty Context&#34;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Background/TODO</strong></p>
+<p>context包还提供两个函数返回emptyCtx类型。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> (
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">background</span> = new(<span style="color:#a6e22e">emptyCtx</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">todo</span>       = new(<span style="color:#a6e22e">emptyCtx</span>)
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Background</span>() <span style="color:#a6e22e">Context</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">background</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">TODO</span>() <span style="color:#a6e22e">Context</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">todo</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Background用于创建根context，一般用于主函数、初始化和测试中，<strong>我们创建的context一般都是基于Bacground创建的</strong>。<strong>TODO用于当我们不确定使用什么样的context的时候使用</strong>。</p>
+<h4 id="cancelctx">
+  cancelCtx
+  <a class="anchor" href="#cancelctx">#</a>
+</h4>
+<p><code>cancelCtx</code>支持取消操作，取消同时也会对实现了<code>canceler</code>接口的子代进行取消操作。我们来看下<code>cancelCtx</code>结构体和<code>cancelceler</code>接口：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">cancelCtx</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Context</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">mu</span>       <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">Mutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">done</span>     <span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">children</span> <span style="color:#66d9ef">map</span>[<span style="color:#a6e22e">canceler</span>]<span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">err</span>      <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">canceler</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">cancel</span>(<span style="color:#a6e22e">removeFromParent</span> <span style="color:#66d9ef">bool</span>, <span style="color:#a6e22e">err</span> <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Done</span>() <span style="color:#f92672">&lt;-</span><span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>cancelCtx:</p>
+<ul>
+<li><code>Context</code>变量存储其父context</li>
+<li><code>done</code>变量定义了一个通道，并且只在第一次取消调用才关闭此通道。该通道是惰性创建的</li>
+<li><code>children</code>是一个映射类型，用来存储其子代context中实现的<code>canceler</code>，当该context取消时候，会遍历该映射来让子代context进行取消操作</li>
+<li><code>err</code>记录错误信息，默认是nil，仅当第一次cancel调用时候，才会设置。</li>
+</ul>
+<p>我们分别来看下cancelCtx实现的Done,Err,cancel方法。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cancelCtx</span>) <span style="color:#a6e22e">Done</span>() <span style="color:#f92672">&lt;-</span><span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{} {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>() <span style="color:#75715e">// 加锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">done</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// done通道惰性创建，只有调用Done方法时候才会创建
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">done</span> = make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{})
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">d</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">done</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">d</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cancelCtx</span>) <span style="color:#a6e22e">Err</span>() <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cancelCtx</span>) <span style="color:#a6e22e">cancel</span>(<span style="color:#a6e22e">removeFromParent</span> <span style="color:#66d9ef">bool</span>, <span style="color:#a6e22e">err</span> <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> { 
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 取消操作时候一定要传递err信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		panic(<span style="color:#e6db74">&#34;context: internal error: missing cancel error&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> { 
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 只允许第一次cancel调用操作，下一次进来直接返回
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">done</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> { 
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 未先进行Done调用，而先行调用Cancel, 此时done是nil，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    	<span style="color:#75715e">// 这时候复用全局已关闭的通道
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">done</span> = <span style="color:#a6e22e">closedchan</span> 
+</span></span><span style="display:flex;"><span>	} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 关闭Done返回的通道，发送关闭信号
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		close(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">done</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 子级context依次进行取消操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">child</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">children</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">false</span>, <span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">children</span> = <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">removeFromParent</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 将当前context从其父级context中children map中移除掉，父级Context与该Context脱钩。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    	<span style="color:#75715e">// 这样当父级Context进行Cancel操作时候，不会再改Context进行取消操作了。因为再取消也没有意义了，因为该Context已经取消过了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">removeChild</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">c</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">removeChild</span>(<span style="color:#a6e22e">parent</span> <span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">child</span> <span style="color:#a6e22e">canceler</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">parentCancelCtx</span>(<span style="color:#a6e22e">parent</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">children</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		delete(<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">children</span>, <span style="color:#a6e22e">child</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">parentCancelCtx</span>(<span style="color:#a6e22e">parent</span> <span style="color:#a6e22e">Context</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">cancelCtx</span>, <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">switch</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">parent</span>.(<span style="color:#66d9ef">type</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cancelCtx</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>, <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">timerCtx</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancelCtx</span>, <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">valueCtx</span>: <span style="color:#75715e">// 当父级context是不支持cancel操作的ValueCtx类型时候，向上一直查找
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">parent</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Context</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">default</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>注意<code>parentCancelCtx</code>找到的节点不一定是就是父context，有可能是其父辈的context。可以参考下面这种图:</p>
+<p>
+  <img src="https://static.cyub.vip/images/202008/context-cancel.jpg" alt="" /></p>
+<p><strong>WithCancel</strong></p>
+<p>接下来看cancelCtx类型Context的创建。WithCancel会创一个cancelCtx，以及它关联的取消函数。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">CancelFunc</span> <span style="color:#66d9ef">func</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">WithCancel</span>(<span style="color:#a6e22e">parent</span> <span style="color:#a6e22e">Context</span>) (<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">cancel</span> <span style="color:#a6e22e">CancelFunc</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 根据父context创建新的cancelCtx类型的context
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">newCancelCtx</span>(<span style="color:#a6e22e">parent</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 向上递归找到父辈，并将新context的canceler添加到父辈的映射中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">propagateCancel</span>(<span style="color:#a6e22e">parent</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>, <span style="color:#66d9ef">func</span>() { <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">true</span>, <span style="color:#a6e22e">Canceled</span>) }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">newCancelCtx</span>(<span style="color:#a6e22e">parent</span> <span style="color:#a6e22e">Context</span>) <span style="color:#a6e22e">cancelCtx</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">cancelCtx</span>{<span style="color:#a6e22e">Context</span>: <span style="color:#a6e22e">parent</span>}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">propagateCancel</span>(<span style="color:#a6e22e">parent</span> <span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">child</span> <span style="color:#a6e22e">canceler</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">Done</span>() <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// parent.Done()返回nil表明父Context不支持取消操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// 大部分情况下，该父context已是根context，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// 该父context是通过context.Background()，或者context.ToDo()创建的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">parentCancelCtx</span>(<span style="color:#a6e22e">parent</span>); <span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        	<span style="color:#75715e">// 父conext已经取消操作过，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        	<span style="color:#75715e">// 子context立即进行取消操作，并传递父级的错误信息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">false</span>, <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">children</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">children</span> = make(<span style="color:#66d9ef">map</span>[<span style="color:#a6e22e">canceler</span>]<span style="color:#66d9ef">struct</span>{})
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">children</span>[<span style="color:#a6e22e">child</span>] = <span style="color:#66d9ef">struct</span>{}{} 
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 将当前context的取消添加到父context中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 如果parent是不可取消的，则监控parent和child的Done()通道
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">Done</span>():
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">false</span>, <span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">Err</span>())
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">child</span>.<span style="color:#a6e22e">Done</span>():
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		}()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="timerctx">
+  timerCtx
+  <a class="anchor" href="#timerctx">#</a>
+</h4>
+<p>timerCtx是基于cancelCtx的context类型，它支持过期取消。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">timerCtx</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">cancelCtx</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">timer</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Timer</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">deadline</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Time</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">timerCtx</span>) <span style="color:#a6e22e">Deadline</span>() (<span style="color:#a6e22e">deadline</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Time</span>, <span style="color:#a6e22e">ok</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">deadline</span>, <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">timerCtx</span>) <span style="color:#a6e22e">String</span>() <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">contextName</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancelCtx</span>.<span style="color:#a6e22e">Context</span>) <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;.WithDeadline(&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">deadline</span>.<span style="color:#a6e22e">String</span>() <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34; [&#34;</span> <span style="color:#f92672">+</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Until</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">deadline</span>).<span style="color:#a6e22e">String</span>() <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;])&#34;</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">timerCtx</span>) <span style="color:#a6e22e">cancel</span>(<span style="color:#a6e22e">removeFromParent</span> <span style="color:#66d9ef">bool</span>, <span style="color:#a6e22e">err</span> <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancelCtx</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">false</span>, <span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">removeFromParent</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 删除与父辈context的关联
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">removeChild</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancelCtx</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">c</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">timer</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 停止timer并回收
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">timer</span>.<span style="color:#a6e22e">Stop</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">timer</span> = <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>WithDeadline</strong></p>
+<p>WithDeadline会创建一个timerCtx，以及它关联的取消函数</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">WithDeadline</span>(<span style="color:#a6e22e">parent</span> <span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">d</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Time</span>) (<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">CancelFunc</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">cur</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">Deadline</span>(); <span style="color:#a6e22e">ok</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">cur</span>.<span style="color:#a6e22e">Before</span>(<span style="color:#a6e22e">d</span>) {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 如果父context过期时间早于当前context过期时间，则创建cancelCtx
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">WithCancel</span>(<span style="color:#a6e22e">parent</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">timerCtx</span>{
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">cancelCtx</span>: <span style="color:#a6e22e">newCancelCtx</span>(<span style="color:#a6e22e">parent</span>),
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">deadline</span>:  <span style="color:#a6e22e">d</span>,
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">propagateCancel</span>(<span style="color:#a6e22e">parent</span>, <span style="color:#a6e22e">c</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">dur</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Until</span>(<span style="color:#a6e22e">d</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">dur</span> <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 如果新创建的timerCtx正好过期了，则取消操作并传递DeadlineExceeded
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">true</span>, <span style="color:#a6e22e">DeadlineExceeded</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>, <span style="color:#66d9ef">func</span>() { <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">false</span>, <span style="color:#a6e22e">Canceled</span>) }
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 创建定时器，时间一到执行context取消操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">timer</span> = <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">AfterFunc</span>(<span style="color:#a6e22e">dur</span>, <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">true</span>, <span style="color:#a6e22e">DeadlineExceeded</span>)
+</span></span><span style="display:flex;"><span>		})
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>, <span style="color:#66d9ef">func</span>() { <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">cancel</span>(<span style="color:#66d9ef">true</span>, <span style="color:#a6e22e">Canceled</span>) }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>WithTimeout</strong></p>
+<p>WithTimeout用来创建超时就会取消的context，内部实现就是WithDealine，传递给WithDealine的过期时间就是当前时间加上timeout时间</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">WithTimeout</span>(<span style="color:#a6e22e">parent</span> <span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">timeout</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>) (<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">CancelFunc</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">WithDeadline</span>(<span style="color:#a6e22e">parent</span>, <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Now</span>().<span style="color:#a6e22e">Add</span>(<span style="color:#a6e22e">timeout</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="valuectx">
+  valueCtx
+  <a class="anchor" href="#valuectx">#</a>
+</h4>
+<p>valueCtx是可以传递共享信息的context。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">valueCtx</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Context</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">val</span> <span style="color:#66d9ef">interface</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">valueCtx</span>) <span style="color:#a6e22e">Value</span>(<span style="color:#a6e22e">key</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#66d9ef">interface</span>{} {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">key</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">key</span> {
+</span></span><span style="display:flex;"><span>    	<span style="color:#75715e">// 当前context存在当前的key
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">val</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 当前context不存在，则会沿着context树，向上递归查找，直到根context，如果一直未找到，则会返回nil
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Context</span>.<span style="color:#a6e22e">Value</span>(<span style="color:#a6e22e">key</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>如果当前context不存在该key，则会沿着context树，向上递归查找，直到查找到根context，最后返回nil
+
+  <img src="https://static.cyub.vip/images/202008/context-value.jpg" alt="" /></p>
+<p><strong>WithValue</strong></p>
+<p>WithValue用来创建valueCtx。如果key是不可以比较的时候，则会发生恐慌。可以比较类型，可以参考
+  <a href="https://golang.org/ref/spec#Comparison_operators">Comparison_operators</a>。<strong>key应该是不导出变量，防止冲突</strong>。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">WithValue</span>(<span style="color:#a6e22e">parent</span> <span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">val</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#a6e22e">Context</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">key</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		panic(<span style="color:#e6db74">&#34;nil key&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">reflectlite</span>.<span style="color:#a6e22e">TypeOf</span>(<span style="color:#a6e22e">key</span>).<span style="color:#a6e22e">Comparable</span>() {
+</span></span><span style="display:flex;"><span>		panic(<span style="color:#e6db74">&#34;key is not comparable&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">valueCtx</span>{<span style="color:#a6e22e">parent</span>, <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">val</span>}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="总结">
+  总结
+  <a class="anchor" href="#%e6%80%bb%e7%bb%93">#</a>
+</h2>
+<h3 id="实现context接口的类型-1">
+  实现Context接口的类型
+  <a class="anchor" href="#%e5%ae%9e%e7%8e%b0context%e6%8e%a5%e5%8f%a3%e7%9a%84%e7%b1%bb%e5%9e%8b-1">#</a>
+</h3>
+<p>Context一共有4个类型实现了Context接口, 分别是<code>emptyCtx</code>,	<code>cancelCtx</code>,<code>timerCtx</code>,<code>valueCtx</code>。</p>
+<p>它们的功能与创建方法如下：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>创建方法</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>emptyCtx</td>
+<td>Background()/TODO()</td>
+<td>用做context树的根节点</td>
+</tr>
+<tr>
+<td>cancelCtx</td>
+<td>WithCancel()</td>
+<td>可取消的context</td>
+</tr>
+<tr>
+<td>timerCtx</td>
+<td>WithDeadline()/WithTimeout()</td>
+<td>可取消的context，过期或超时会自动取消</td>
+</tr>
+<tr>
+<td>valueCtx</td>
+<td>WithValue()</td>
+<td>可存储共享信息的context</td>
+</tr>
+</tbody>
+</table>
+<h3 id="context实现两种递归">
+  Context实现两种递归
+  <a class="anchor" href="#context%e5%ae%9e%e7%8e%b0%e4%b8%a4%e7%a7%8d%e9%80%92%e5%bd%92">#</a>
+</h3>
+<p>Context实现两种方向的递归操作。</p>
+<table>
+<thead>
+<tr>
+<th>递归方向</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>向下递归</td>
+<td>当对父Context进去手动取消操作，或超时取消时候，向下递归处理对实现了canceler接口的后代进行取消操作</td>
+</tr>
+<tr>
+<td>向上队规</td>
+<td>当对Context查询Key信息时候，若当前Context没有当前K-V信息时候，则向父辈递归查询，一直到查询到跟节点的emptyCtx，返回nil为止</td>
+</tr>
+</tbody>
+</table>
+<h3 id="context使用规范">
+  Context使用规范
+  <a class="anchor" href="#context%e4%bd%bf%e7%94%a8%e8%a7%84%e8%8c%83">#</a>
+</h3>
+<p>使用Context的是应该准守以下原则来保证在不同包中使用时候的接口一致性，以及能让静态分析工具可以检查context的传播：</p>
+<ol>
+<li>不要将Context作为结构体的一个字段存储，相反而应该显示传递Context给每一个需要它的函数，Context应该作为函数的第一个参数，并命名为ctx</li>
+<li>不要传递一个nil Context给一个函数，即使该函数能够接受它。如果你不确定使用哪一个Context，那你就传递context.TODO</li>
+<li>context是并发安全的，相同的Context能够传递给运行在不同goroutine的函数</li>
+</ol>
+<h2 id="参考资料">
+  参考资料
+  <a class="anchor" href="#%e5%8f%82%e8%80%83%e8%b5%84%e6%96%99">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://juejin.im/post/6844904070667321357">深入理解Golang之context</a></li>
+<li>
+  <a href="https://blog.golang.org/context">Go Concurrency Patterns: Context</a></li>
+<li>
+  <a href="https://medium.com/@ankur_a22/using-goroutines-channels-contexts-timers-waitgroups-and-errgroups-24b6062c1c93">Using Goroutines, Channels, Contexts, Timers, WaitGroups and Errgroups</a></li>
+</ul></article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

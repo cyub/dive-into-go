@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="方法 # Go 语言中具有接收者的函数，即为方法。若函数的接收者类型是T，那么我们可以说该函数是类型T的方法。那么方法底层实现是怎么样的，和函数有什么区别呢？这一章节我们将探讨这个。
+方法的本质就是普通函数 # 我们来看下如下的代码：
+type A struct { name string } func (a A) Name() string { a.name = &#34;Hi &#34; &#43; a.name return a.name } func main() { a := A{name: &#34;new world&#34;} println(a.Name()) println(A.Name(a)) } func NameofA(a A) string { a.name = &#34;Hi &#34; &#43; a.name return a.name } 上面代码中，a.Name()表示的是调用对象a的Name方法。它实际上是一个语法糖，等效于A.Name(a)，其中a就是方法接收者。我们可以通过以下代码证明两者是相等的：
+t1 := reflect.TypeOf(A.Name) t2 := relect.TypeOf(NameOfA) fmt.Println(t1 == t2) // true 我们在看下a.Name()底层实现是怎么样的，点击 在线查看：
+LEAQ go.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="方法" />
+<meta property="og:description" content="方法 # Go 语言中具有接收者的函数，即为方法。若函数的接收者类型是T，那么我们可以说该函数是类型T的方法。那么方法底层实现是怎么样的，和函数有什么区别呢？这一章节我们将探讨这个。
+方法的本质就是普通函数 # 我们来看下如下的代码：
+type A struct { name string } func (a A) Name() string { a.name = &#34;Hi &#34; &#43; a.name return a.name } func main() { a := A{name: &#34;new world&#34;} println(a.Name()) println(A.Name(a)) } func NameofA(a A) string { a.name = &#34;Hi &#34; &#43; a.name return a.name } 上面代码中，a.Name()表示的是调用对象a的Name方法。它实际上是一个语法糖，等效于A.Name(a)，其中a就是方法接收者。我们可以通过以下代码证明两者是相等的：
+t1 := reflect.TypeOf(A.Name) t2 := relect.TypeOf(NameOfA) fmt.Println(t1 == t2) // true 我们在看下a.Name()底层实现是怎么样的，点击 在线查看：
+LEAQ go." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/function/method/" /><meta property="article:section" content="function" />
+
+
+<title>方法 | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/"class=active>方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>方法</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="方法">
+  方法
+  <a class="anchor" href="#%e6%96%b9%e6%b3%95">#</a>
+</h1>
+<p>Go 语言中具有接收者的函数，即为方法。若函数的接收者类型是T，那么我们可以说该函数是类型T的方法。那么方法底层实现是怎么样的，和函数有什么区别呢？这一章节我们将探讨这个。</p>
+<h2 id="方法的本质就是普通函数">
+  方法的本质就是普通函数
+  <a class="anchor" href="#%e6%96%b9%e6%b3%95%e7%9a%84%e6%9c%ac%e8%b4%a8%e5%b0%b1%e6%98%af%e6%99%ae%e9%80%9a%e5%87%bd%e6%95%b0">#</a>
+</h2>
+<p>我们来看下如下的代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">A</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">a</span> <span style="color:#a6e22e">A</span>) <span style="color:#a6e22e">Name</span>() <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">name</span> = <span style="color:#e6db74">&#34;Hi &#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">name</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">name</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">A</span>{<span style="color:#a6e22e">name</span>: <span style="color:#e6db74">&#34;new world&#34;</span>}
+</span></span><span style="display:flex;"><span>    println(<span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">Name</span>())
+</span></span><span style="display:flex;"><span>    println(<span style="color:#a6e22e">A</span>.<span style="color:#a6e22e">Name</span>(<span style="color:#a6e22e">a</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">NameofA</span>(<span style="color:#a6e22e">a</span> <span style="color:#a6e22e">A</span>) <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">name</span> = <span style="color:#e6db74">&#34;Hi &#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">name</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">name</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码中，a.Name()表示的是调用对象a的Name方法。它实际上是一个语法糖，等效于A.Name(a)，其中a就是方法接收者。我们可以通过以下代码证明两者是相等的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">t1</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">TypeOf</span>(<span style="color:#a6e22e">A</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">t2</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">relect</span>.<span style="color:#a6e22e">TypeOf</span>(<span style="color:#a6e22e">NameOfA</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">t1</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">t2</span>) <span style="color:#75715e">// true
+</span></span></span></code></pre></div><p>我们在看下a.Name()底层实现是怎么样的，点击
+  <a href="https://go.godbolt.org/z/PrYqcd13z">在线查看</a>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">LEAQ</span>    <span style="color:#66d9ef">go</span>.<span style="color:#66d9ef">string</span>.<span style="color:#e6db74">&#34;new world&#34;</span>(<span style="color:#a6e22e">SB</span>), <span style="color:#a6e22e">AX</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">MOVQ</span>    <span style="color:#a6e22e">AX</span>, <span style="color:#e6db74">&#34;&#34;</span>.<span style="color:#a6e22e">a</span><span style="color:#f92672">+</span><span style="color:#ae81ff">32</span>(<span style="color:#a6e22e">SP</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">MOVQ</span>    <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">9</span>, <span style="color:#e6db74">&#34;&#34;</span>.<span style="color:#a6e22e">a</span><span style="color:#f92672">+</span><span style="color:#ae81ff">40</span>(<span style="color:#a6e22e">SP</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">PCDATA</span>  <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">MOVQ</span>    <span style="color:#a6e22e">AX</span>, (<span style="color:#a6e22e">SP</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">MOVQ</span>    <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">9</span>, <span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">SP</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">CALL</span>    <span style="color:#e6db74">&#34;&#34;</span>.<span style="color:#a6e22e">A</span>.<span style="color:#a6e22e">Name</span>(<span style="color:#a6e22e">SB</span>)
+</span></span></code></pre></div><p>a.Name()底层其实调用的就是A.Name函数，只不过传递的第一参数就是对象a。</p>
+<p>综上所述，<strong>方法本质就是普通的函数，方法的接收者就是隐含的第一个参数</strong>。对于其他面向对象的语言来说，类对象就是相应的函数的第一个参数。</p>
+<h3 id="值接收者和指针接收者混合的方法">
+  值接收者和指针接收者混合的方法
+  <a class="anchor" href="#%e5%80%bc%e6%8e%a5%e6%94%b6%e8%80%85%e5%92%8c%e6%8c%87%e9%92%88%e6%8e%a5%e6%94%b6%e8%80%85%e6%b7%b7%e5%90%88%e7%9a%84%e6%96%b9%e6%b3%95">#</a>
+</h3>
+<p>比如以下代码中，展示的值接收者和指针接收者混合的方法</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">A</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">a</span> <span style="color:#a6e22e">A</span>) <span style="color:#a6e22e">GetName</span>() <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">name</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">pa</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">A</span>) <span style="color:#a6e22e">SetName</span>() <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pa</span>.<span style="color:#a6e22e">name</span> = <span style="color:#e6db74">&#34;Hi &#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">name</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">pa</span>.<span style="color:#a6e22e">name</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">A</span>{<span style="color:#a6e22e">name</span>: <span style="color:#e6db74">&#34;new world&#34;</span>}
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pa</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">a</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    println(<span style="color:#a6e22e">pa</span>.<span style="color:#a6e22e">GetName</span>()) <span style="color:#75715e">// 通过指针调用定义的值接收者方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    println(<span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">SetName</span>()) <span style="color:#75715e">// 通过值调用定义的指针接收者方法
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>上面代码中通过指针调用值接收者方法和通过值调用指针接收者方法，都能够正常运行。这是因为两者都是语法糖，Go 语言会在编译阶段会将两者转换如下形式：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span>println((<span style="color:#f92672">*</span><span style="color:#a6e22e">pa</span>).<span style="color:#a6e22e">GetName</span>())
+</span></span><span style="display:flex;"><span>println((<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">a</span>).<span style="color:#a6e22e">SetName</span>())
+</span></span></code></pre></div><h2 id="方法表达式与方法变量">
+  方法表达式与方法变量
+  <a class="anchor" href="#%e6%96%b9%e6%b3%95%e8%a1%a8%e8%be%be%e5%bc%8f%e4%b8%8e%e6%96%b9%e6%b3%95%e5%8f%98%e9%87%8f">#</a>
+</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">A</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">a</span> <span style="color:#a6e22e">A</span>) <span style="color:#a6e22e">GetName</span>() <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">name</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">A</span>{<span style="color:#a6e22e">name</span>: <span style="color:#e6db74">&#34;new world&#34;</span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">f1</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">A</span>.<span style="color:#a6e22e">GetName</span> <span style="color:#75715e">// 方法表达式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">f1</span>(<span style="color:#a6e22e">a</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">f2</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">GetName</span> <span style="color:#75715e">// 方法变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#a6e22e">f2</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>方法表达式(Method Expression) 与方法变量(Method Value)本质上都是 
+  <a href="/function/closure/#function-value">Function Value</a> ，区别在于方法变量会捕获方法接收者形成闭包，此方法变量的生命周期与方法接收者一样，编译器会将其进行优化转换成对类型T的方法调用，并传入接收者作为参数。
+根据上面描述我们可以将上面代码中f2理解成如下代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">GetFunc</span>() (<span style="color:#66d9ef">func</span>()) <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">A</span>{<span style="color:#a6e22e">name</span>: <span style="color:#e6db74">&#34;new world&#34;</span>}
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">func</span>() <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">A</span>.<span style="color:#a6e22e">GetName</span>(<span style="color:#a6e22e">a</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">f2</span> = <span style="color:#a6e22e">GetFunc</span>()
+</span></span></code></pre></div></article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

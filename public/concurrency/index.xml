@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>并发编程 on 深入Go语言之旅</title>
+    <link>https://go.cyub.vip/concurrency/</link>
+    <description>Recent content in 并发编程 on 深入Go语言之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language><atom:link href="https://go.cyub.vip/concurrency/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>一次性操作 - sync.Once</title>
+      <link>https://go.cyub.vip/concurrency/sync-once/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-once/</guid>
+      <description> 一次性操作 - sync.Once # sync.Once用来完成一次性操作，比如配置加载，单例对象初始化等。
+源码分析 # sync.Once定义如下：
+type Once struct { done uint32 // 用来标志操作是否操作 m Mutex // 锁，用来第一操作时候，加锁处理 } 接下来看剩下的全部代码：
+func (o *Once) Do(f func()) { if atomic.LoadUint32(&amp;amp;o.done) == 0 {// 原子性加载o.done，若值为1，说明已完成操作，若为0，说明未完成操作 o.doSlow(f) } } func (o *Once) doSlow(f func()) { o.m.Lock() // 加锁 defer o.m.Unlock() if o.done == 0 { // 再次进行o.done是否等于0判断，因为存在并发调用doSlow的情况 defer atomic.StoreUint32(&amp;amp;o.done, 1) // 将o.done值设置为1，用来标志操作完成 f() // 执行操作 } } </description>
+    </item>
+    
+    <item>
+      <title>上下文 - context</title>
+      <link>https://go.cyub.vip/concurrency/context/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/context/</guid>
+      <description>&lt;h1 id=&#34;上下文---context&#34;&gt;
+  上下文 - context
+  &lt;a class=&#34;anchor&#34; href=&#34;#%e4%b8%8a%e4%b8%8b%e6%96%87---context&#34;&gt;#&lt;/a&gt;
+&lt;/h1&gt;
+&lt;p&gt;Context是由Golang官方开发的并发控制包，一方面可以用于当请求超时或者取消时候，相关的goroutine马上退出释放资源，另一方面Context本身含义就是上下文，其可以在多个goroutine或者多个处理函数之间传递共享的信息。&lt;/p&gt;
+&lt;p&gt;创建一个新的context，必须基于一个父context，新的context又可以作为其他context的父context。所有context在一起构造成一个context树。&lt;/p&gt;
+&lt;p&gt;
+  &lt;img src=&#34;https://static.cyub.vip/images/202008/context-tree.jpg&#34; alt=&#34;context tree&#34; /&gt;&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>互斥锁 - sync.Mutex</title>
+      <link>https://go.cyub.vip/concurrency/sync-mutex/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-mutex/</guid>
+      <description> 互斥锁 - sync.Mutex # </description>
+    </item>
+    
+    <item>
+      <title>内存模型 - memroy model</title>
+      <link>https://go.cyub.vip/concurrency/memory-model/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/memory-model/</guid>
+      <description>内存模型 # Go语言中的内存模型规定了多个goroutine读取变量时候，变量的可见性情况。注意本章节的内存模型并不是内存对象分配、管理、回收的模型，准确的说这里面的内存模型是内存一致性模型。
+Happens Before原则 # Happens Before原则的定义是如果一个操作e1先于操作e2发生，那么我们就说e1 happens before e2，也可以描述成e2 happens after e2，此时e1操作的变量结果对e2都是可见的。如果e1操作既不先于e2发生又不晚于e2发生，我们说e1操作与e2操作并发发生。
+Happens Before具有传导性：如果操作e1 happens before 操作e2，e3 happends before e1，那么e3一定也 happends before e2。
+由于存在指令重排和多核CPU并发访问情况，我们代码中变量顺序和实际方法顺序并不总是一致的。考虑下面一种情况：
+a := 1 b := 2 c := a + 1 上面代码中是先给变量a赋值，然后给变量b赋值，最后给编程c赋值。但是在底层实现指令时候，可能发生指令重排：变量b赋值在前，变量a赋值在后，最后变量c赋值。对于依赖于a变量的c变量的赋值，不管怎样指令重排，Go语言都会保证变量a赋值操作 happends before c变量赋值操作。
+上面代码运行是运行在同一goroutine中，Go语言时能够保证happends before原则的，实现正确的变量可见性。但对于多个goroutine共享数据时候，Go语言是无法保证Happens Before原则的，这时候就需要我们采用锁、通道等同步手段来保证数据一致性。考虑下面场景：
+var a, b int // goroutine A go func() { a = 1 b = 2 }() // goroutine B go func() { if b == 2 { print(a) } }() 当执行goroutine B打印变量a时并不一定打印出来1，有可能打印出来的是0。这是因为goroutine A中可能存在指令重排，先将b变量赋值2，若这时候接着执行goroutine B那么就会打印出来0</description>
+    </item>
+    
+    <item>
+      <title>原子操作-atomic</title>
+      <link>https://go.cyub.vip/concurrency/atomic/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/atomic/</guid>
+      <description>原子操作 - atomic # atomic是Go内置原子操作包。下面是官方说明：
+Package atomic provides low-level atomic memory primitives useful for implementing synchronization algorithms. atomic包提供了用于实现同步机制的底层原子内存原语。
+These functions require great care to be used correctly. Except for special, low-level applications, synchronization is better done with channels or the facilities of the sync package. Share memory by communicating; don&amp;rsquo;t communicate by sharing memory. 使用这些功能需要非常小心。除了特殊的底层应用程序外，最好使用通道或sync包来进行同步。通过通信来共享内存；不要通过共享内存来通信。
+atomic包提供的操作可以分为三类：
+对整数类型T的操作 # T类型是int32、int64、uint32、uint64、uintptr其中一种。
+func AddT(addr *T, delta T) (new T) func CompareAndSwapT(addr *T, old, new T) (swapped bool) func LoadT(addr *T) (val T) func StoreT(addr *T, val T) func SwapT(addr *T, new T) (old T) 对于unsafe.</description>
+    </item>
+    
+    <item>
+      <title>并发Map - sync.Map</title>
+      <link>https://go.cyub.vip/concurrency/sync-map/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-map/</guid>
+      <description>并发Map - sync.Map # 源码分析 # sync.Map的结构：
+type Map struct { mu Mutex // 排他锁，用于对dirty map操作时候加锁处理 read atomic.Value // read map // dirty map。新增key时候，只写入dirty map中，需要使用mu dirty map[interface{}]*entry // 用来记录从read map中读取key时miss的次数 misses int } sync.Map结构体中read字段是atomic.Value类型，底层是readOnly结构体：
+type readOnly struct { m map[interface{}]*entry amended bool // 当amended为true时候，表示sync.Map中的key也存在dirty map中 } read map和dirty map的value类型是*entry， entry结构体定义如下：
+// expunged用来标记从dirty map删除掉了 var expunged = unsafe.Pointer(new(interface{})) type entry struct { // 如果p == nil 说明对应的entry已经被删除掉了， 且m.dirty == nil // 如果 p == expunged 说明对应的entry已经被删除了，但m.</description>
+    </item>
+    
+    <item>
+      <title>条件变量 - sync.Cond</title>
+      <link>https://go.cyub.vip/concurrency/sync-cond/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-cond/</guid>
+      <description> 条件变量 - sync.Cond # </description>
+    </item>
+    
+    <item>
+      <title>等待组 - sync.WaitGroup</title>
+      <link>https://go.cyub.vip/concurrency/sync-waitgroup/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-waitgroup/</guid>
+      <description>等待组 - sync.WaitGroup # 源码分析 # type WaitGroup struct { noCopy noCopy // waitgroup是不能够拷贝复制的，是通过go vet来检测实现 /* waitgroup使用一个int64来计数：高32位，用来add计数，低32位用来记录waiter数量。 若要原子性更新int64就必须保证该int64对齐系数是8，即64位对齐。 对于64位系统，直接使用一个int64类型字段就能保证原子性要求，但对32位系统就不行了。 所以实现的时候并没有直接一个int64， 而是使用[3]int32数组，若[0]int32地址恰好是8对齐的，那就waitgroup int64 = [0]int32 + [1]int32， 否则一定是4对齐的， 故[0]int32不用，恰好错开了4字节，此时[1]int32一定是8对齐的。此时waitgroup int64 = [1]int32 + [2]int32 通过这个技巧恰好满足32位和64位系统下int64都能原子性操作 */ state1 [3]uint32 // waitgroup对齐系数是4 } func (wg *WaitGroup) state() (statep *uint64, semap *uint32) { // 当state1是8对齐的，则返回低8字节(statep)用来计数，即state1[0]是add计数，state1[1]是waiter计数 if uintptr(unsafe.Pointer(&amp;amp;wg.state1))%8 == 0 { return (*uint64)(unsafe.Pointer(&amp;amp;wg.state1)), &amp;amp;wg.state1[2] } else { // 反之，则返回高8字节用来计数，即state1[1]是add计数，state1[2]是waiter计数 return (*uint64)(unsafe.Pointer(&amp;amp;wg.state1[1])), &amp;amp;wg.state1[0] } } // Add方法用来更新add计数器。即将原来计数值加上delta，delta可以为负值 // waitgroup的Done方法本质上就是Add(-1) // Add更新之后的计数器值不能小于0。当计数器值等于0时候，会释放信号，所有调用Wait方法而阻塞的Goroutine不再阻塞（释放的信号量=waiter计数） func (wg *WaitGroup) Add(delta int) { statep, semap := wg.</description>
+    </item>
+    
+    <item>
+      <title>缓冲池 - sync.Pool</title>
+      <link>https://go.cyub.vip/concurrency/sync-pool/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-pool/</guid>
+      <description>缓冲池 - sync.Pool # A Pool is a set of temporary objects that may be individually saved and retrieved.
+Any item stored in the Pool may be removed automatically at any time without notification. If the Pool holds the only reference when this happens, the item might be deallocated.
+A Pool is safe for use by multiple goroutines simultaneously.
+Pool&amp;rsquo;s purpose is to cache allocated but unused items for later reuse, relieving pressure on the garbage collector.</description>
+    </item>
+    
+    <item>
+      <title>读写锁 - sync.RWMutex</title>
+      <link>https://go.cyub.vip/concurrency/sync-rwmutex/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-rwmutex/</guid>
+      <description>读写锁 - sync.RWMutex # RWMutex是Go语言中内置的一个reader/writer锁，用来解决读者-写者问题（Readers–writers problem）。在任意一时刻，一个RWMutex只能由任意数量的reader持有，或者只能由一个writer持有。
+读者-写者问题 # 读者-写者问题（Readers–writers problem）描述了计算机并发处理读写数据遇到的问题，如何保证数据完整性、一致性。解决读者-写者问题需保证对于一份资源操作满足以下下条件：
+读写互斥 写写互斥 允许多个读者同时读取 解决读者-写者问题，可以采用读者优先（readers-preference）方案或者写者优先（writers-preference）方案。
+读者优先（readers-preference）：读者优先是读操作优先于写操作，即使写操作提出申请资源，但只要还有读者在读取操作，就还允许其他读者继续读取操作，直到所有读者结束读取，才开始写。读优先可以提供很高的并发处理性能，但是在频繁读取的系统中，会长时间写阻塞，导致写饥饿。
+写者优先（writers-preference）：写者优先是写操作优先于读操作，如果有写者提出申请资源，在申请之前已经开始读取操作的可以继续执行读取，但是如果再有读者申请读取操作，则不能够读取，只有在所有的写者写完之后才可以读取。写者优先解决了读者优先造成写饥饿的问题。但是若在频繁写入的系统中，会长时间读阻塞，导致读饥饿。
+RWMutex设计采用写者优先方法，保证写操作优先处理。
+源码分析 # 下面分析的源码进行精简处理，去掉了race检查功能的代码。
+RWMutex的定义 # type RWMutex struct { w Mutex // 互斥锁 writerSem uint32 // writers信号量 readerSem uint32 // readers信号量 readerCount int32 // reader数量 readerWait int32 // writer申请锁时候，已经申请到锁的reader的数量 } const rwmutexMaxReaders = 1 &amp;lt;&amp;lt; 30 // 最大reader数，用于反转readerCount RLock/RUnlock的实现 # func (rw *RWMutex) RLock() { if atomic.AddInt32(&amp;amp;rw.readerCount, 1) &amp;lt; 0 { // 如果rw.</description>
+    </item>
+    
+    <item>
+      <title>通道 - channel</title>
+      <link>https://go.cyub.vip/concurrency/channel/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/channel/</guid>
+      <description>&lt;h1 id=&#34;通道---channel&#34;&gt;
+  通道 - channel
+  &lt;a class=&#34;anchor&#34; href=&#34;#%e9%80%9a%e9%81%93---channel&#34;&gt;#&lt;/a&gt;
+&lt;/h1&gt;
+&lt;p&gt;Golang中Channel是goroutine间重要通信的方式，是并发安全的，通道内的数据First In First Out，我们可以把通道想象成队列。&lt;/p&gt;
+&lt;h2 id=&#34;channel数据结构&#34;&gt;
+  channel数据结构
+  &lt;a class=&#34;anchor&#34; href=&#34;#channel%e6%95%b0%e6%8d%ae%e7%bb%93%e6%9e%84&#34;&gt;#&lt;/a&gt;
+&lt;/h2&gt;
+&lt;p&gt;Channel底层数据结构是一个结构体。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-go&#34; data-lang=&#34;go&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;type&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;hchan&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;struct&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;qcount&lt;/span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;uint&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 队列中元素个数
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;dataqsiz&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;uint&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 循环队列的大小
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;buf&lt;/span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;unsafe&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;Pointer&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 指向循环队列
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;elemsize&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;uint16&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 通道里面的元素大小
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;closed&lt;/span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;uint32&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 通道关闭的标志
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;elemtype&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;_type&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 通道元素的类型
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;sendx&lt;/span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;uint&lt;/span&gt;   &lt;span style=&#34;color:#75715e&#34;&gt;// 待发送的索引，即循环队列中的队尾指针rear
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;recvx&lt;/span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;uint&lt;/span&gt;   &lt;span style=&#34;color:#75715e&#34;&gt;// 待读取的索引，即循环队列中的队头指针front
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;recvq&lt;/span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;waitq&lt;/span&gt;  &lt;span style=&#34;color:#75715e&#34;&gt;// 接收等待队列
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;sendq&lt;/span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;waitq&lt;/span&gt;  &lt;span style=&#34;color:#75715e&#34;&gt;// 发送等待队列
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;lock&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;mutex&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 互斥锁
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

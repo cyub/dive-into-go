@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="切片 # 切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。
+初始化 # 切片初始化方式可以分为三种：
+使用make函数创建切片
+make函数语法格式为：make([]T, length, capacity)，capacity可以省略，默认等于length
+使用字面量创建切片
+从数组或者切片派生(reslice)出新切片
+Go支持从数组、指向数组的指针、切片类型变量再reslice一个新切片。
+reslice操作语法可以是[]T[low : high]，也可以是[]T[low : high : max]。其中low,high,max都可以省略，low默认值是0，high默认值cap([]T)，max默认值cap([]T)。low,hight,max取值范围是0 &lt;= low &lt;= high &lt;= max &lt;= cap([]T)，其中high-low是新切片的长度，max-low是新切片的容量。
+对于[]T[low : high]，其包含的元素是[]T中下标low开始，到high结束（不含high所在位置的，相当于左闭右开[low, high)）的元素，元素个数是high - low个，容量是cap([]T) - low。
+func main() { slice1 := make([]int, 0) slice2 := make([]int, 1, 3) slice3 := []int{} slice4 := []int{1: 2, 3} arr := []int{1, 2, 3} slice5 := arr[1:2] slice6 := arr[1:2:2] slice7 := arr[1:] slice8 := arr[:1] slice9 := arr[3:] slice10 := slice2[1:2] fmt.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="切片" />
+<meta property="og:description" content="切片 # 切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。
+初始化 # 切片初始化方式可以分为三种：
+使用make函数创建切片
+make函数语法格式为：make([]T, length, capacity)，capacity可以省略，默认等于length
+使用字面量创建切片
+从数组或者切片派生(reslice)出新切片
+Go支持从数组、指向数组的指针、切片类型变量再reslice一个新切片。
+reslice操作语法可以是[]T[low : high]，也可以是[]T[low : high : max]。其中low,high,max都可以省略，low默认值是0，high默认值cap([]T)，max默认值cap([]T)。low,hight,max取值范围是0 &lt;= low &lt;= high &lt;= max &lt;= cap([]T)，其中high-low是新切片的长度，max-low是新切片的容量。
+对于[]T[low : high]，其包含的元素是[]T中下标low开始，到high结束（不含high所在位置的，相当于左闭右开[low, high)）的元素，元素个数是high - low个，容量是cap([]T) - low。
+func main() { slice1 := make([]int, 0) slice2 := make([]int, 1, 3) slice3 := []int{} slice4 := []int{1: 2, 3} arr := []int{1, 2, 3} slice5 := arr[1:2] slice6 := arr[1:2:2] slice7 := arr[1:] slice8 := arr[:1] slice9 := arr[3:] slice10 := slice2[1:2] fmt." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/type/slice/" /><meta property="article:section" content="type" />
+
+
+<title>切片 | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/"class=active>切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>切片</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="切片">
+  切片
+  <a class="anchor" href="#%e5%88%87%e7%89%87">#</a>
+</h1>
+<p>切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。</p>
+<h2 id="初始化">
+  初始化
+  <a class="anchor" href="#%e5%88%9d%e5%a7%8b%e5%8c%96">#</a>
+</h2>
+<p>切片初始化方式可以分为三种：</p>
+<ul>
+<li>
+<p>使用make函数创建切片</p>
+<p>make函数语法格式为：make([]T, length, capacity)，capacity可以省略，默认等于length</p>
+</li>
+<li>
+<p>使用字面量创建切片</p>
+</li>
+<li>
+<p>从数组或者切片派生(reslice)出新切片</p>
+<p>Go支持从数组、指向数组的指针、切片类型变量再reslice一个新切片。</p>
+<p>reslice操作语法可以是[]T[low : high]，也可以是[]T[low : high : max]。其中low,high,max都可以省略，low默认值是0，high默认值cap([]T)，max默认值cap([]T)。low,hight,max取值范围是<code>0 &lt;= low &lt;= high &lt;= max &lt;= cap([]T)</code>，其中high-low是新切片的长度，max-low是新切片的容量。</p>
+<p>对于[]T[low : high]，其包含的元素是[]T中下标low开始，到high结束（不含high所在位置的，相当于左闭右开[low, high)）的元素，元素个数是high - low个，容量是cap([]T) - low。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice1</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">int</span>, <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">int</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">3</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice3</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">int</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice4</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">int</span>{<span style="color:#ae81ff">1</span>: <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">arr</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">int</span>{<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice5</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">1</span>:<span style="color:#ae81ff">2</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice6</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">1</span>:<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">2</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice7</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">1</span>:]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice8</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">arr</span>[:<span style="color:#ae81ff">1</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice9</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">3</span>:]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice10</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">slice2</span>[<span style="color:#ae81ff">1</span>:<span style="color:#ae81ff">2</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice1&#34;</span>, <span style="color:#a6e22e">slice1</span>, len(<span style="color:#a6e22e">slice1</span>), cap(<span style="color:#a6e22e">slice1</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice2&#34;</span>, <span style="color:#a6e22e">slice2</span>, len(<span style="color:#a6e22e">slice2</span>), cap(<span style="color:#a6e22e">slice2</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice3&#34;</span>, <span style="color:#a6e22e">slice3</span>, len(<span style="color:#a6e22e">slice3</span>), cap(<span style="color:#a6e22e">slice3</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice4&#34;</span>, <span style="color:#a6e22e">slice4</span>, len(<span style="color:#a6e22e">slice4</span>), cap(<span style="color:#a6e22e">slice4</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice5&#34;</span>, <span style="color:#a6e22e">slice5</span>, len(<span style="color:#a6e22e">slice5</span>), cap(<span style="color:#a6e22e">slice5</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice6&#34;</span>, <span style="color:#a6e22e">slice6</span>, len(<span style="color:#a6e22e">slice6</span>), cap(<span style="color:#a6e22e">slice6</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice7&#34;</span>, <span style="color:#a6e22e">slice7</span>, len(<span style="color:#a6e22e">slice7</span>), cap(<span style="color:#a6e22e">slice7</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice8&#34;</span>, <span style="color:#a6e22e">slice8</span>, len(<span style="color:#a6e22e">slice8</span>), cap(<span style="color:#a6e22e">slice8</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice9&#34;</span>, <span style="color:#a6e22e">slice9</span>, len(<span style="color:#a6e22e">slice9</span>), cap(<span style="color:#a6e22e">slice9</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s = %v,\t len = %d, cap = %d\n&#34;</span>, <span style="color:#e6db74">&#34;slice10&#34;</span>, <span style="color:#a6e22e">slice10</span>, len(<span style="color:#a6e22e">slice10</span>), cap(<span style="color:#a6e22e">slice10</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码输出一下内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>slice1 <span style="color:#f92672">=</span> <span style="color:#f92672">[]</span>,	 len <span style="color:#f92672">=</span> 0, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>slice2 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span>0<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 1, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span>slice3 <span style="color:#f92672">=</span> <span style="color:#f92672">[]</span>,	 len <span style="color:#f92672">=</span> 0, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>slice4 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">2</span> 3<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 3, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span>slice5 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span>2<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 1, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>slice6 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span>2<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 1, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>slice7 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">2</span> 3<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 2, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>slice8 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 1, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span>slice9 <span style="color:#f92672">=</span> <span style="color:#f92672">[]</span>,	 len <span style="color:#f92672">=</span> 0, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>slice10 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span>0<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 1, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>
+</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. hint:: 当我们使用arr[3]访问切片元素时候会报 ``index out of range [3] with length`` 错误，而使用arr[3:]来初始化slice9却是OK的。这是Go语言故意为之的。具体原因可以参见 `Why slice not painc &lt;https://github.com/golang/go/issues/42069&gt;`_ 这个issue。
+</code></pre><p>接下来我们来看看切片底层数据结构。</p>
+<h2 id="数据结构">
+  数据结构
+  <a class="anchor" href="#%e6%95%b0%e6%8d%ae%e7%bb%93%e6%9e%84">#</a>
+</h2>
+<p>Go语言中切片的底层数据结构是<code>runtime.slice</code>（
+  <a href="https://github.com/golang/go/blob/go1.14.13/src/runtime/slice.go#L13-L17">runtime/slice.go</a>），其中包含了指向数据数组的指针，切片长度以及切片容量：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">slice</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">array</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span> <span style="color:#75715e">// 底层数据数组的指针
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">len</span>   <span style="color:#66d9ef">int</span> <span style="color:#75715e">// 切片长度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">cap</span>   <span style="color:#66d9ef">int</span> <span style="color:#75715e">// 切片容量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. hint:: 切片底层数据结构也可以说成是reflect.SliceHeader，两者没有冲突。
+</code></pre><p>我们来看看下面切片如何共用同一个底层数组的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">byte</span>{<span style="color:#e6db74">&#39;h&#39;</span>, <span style="color:#e6db74">&#39;e&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;o&#39;</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>:<span style="color:#ae81ff">3</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">a</span>), string(<span style="color:#a6e22e">b</span>), string(<span style="color:#a6e22e">c</span>)) <span style="color:#75715e">// 输出 hello l l
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/go_slice.png
+    :alt: go切片底层表示
+    :width: 400px
+    :align: center
+</code></pre><p>在前面
+  <a href="/type/string/">字符串</a>章节，我们使用了
+  <a href="/analysis-tools/gdb/">GDB</a>工具验证了字符串的数据结构，这一次我们使用另外一种方式验证切片的数据结构：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">type</span> <span style="color:#a6e22e">sliceHeader</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">array</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span> <span style="color:#75715e">// 底层数据数组的指针
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">len</span>   <span style="color:#66d9ef">int</span>            <span style="color:#75715e">// 切片长度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">cap</span>   <span style="color:#66d9ef">int</span>            <span style="color:#75715e">// 切片容量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">byte</span>{<span style="color:#e6db74">&#39;h&#39;</span>, <span style="color:#e6db74">&#39;e&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;o&#39;</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>:<span style="color:#ae81ff">3</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ptrA</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">sliceHeader</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">a</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ptrB</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">sliceHeader</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ptrC</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">sliceHeader</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;切片%s: 底层数组地址=0x%x, 长度=%d, 容量=%d\n&#34;</span>, <span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#a6e22e">ptrA</span>.<span style="color:#a6e22e">array</span>, <span style="color:#a6e22e">ptrA</span>.<span style="color:#a6e22e">len</span>, <span style="color:#a6e22e">ptrA</span>.<span style="color:#a6e22e">cap</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;切片%s: 底层数组地址=0x%x, 长度=%d, 容量=%d\n&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#a6e22e">ptrB</span>.<span style="color:#a6e22e">array</span>, <span style="color:#a6e22e">ptrB</span>.<span style="color:#a6e22e">len</span>, <span style="color:#a6e22e">ptrB</span>.<span style="color:#a6e22e">cap</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;切片%s: 底层数组地址=0x%x, 长度=%d, 容量=%d\n&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#a6e22e">ptrC</span>.<span style="color:#a6e22e">array</span>, <span style="color:#a6e22e">ptrC</span>.<span style="color:#a6e22e">len</span>, <span style="color:#a6e22e">ptrC</span>.<span style="color:#a6e22e">cap</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码输出以下内容，完全符合预期：</p>
+<pre tabindex="0"><code>切片a: 底层数组地址=0xc00009400b, 长度=5, 容量=5
+切片b: 底层数组地址=0xc00009400d, 长度=1, 容量=3
+切片c: 底层数组地址=0xc00009400d, 长度=1, 容量=1
+</code></pre><h2 id="副作用">
+  副作用
+  <a class="anchor" href="#%e5%89%af%e4%bd%9c%e7%94%a8">#</a>
+</h2>
+<p>由于切片底层结构的特殊性，当我们使用切片的时候需要特别留心，防止产生副作用(side effect)。</p>
+<h3 id="示例1append操作产生副作用">
+  示例1：append操作产生副作用
+  <a class="anchor" href="#%e7%a4%ba%e4%be%8b1append%e6%93%8d%e4%bd%9c%e4%ba%a7%e7%94%9f%e5%89%af%e4%bd%9c%e7%94%a8">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice1</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">byte</span>{<span style="color:#e6db74">&#39;h&#39;</span>, <span style="color:#e6db74">&#39;e&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;o&#39;</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">slice1</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> = append(<span style="color:#a6e22e">slice2</span>, <span style="color:#e6db74">&#39;g&#39;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice2</span>)) <span style="color:#75715e">// lg
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice1</span>)) <span style="color:#75715e">// 输出helge，slice1的值也变了。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>上面代码本意是将切片slice2追加<code>g</code>字符，却产生副作用，即也修改了slice1的值：</p>
+<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/slice_append_effect.png
+    :alt: 追加切片时候发生副作用
+    :width: 400px
+    :align: center
+</code></pre><p>解决这个问题有两种方式：一种是reslice时候指定max边界，第二种使用copy函数拷贝出一个副本。</p>
+<p><strong>reslice时候指定max边界</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice1</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">byte</span>{<span style="color:#e6db74">&#39;h&#39;</span>, <span style="color:#e6db74">&#39;e&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;o&#39;</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">slice1</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>:<span style="color:#ae81ff">3</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> = append(<span style="color:#a6e22e">slice2</span>, <span style="color:#e6db74">&#39;g&#39;</span>) <span style="color:#75715e">// 此时slice2容量扩大到8
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice2</span>)) <span style="color:#75715e">// 输出lg
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice1</span>)) <span style="color:#75715e">// 输出hello
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p><code>slice2 := slice1[2:3:3]</code>方式reslice之后slice2的长度和容量一样，若对slice2再进行append操作其一定会进行扩容，此后slice2和slice1之间就没有任何关系了。</p>
+<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/slice_append_effect2.png
+    :alt: 追加切片时候避免副作用
+    :width: 500px
+    :align: center
+</code></pre><p><strong>使用copy函数拷贝出一个副本</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice1</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">byte</span>{<span style="color:#e6db74">&#39;h&#39;</span>, <span style="color:#e6db74">&#39;e&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;o&#39;</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">byte</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>	copy(<span style="color:#a6e22e">slice2</span>, <span style="color:#a6e22e">slice1</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>])
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> = append(<span style="color:#a6e22e">slice2</span>, <span style="color:#e6db74">&#39;g&#39;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice2</span>)) <span style="color:#75715e">// 输出lg
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice1</span>)) <span style="color:#75715e">// 输出hello
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h3 id="示例2指针类型变量引用切片产生副作用">
+  示例2：指针类型变量引用切片产生副作用
+  <a class="anchor" href="#%e7%a4%ba%e4%be%8b2%e6%8c%87%e9%92%88%e7%b1%bb%e5%9e%8b%e5%8f%98%e9%87%8f%e5%bc%95%e7%94%a8%e5%88%87%e7%89%87%e4%ba%a7%e7%94%9f%e5%89%af%e4%bd%9c%e7%94%a8">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">User</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Likes</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">users</span> <span style="color:#f92672">:=</span> make([]<span style="color:#a6e22e">User</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">pFirstUser</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">users</span>[<span style="color:#ae81ff">0</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">pFirstUser</span>.<span style="color:#a6e22e">Likes</span><span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;所有用户：&#34;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">users</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;User: %d Likes: %d\n\n&#34;</span>, <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">users</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">Likes</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">users</span> = append(<span style="color:#a6e22e">users</span>, <span style="color:#a6e22e">User</span>{}) <span style="color:#75715e">// 添加一个新用户到集合中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">pFirstUser</span>.<span style="color:#a6e22e">Likes</span><span style="color:#f92672">++</span>                <span style="color:#75715e">// 第一个用户的Likes次数加一
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;所有用户：&#34;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">users</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;User: %d Likes: %d\n&#34;</span>, <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">users</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">Likes</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>指向上面代码输出以下内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">所有用户</span><span style="color:#960050;background-color:#1e0010">：</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">User</span>: <span style="color:#ae81ff">0</span> <span style="color:#a6e22e">Likes</span>: <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">所有用户</span><span style="color:#960050;background-color:#1e0010">：</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">User</span>: <span style="color:#ae81ff">0</span> <span style="color:#a6e22e">Likes</span>: <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">User</span>: <span style="color:#ae81ff">1</span> <span style="color:#a6e22e">Likes</span>: <span style="color:#ae81ff">0</span>
+</span></span></code></pre></div><p>代码本意是通过User类型指针变量<code>pUsers</code>进行第一个用户Likes更新操作，没想到切片进行append之后，发生了副作用：<code>pUsers</code>指向切片已经与切片变量<code>users</code>不一样了。</p>
+<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/slice_append_effect3.png
+    :alt: 追加切片时候避免副作用
+    :width: 500px
+    :align: center
+</code></pre><h3 id="避免切片副作用黄金法则">
+  避免切片副作用黄金法则
+  <a class="anchor" href="#%e9%81%bf%e5%85%8d%e5%88%87%e7%89%87%e5%89%af%e4%bd%9c%e7%94%a8%e9%bb%84%e9%87%91%e6%b3%95%e5%88%99">#</a>
+</h3>
+<p><strong>黄金法则1：在边界处拷贝切片</strong>，这里面的边界指的是函数接受切片参数或返回切片的时候。</p>
+<p><strong>黄金法则2：永远不要使用一个变量来引用切片数据</strong>。</p>
+<h2 id="扩容策略">
+  扩容策略
+  <a class="anchor" href="#%e6%89%a9%e5%ae%b9%e7%ad%96%e7%95%a5">#</a>
+</h2>
+<p>当对切片进行append操作时候，若切片容量不够时候，会进行扩容处理。当切片进行扩容时候会先调用<code>runtime.growslice</code>函数，该函数返回一个新的slice底层结构体，该结构体array字段指向新的底层数组地址，cap字段是新切片的容量，<strong>len字段是旧切片的长度</strong>，旧切片的内容会拷贝到新切片中，最后再把要追加的数据复制到新切片中，并更新切片len长度。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// et是slice元素类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// old是旧的slice
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// cap是新slice最低要求容量大小。是旧的slice的长度加上append函数中追加的元素的个数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 比如s := []int{1, 2, 3}；s = append(s, 4, 5); 此时growslice中的cap参数值为5
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">growslice</span>(<span style="color:#a6e22e">et</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">_type</span>, <span style="color:#a6e22e">old</span> <span style="color:#a6e22e">slice</span>, <span style="color:#a6e22e">cap</span> <span style="color:#66d9ef">int</span>) <span style="color:#a6e22e">slice</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">cap</span> &lt; <span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">cap</span> {
+</span></span><span style="display:flex;"><span>		panic(<span style="color:#a6e22e">errorString</span>(<span style="color:#e6db74">&#34;growslice: cap out of range&#34;</span>))
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">slice</span>{<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">zerobase</span>), <span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">len</span>, <span style="color:#a6e22e">cap</span>}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">newcap</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">cap</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">doublecap</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">newcap</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">newcap</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">cap</span> &gt; <span style="color:#a6e22e">doublecap</span> { <span style="color:#75715e">// 最小cap要求大于旧slice的cap两倍大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">newcap</span> = <span style="color:#a6e22e">cap</span>
+</span></span><span style="display:flex;"><span>	} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">len</span> &lt; <span style="color:#ae81ff">1024</span> { <span style="color:#75715e">// 当旧slice的len小于1024, 扩容一倍
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">newcap</span> = <span style="color:#a6e22e">doublecap</span>
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> { <span style="color:#75715e">// 否则每次扩容25%
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">for</span> <span style="color:#ae81ff">0</span> &lt; <span style="color:#a6e22e">newcap</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">newcap</span> &lt; <span style="color:#a6e22e">cap</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">newcap</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">newcap</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">4</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">newcap</span> <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">newcap</span> = <span style="color:#a6e22e">cap</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">overflow</span> <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">lenmem</span>, <span style="color:#a6e22e">newlenmem</span>, <span style="color:#a6e22e">capmem</span> <span style="color:#66d9ef">uintptr</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">switch</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span>: <span style="color:#75715e">// 元素大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">lenmem</span> = uintptr(<span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">len</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">newlenmem</span> = uintptr(<span style="color:#a6e22e">cap</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">capmem</span> = <span style="color:#a6e22e">roundupsize</span>(uintptr(<span style="color:#a6e22e">newcap</span>))
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">overflow</span> = uintptr(<span style="color:#a6e22e">newcap</span>) &gt; <span style="color:#a6e22e">maxAlloc</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">newcap</span> = int(<span style="color:#a6e22e">capmem</span>) <span style="color:#75715e">// 调整newcap大小
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">PtrSize</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">lenmem</span> = uintptr(<span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">len</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">PtrSize</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">newlenmem</span> = uintptr(<span style="color:#a6e22e">cap</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">PtrSize</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">capmem</span> = <span style="color:#a6e22e">roundupsize</span>(uintptr(<span style="color:#a6e22e">newcap</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">PtrSize</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">overflow</span> = uintptr(<span style="color:#a6e22e">newcap</span>) &gt; <span style="color:#a6e22e">maxAlloc</span><span style="color:#f92672">/</span><span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">PtrSize</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">newcap</span> = int(<span style="color:#a6e22e">capmem</span> <span style="color:#f92672">/</span> <span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">PtrSize</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">isPowerOfTwo</span>(<span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span>):
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">shift</span> <span style="color:#66d9ef">uintptr</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">PtrSize</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">8</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// Mask shift for better code generation.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">shift</span> = uintptr(<span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">Ctz64</span>(uint64(<span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span>))) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">63</span>
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">shift</span> = uintptr(<span style="color:#a6e22e">sys</span>.<span style="color:#a6e22e">Ctz32</span>(uint32(<span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span>))) <span style="color:#f92672">&amp;</span> <span style="color:#ae81ff">31</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">lenmem</span> = uintptr(<span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">len</span>) <span style="color:#f92672">&lt;&lt;</span> <span style="color:#a6e22e">shift</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">newlenmem</span> = uintptr(<span style="color:#a6e22e">cap</span>) <span style="color:#f92672">&lt;&lt;</span> <span style="color:#a6e22e">shift</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">capmem</span> = <span style="color:#a6e22e">roundupsize</span>(uintptr(<span style="color:#a6e22e">newcap</span>) <span style="color:#f92672">&lt;&lt;</span> <span style="color:#a6e22e">shift</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">overflow</span> = uintptr(<span style="color:#a6e22e">newcap</span>) &gt; (<span style="color:#a6e22e">maxAlloc</span> <span style="color:#f92672">&gt;&gt;</span> <span style="color:#a6e22e">shift</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">newcap</span> = int(<span style="color:#a6e22e">capmem</span> <span style="color:#f92672">&gt;&gt;</span> <span style="color:#a6e22e">shift</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">default</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">lenmem</span> = uintptr(<span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">len</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">newlenmem</span> = uintptr(<span style="color:#a6e22e">cap</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">capmem</span>, <span style="color:#a6e22e">overflow</span> = <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">MulUintptr</span>(<span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span>, uintptr(<span style="color:#a6e22e">newcap</span>))
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">capmem</span> = <span style="color:#a6e22e">roundupsize</span>(<span style="color:#a6e22e">capmem</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">newcap</span> = int(<span style="color:#a6e22e">capmem</span> <span style="color:#f92672">/</span> <span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">size</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">overflow</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">capmem</span> &gt; <span style="color:#a6e22e">maxAlloc</span> {
+</span></span><span style="display:flex;"><span>		panic(<span style="color:#a6e22e">errorString</span>(<span style="color:#e6db74">&#34;growslice: cap out of range&#34;</span>))
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">p</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">et</span>.<span style="color:#a6e22e">ptrdata</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> { <span style="color:#75715e">// 切片元素中没有指针类型数据，不用考虑写屏障问题
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">p</span> = <span style="color:#a6e22e">mallocgc</span>(<span style="color:#a6e22e">capmem</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">false</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">memclrNoHeapPointers</span>(<span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">newlenmem</span>), <span style="color:#a6e22e">capmem</span><span style="color:#f92672">-</span><span style="color:#a6e22e">newlenmem</span>)
+</span></span><span style="display:flex;"><span>	} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">p</span> = <span style="color:#a6e22e">mallocgc</span>(<span style="color:#a6e22e">capmem</span>, <span style="color:#a6e22e">et</span>, <span style="color:#66d9ef">true</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">lenmem</span> &gt; <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">writeBarrier</span>.<span style="color:#a6e22e">enabled</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">bulkBarrierPreWriteSrcOnly</span>(uintptr(<span style="color:#a6e22e">p</span>), uintptr(<span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">array</span>), <span style="color:#a6e22e">lenmem</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 涉及到slice扩容都会有内存移动操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">memmove</span>(<span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">array</span>, <span style="color:#a6e22e">lenmem</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">slice</span>{<span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">old</span>.<span style="color:#a6e22e">len</span>, <span style="color:#a6e22e">newcap</span>}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>从上面代码中可以总结出切片扩容的策略是：</p>
+<ol>
+<li>若切片容量小于1024，会扩容一倍</li>
+<li>若切片容量大于等于1024，会扩容1/4大小，由于考虑内存对齐，最终实际扩容大小可能会大于1/4</li>
+</ol>
+<p>从上面代码中可以看到，切片进行扩容时一定会进行内存拷贝，这是成本较大操作。所以<strong>切片一大优化点就是在使用之前尽量指定好切片所需容量，避免出现扩容情况</strong>。</p>
+<h2 id="string类型与byte类型如何实现zero-copy互相转换">
+  string类型与[]byte类型如何实现zero-copy互相转换？
+  <a class="anchor" href="#string%e7%b1%bb%e5%9e%8b%e4%b8%8ebyte%e7%b1%bb%e5%9e%8b%e5%a6%82%e4%bd%95%e5%ae%9e%e7%8e%b0zero-copy%e4%ba%92%e7%9b%b8%e8%bd%ac%e6%8d%a2">#</a>
+</h2>
+<h3 id="zero-copy">
+  zero-copy
+  <a class="anchor" href="#zero-copy">#</a>
+</h3>
+<p>零拷贝(zero-copy)指的是CPU不需要先将数据从某处内存复制到另一个特定区域。当应用程序读取文件，需要从磁盘中加载内核区域，然后将内核区域内容复制到应用内存区域，这就涉及到内存拷贝。若采用mmap技术可以文件映射到特定内存中，只需加载一次，应用程序和内核都可以共享内存中文件数据，这就实现了zero-copy。或者当应用程序需要发送文件给远程时候，可以采用sendfile技术实现零拷贝，若未实现零拷贝，则需要进行四次拷贝过程:</p>
+<blockquote>
+<p>磁盘&mdash;（DMA copy）&ndash;&gt; 系统内核 &ndash;&gt; 应用程序区域 &ndash;&gt; 系统内核(socket) &mdash;（DMA copy）&mdash;&gt; 网卡</p>
+</blockquote>
+<h3 id="使用bytestring-和-stringbyte方式进行字符串和字节切片互转时候会不会发生内存拷贝">
+  使用[]byte(string) 和 string([]byte)方式进行字符串和字节切片互转时候会不会发生内存拷贝？
+  <a class="anchor" href="#%e4%bd%bf%e7%94%a8bytestring-%e5%92%8c-stringbyte%e6%96%b9%e5%bc%8f%e8%bf%9b%e8%a1%8c%e5%ad%97%e7%ac%a6%e4%b8%b2%e5%92%8c%e5%ad%97%e8%8a%82%e5%88%87%e7%89%87%e4%ba%92%e8%bd%ac%e6%97%b6%e5%80%99%e4%bc%9a%e4%b8%8d%e4%bc%9a%e5%8f%91%e7%94%9f%e5%86%85%e5%ad%98%e6%8b%b7%e8%b4%9d">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">byteArrayToString</span>(<span style="color:#a6e22e">b</span> []<span style="color:#66d9ef">byte</span>) <span style="color:#66d9ef">string</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> string(<span style="color:#a6e22e">b</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">stringToByteArray</span>(<span style="color:#a6e22e">s</span> <span style="color:#66d9ef">string</span>) []<span style="color:#66d9ef">byte</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> []byte(<span style="color:#a6e22e">s</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>我们来看下上面代码中的底层实现：<code>go tool compile -N -l -S main.go</code></p>
+<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. code-block::
+   :emphasize-lines: 15,25
+
+    &#34;&#34;.byteArrayToString STEXT size=117 args=0x28 locals=0x38
+    	0x0000 00000 (main.go:3)	TEXT	&#34;&#34;.byteArrayToString(SB), ABIInternal, $56-40
+    	0x0000 00000 (main.go:3)	MOVQ	(TLS), CX
+    	0x0009 00009 (main.go:3)	CMPQ	SP, 16(CX)
+    	0x000d 00013 (main.go:3)	PCDATA	$0, $-2
+    	0x000d 00013 (main.go:3)	JLS	110
+    	0x000f 00015 (main.go:3)	PCDATA	$0, $-1
+    	0x000f 00015 (main.go:3)	SUBQ	$56, SP
+    	0x0013 00019 (main.go:3)	MOVQ	BP, 48(SP)
+    	0x0018 00024 (main.go:3)	LEAQ	48(SP), BP
+    	...
+    	0x003c 00060 (main.go:4)	MOVQ	AX, 8(SP)
+    	0x0041 00065 (main.go:4)	MOVQ	CX, 16(SP)
+    	0x0046 00070 (main.go:4)	MOVQ	DX, 24(SP)
+    	0x004b 00075 (main.go:4)	CALL	runtime.slicebytetostring(SB)
+    	0x0050 00080 (main.go:4)	MOVQ	40(SP), AX
+    	....
+    &#34;&#34;.stringToByteArray STEXT size=144 args=0x28 locals=0x50
+    	0x0000 00000 (main.go:7)	TEXT	&#34;&#34;.stringToByteArray(SB), ABIInternal, $80-40
+    	0x0000 00000 (main.go:7)	MOVQ	(TLS), CX
+    	0x0009 00009 (main.go:7)	CMPQ	SP, 16(CX)
+    	...
+    	0x0040 00064 (main.go:8)	MOVQ	AX, 8(SP)
+    	0x0045 00069 (main.go:8)	MOVQ	CX, 16(SP)
+    	0x004a 00074 (main.go:8)	CALL	runtime.stringtoslicebyte(SB)
+    	0x004f 00079 (main.go:8)	MOVQ	32(SP), AX
+    	0x0054 00084 (main.go:8)	MOVQ	40(SP), CX
+    	....
+</code></pre><p>从上面汇编代码可以看到<code>string([]byte)</code>底层调用的是<code>runtime.slicebytetostring</code>，<code>[]byte(string)</code>底层调用的是<code>runtime.stringtoslicebyte</code>。查看这两个底层函数实现可以看到两者都是先创建一段内存空间，然后使用memmove函数拷贝内存，将数据拷贝到新内存空间。这也就是说<code>[]byte(string)</code> 和 <code>string([]byte)</code>进行转换时候需要内存拷贝。</p>
+<h3 id="string类型与byte类型-zero-copy转换实现">
+  string类型与[]byte类型 zero-copy转换实现
+  <a class="anchor" href="#string%e7%b1%bb%e5%9e%8b%e4%b8%8ebyte%e7%b1%bb%e5%9e%8b-zero-copy%e8%bd%ac%e6%8d%a2%e5%ae%9e%e7%8e%b0">#</a>
+</h3>
+<p>那么能不能实现不需要内存拷贝的字符串和字节切片的转换呢？答案是可以的。根据前面
+  <a href="/type/string/">字符串</a>章节和本章节，我们可以看到字符串和字节切片底层结构很相似，它们相同部分都有指向底层数据指针和记录底层数据长度len字段，字节切片额外多了一个字段cap，记录底层数据的容量，只要转换时候让它们共享底层数据就能实现zero-copy。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">StringHeader</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Data</span> <span style="color:#66d9ef">uintptr</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Len</span>  <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">SliceHeader</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Data</span> <span style="color:#66d9ef">uintptr</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Len</span>  <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Cap</span>  <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>我们来看下网上比较常见zero-copy的实现方式，它是有bug的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">string2bytes</span>(<span style="color:#a6e22e">s</span> <span style="color:#66d9ef">string</span>) []<span style="color:#66d9ef">byte</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span>[]<span style="color:#66d9ef">byte</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">bytes2string</span>(<span style="color:#a6e22e">b</span> []<span style="color:#66d9ef">byte</span>) <span style="color:#66d9ef">string</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>我们来测试一下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;hello&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">string2bytes</span>(<span style="color:#a6e22e">a</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">b</span>), len(<span style="color:#a6e22e">b</span>), cap(<span style="color:#a6e22e">b</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码输出以下内容：</p>
+<pre tabindex="0"><code>hello 5 824634122328
+</code></pre><p>可以看到字节切片的容量明显有问题的。我们来分析下。上面两个函数借助
+  <a href="/type/pointer/#unsafe-pointer">非安全指针类型</a>强制转换类型实现的。对于字节切片转换字符串使用这种方式是可以的，字节切片多余的cap字段会自动溢出掉；而反过来由于字符串没有记录容量字段，那么将其强制转换成字节切片时候，字节切片的cap字段是未知的，这有可能导致非常严重问题。所以将字符串转换成字节切片时候需要保证字节切片的cap设置正确。</p>
+<p>正确的字符串转字节切片实现如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">StringToBytes</span>(<span style="color:#a6e22e">s</span> <span style="color:#66d9ef">string</span>) (<span style="color:#a6e22e">b</span> []<span style="color:#66d9ef">byte</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sh</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">StringHeader</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">bh</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">SliceHeader</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">bh</span>.<span style="color:#a6e22e">Data</span>, <span style="color:#a6e22e">bh</span>.<span style="color:#a6e22e">Len</span>, <span style="color:#a6e22e">bh</span>.<span style="color:#a6e22e">Cap</span> = <span style="color:#a6e22e">sh</span>.<span style="color:#a6e22e">Data</span>, <span style="color:#a6e22e">sh</span>.<span style="color:#a6e22e">Len</span>, <span style="color:#a6e22e">sh</span>.<span style="color:#a6e22e">Len</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">b</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>或者</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">StringToBytes</span>(<span style="color:#a6e22e">s</span> <span style="color:#66d9ef">string</span>) []<span style="color:#66d9ef">byte</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span>[]<span style="color:#66d9ef">byte</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">Cap</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>		}{<span style="color:#a6e22e">s</span>, len(<span style="color:#a6e22e">s</span>)},
+</span></span><span style="display:flex;"><span>	))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="进一步阅读">
+  进一步阅读
+  <a class="anchor" href="#%e8%bf%9b%e4%b8%80%e6%ad%a5%e9%98%85%e8%af%bb">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://golang.org/ref/spec#Slice_expressions">The Go Programming Language Specification: Slice expressions</a></li>
+<li>
+  <a href="https://github.com/uber-go/guide/blob/master/style.md#copy-slices-and-maps-at-boundaries">Uber Go Style Guide: Copy Slices and Maps at Boundaries</a></li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

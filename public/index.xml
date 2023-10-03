@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>简介 on 深入Go语言之旅</title>
+    <link>https://go.cyub.vip/</link>
+    <description>Recent content in 简介 on 深入Go语言之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language><atom:link href="https://go.cyub.vip/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title></title>
+      <link>https://go.cyub.vip/memory/allocator/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/memory/allocator/</guid>
+      <description>内存分配器 # 概述 # Golang内存分配管理策略是按照不同大小的对象和不同的内存层级来分配管理内存。通过这种多层级分配策略，形成无锁化或者降低锁的粒度，以及尽量减少内存碎片，来提高内存分配效率。
+Golang中内存分配管理的对象按照大小可以分为：
+类别 大小 微对象 tiny object (0, 16B) 小对象 small object [16B, 32KB] 大对象 large object (32KB, +∞) Golang中内存管理的层级从最下到最上可以分为：mspan -&amp;gt; mcache -&amp;gt; mcentral -&amp;gt; mheap -&amp;gt; heapArena。golang中对象的内存分配流程如下：
+小于16个字节的对象使用mcache的微对象分配器进行分配内存 大小在16个字节到32k字节之间的对象，首先计算出需要使用的span大小规格，然后使用mcache中相同大小规格的mspan分配 如果对应的大小规格在mcache中没有可用的mspan，则向mcentral申请 如果mcentral中没有可用的mspan，则向mheap申请，并根据BestFit算法找到最合适的mspan。如果申请到的mspan超出申请大小，将会根据需求进行切分，以返回用户所需的页数，剩余的页构成一个新的mspan放回mheap的空闲列表 如果mheap中没有可用span，则向操作系统申请一系列新的页（最小 1MB） 对于大于32K的大对象直接从mheap分配 mspan # mspan是一个双向链表结构。mspan是golang中内存分配管理的基本单位。
+// file: mheap.go type mspan struct { next *mspan // 指向下一个mspan prev *mspan // 指向上一个mspan startAddr uintptr // 该span在arena区域起始地址 npages uintptr // 该span在arena区域中占用page个数 manualFreeList gclinkptr // 空闲对象列表 freeindex uintptr // 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了 // freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用 // freeindex 和 allocCache配合使用来定位出可用span的位置 nelems uintptr // span链表中元素个数 allocCache uint64 // 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex+pos位置的span未使用 allocBits *gcBits // 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配 gcmarkBits *gcBits // 用来sweep过程进行标记垃圾对象的，用于后续gc。 allocCount uint16 // 已分配的对象个数 spanclass spanClass // span类别 state mSpanState // mspaninuse etc needzero uint8 // needs to be zeroed before allocation elemsize uintptr // 能存储的对象大小 } // file: mheap.</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://go.cyub.vip/memory/gc/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/memory/gc/</guid>
+      <description>GC # 三色标记清除算法 # Golang中采用 三色标记清除算法（tricolor mark-and-sweep algorithm） 进行GC。由于支持写屏障（write barrier)了，GC过程和程序可以并发运行。
+三色标记清除算核心原则就是根据每个对象的颜色，分到不同的颜色集合中，对象的颜色是在标记阶段完成的。三色是黑白灰三种颜色，每种颜色的集合都有特别的含义：
+黑色集合
+该集合下的对象没有引用任何白色对象（即该对象没有指针指向白色对象）
+白色集合
+扫描标记结束之后，白色集合里面的对象就是要进行垃圾回收的，该对象允许有指针指向黑色对象。
+灰色集合
+可能有指针指向白色对象。它是一个中间状态，只有该集合下不在存在任何对象时候，才能进行最终的清除操作。
+过程 # 标记清除算法核心不变要素是没有黑色的对象能够指向白色集合对象。当垃圾回收开始，全部对象标记为白色，然后垃圾回收器会遍历所有根对象并把它们标记为灰色。根对象就是程序能直接访问到的对象，包括全局变量以及栈、寄存器上的里面的变量。在这之后，垃圾回收器选取一个灰色的对象，首先把它变为黑色，然后开始寻找去确定这个对象是否有指针指向白色集合的对象，若找到则把找到的对象由标记为灰色，并将其白色集合中移入到灰色集合中。就这样持续下去，直到灰色集合中没有任何对象为止。
+为了支持能够并发进行垃圾回收，Golang在垃圾回收过程中采用写屏障，每次堆中的指针被修改时候写屏障都会执行，写屏障会将该指针指向的对象标记为灰色，然后放入灰色集合（因为才对象现在是可触达的了），然后继续扫描该对象。
+举个例子说明写屏障的重要性：
+假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。</description>
+    </item>
+    
+    <item>
+      <title>Delve</title>
+      <link>https://go.cyub.vip/analysis-tools/dlv/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/analysis-tools/dlv/</guid>
+      <description>Delve # Delve 是Go语言实现的，专门用来调试Go程序的工具。它跟 GDB工具类似，相比 GDB，它简单易用，能更好的理解Go语言数据结构和语言特性，支持打印goroutine以及defer函数等Go特有语法特性。Delve简称dlv，后文将以dlv代称Delve.
+安装 # go get -u github.com/go-delve/delve/cmd/dlv 使用 # 开始调试 # dlv使用debug命令进入调试界面：
+dlv debug main.go 如果当前目录是main包所在目录时候，可以不用指定main.go文件这个参数的。假定项目结构如下：
+. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在cmd/foo目录下，我们可以直接执行dlv debug命令开始调试。在任何目录下我们可以使用dlv debug github.com/me/foo/cmd/foo开始调试。
+如果已构建成二进制可执行文件，我们可以使用dlv exec命令开始调试：
+dlv exec /youpath/go_binary_file 对于需要命令行参数才能启动的程序，我们可以通过--来传递命令行参数，比如如下:
+dlv debug github.com/me/foo/cmd/foo -- -arg1 value dlv exec /mypath/binary -- --config=config.toml 对于已经运行的程序，可以使用attach命令，进行跟踪调试指定pid的Go应用：
+dlv attach pid 除了上面调试main包外，dlv通过test子命令还支持调试test文件：</description>
+    </item>
+    
+    <item>
+      <title>for-range语法</title>
+      <link>https://go.cyub.vip/feature/for-range/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/feature/for-range/</guid>
+      <description>遍历 - for-range语法 # for-range语法可以用来遍历数组、指向数组的指针，切片、字符串、映射和通道。
+遍历数组 # 当遍历一个数组a时候，循环范围会从0到len(a) -1：
+func main() { var a [3]int for i, v := range a { fmt.Println(i, v) } for i, v := range &amp;amp;a { fmt.Println(i, v) } } 遍历切片 # 当遍历一个切片s时候，循环范围会从0到len(s) -1，若切片是nil，则迭代次数是0次：
+func main() { a := make([]int, 3) for i, v := range a { fmt.Println(i, v) } a = nil for i, v := range a { fmt.Println(i, v) } } for-range切片时候可以边遍历边append吗？ # 当遍历切片时候，可以边遍历边append操作，这并不会造成死循环。因为遍历之前已经确定了循环范围，遍历操作相当如下伪代码：</description>
+    </item>
+    
+    <item>
+      <title>GDB</title>
+      <link>https://go.cyub.vip/analysis-tools/gdb/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/analysis-tools/gdb/</guid>
+      <description>GDB # GDB（GNU symbolic Debugger）是Linux系统下的强大的调试工具，可以用来调试ada, c, c++, asm, minimal, d, fortran, objective-c, go, java,pascal 等多种语言。
+我们以调试go代码为示例来介绍GDB的使用。源码内容如下：
+package main import &amp;#34;fmt&amp;#34; func add(a, b int) int { sum := 0 sum = a + b return sum } func main() { sum := add(10, 20) fmt.Println(sum) } 构建二进制应用：
+go build -gcflags=&amp;#34;-N -l&amp;#34; -o test main.go 启动调试 # gdb ./test gdb --args ./test arg1 arg2 # 指定参数启动 进入gdb调试界面之后，执行run命令运行程序。若程序已经运行，我们可以attach该程序的进程id进行调试:
+$ gdb (gdb) attach 1785 当执行attach命令的时候，GDB首先会在当前工作目录下查找进程的可执行程序，如果没有找到，接着会用源代码文件搜索路径。我们也可以用file命令来加载可执行文件。</description>
+    </item>
+    
+    <item>
+      <title>Go函数是一等公民</title>
+      <link>https://go.cyub.vip/function/first-class/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/function/first-class/</guid>
+      <description>一等公民 # Go语言中函数是一等公民（first class)，因为它既可以作为变量，也可作为函数参数，函数返回值。Go语言还支持匿名函数，闭包，函数返回多个值。
+一等公民特征 # 函数赋值给一个变量 # func add(a, b int) int { return a + b } func main() { fn := add fmt.Println(fn(1, 2)) // 3 } 函数作为返回值 # func pow(a int) func(int) int { return func(b int) int { result := 1 for i := 0; i &amp;lt; b; i++ { result *= a } return result } } func main() { powOfTwo := pow(2) // 2的x次幂 fmt.</description>
+    </item>
+    
+    <item>
+      <title>Go函数调用栈</title>
+      <link>https://go.cyub.vip/function/call-stack/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/function/call-stack/</guid>
+      <description>调用栈 # 这一章节延续前面《 准备篇-Go汇编》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编》查看了解。
+在详细分析函数栈之前，我们先复习以下几个概念。
+caller 与 callee # 如果一个函数调用另外一个函数，那么该函数被称为调用者函数，也叫做caller，而被调用的函数称为被调用者函数，也叫做callee。比如函数main中调用sum函数，那么main就是caller，而sum函数就是callee。
+栈帧 # 栈帧（stack frame）指的是未完成函数所持有的，独立连续的栈区域，用来保存其局部变量，返回地址等信息。
+函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface)的组成部分，它描述了：
+如何将执行控制权交给callee，以及返还给caller 如何保存和恢复caller的状态 如何将参数传递个callee 如何从callee获取返回值 简而言之，一句话就是函数调用约定指的是约定了函数调用时候，函数参数如何传递，函数栈由谁完成平衡，以及函数返回值如何返回的。
+在Go语言中，函数的参数和返回值的存储空间是由其caller的栈帧提供。这也为Go语言为啥支持多返回值以及总是值传递的原因。从Go汇编层面看，在callee中访问其参数和返回值，是通过FP寄存器来操作的（在实现层面是通过SP寄存器访问的）。Go语言中函数参数入栈顺序是从右到左入栈的。
+函数调用时候，会为其分配栈空间用来存放临时变量，返回值等信息，当完成调用后，这些栈空间应该进行回收，以恢复调用以前的状态。这个过程就是栈平衡。栈平衡工作可以由被调用者本身(callee)完成，也可以由其调用者(caller)完成。在Go语言中是由callee来完成栈平衡的。
+函数栈 # 当前函数作为caller，其本身拥有的栈帧以及其所有callee的栈帧，可以称为该函数的函数栈，也称函数调用栈。C语言中函数栈大小是固定的，如果超出栈空间，就会栈溢出异常。比如递归求斐波拉契，这时候可以使用尾调用来优化。由于Go 语言栈可以自动进行分裂扩容，栈空间不够时候，可以自动进行扩容。当用火焰图分析性能时候，火焰越高，说明栈越深。
+Go 语言中函数栈全景图如下：
+.. image:: https://static.cyub.vip/images/202105/go-func-stack.png :alt: Go语言函数调用栈 :width: 400px :align: center 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
+实例分析 # 我们将分析如下代码。
+package main func sum(a, b int) int { sum := 0 sum = a + b return sum } func main() { a := 3 b := 5 print(sum(a, b)) } 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：</description>
+    </item>
+    
+    <item>
+      <title>Go汇编语法</title>
+      <link>https://go.cyub.vip/go-assembly/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/go-assembly/</guid>
+      <description>Go汇编 # 本节将介绍Go语言所使用到的汇编知识。在介绍Go汇编之前，我们先了解一些汇编语言，寄存器， AT&amp;amp;T 汇编语法，内存布局等前置知识点。这些知识点与Go汇编或多或少有关系，了解这些才能更好的帮助我们去看懂Go汇编代码。
+前置知识 # 机器语言 # 机器语言是机器指令的集合。计算机的机器指令是一系列二进制数字。计算机将之转换为一系列高低电平脉冲信号来驱动硬件工作的。
+汇编语言 # 机器指令是由0和1组成的二进制指令，难以编写与记忆。汇编语言是二进制指令的文本形式，与机器指令一一对应，相当于机器指令的助记码。比如，加法的机器指令是00000011写成汇编语言就是ADD。汇编的指令格式由操作码和操作数组成。
+将助记码标准化后称为assembly language，缩写为asm，中文译为汇编语言。
+汇编语言大致可以分为两类：
+基于x86架构处理器的汇编语言
+Intel 汇编 DOS(8086处理器), Windows Windows 派系 -&amp;gt; VC 编译器 AT&amp;amp;T 汇编 Linux, Unix, Mac OS, iOS(模拟器) Unix派系 -&amp;gt; GCC编译器 基于ARM 架构处理器的汇编语言
+ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
+位 bit 半字节 Nibble 字节 Byte 字 Word 相当于两个字节 双字 Double Word 相当于2个字，4个字节 四字 Quadword 相当于4个字，8个字节 寄存器 # 寄存器是CPU中存储数据的器件，起到数据缓存作用。内存按照内存层级(memory hierarchy)依次分为寄存器，L1 Cache, L2 Cache, L3 Cache，其读写延迟依次增加，实现成本依次降低。
+.. image:: https://static.</description>
+    </item>
+    
+    <item>
+      <title>Go编译流程</title>
+      <link>https://go.cyub.vip/compiler/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/compiler/</guid>
+      <description>编译流程 # Go语言是一门编译型语言，程序运行时需要先编译成相应平台的可执行文件。在介绍Go语言编译流程之前，我们来了解下编译器编译整个流程。
+编译六阶段 # 编译器工作目的是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两大部分，每个部分可以细分为3个阶段。两大部分别是分析部分（Analysis part）以及合成部分（Synthesis part），这两大部分也称为编译前端和编译后端。编译六阶段如下：
+词法分析（Lexical analysis） 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a+b*5为例:
+Lexemes Tokens c identifier = assignment symbol a identifier + + (addition symbol) b identifier * * (multiplication symbol) 5 5 (number) 语法分析 # 词法分析阶段接收上一阶段生成的Tokens序列，基于特定编程语言的规则生成抽象语法树（Abstract Syntax Tree）。
+抽象语法树 # 抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。
+以(a+b)*c为例，最终生成的抽象语法树如下：
+语义分析阶段 # 语义分析阶段用来检查代码的语义一致性。它使用前一阶段的语法树以及符号表来验证给定的源代码在语义上是一致的。它还检查代码是否传达了适当的含义。
+中间码生成阶段 # 中间代码介是于高级语言和机器语言之间，具有跨平台特性。使用中间代码可以易于跨平台转换为特定类型目标机器代码。
+代码优化阶段 # 代码优化阶段主要是改进中间代码，删除不必要的代码，以调整代码序列以生成速度更快和空间更少的中间代码。</description>
+    </item>
+    
+    <item>
+      <title>Go语言内置分析工具</title>
+      <link>https://go.cyub.vip/analysis-tools/go-buildin-tools/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/analysis-tools/go-buildin-tools/</guid>
+      <description>Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。
+go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：
+go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：
+# # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &amp;gt;$WORK/b001/importcfg &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &amp;#34;$WORK/b001=&amp;gt;&amp;#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &amp;gt;$WORK/b001/importcfg.link &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.</description>
+    </item>
+    
+    <item>
+      <title>nil类型</title>
+      <link>https://go.cyub.vip/type/nil/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type/nil/</guid>
+      <description>nil # 在探究nil之前，我们先看看零值的概念。
+零值 # 零值(zero value)指的是当声明变量且未显示初始化时，Go语言会自动给变量赋予一个默认初始值。对于值类型变量来说不同值类型，有不同的零值，比如整数型零值是0，字符串类型是&amp;quot;&amp;quot;，布尔类型是false。对于引用类型变量其零值都是nil。
+类型 零值 数值类型 0 字符串 &amp;quot;&amp;quot; 布尔类型 false 指针类型 nil 通道 nil 函数 nil 接口 nil 映射 nil 切片 nil 结构体 每个结构体字段对应类型的零值 nil # nil是Go语言中的一个变量，是预先声明的标识符，用来作为引用类型变量的零值。
+// nil is a predeclared identifier representing the zero value for a // pointer, channel, func, interface, map, or slice type. var nil Type // Type must be a pointer, channel, func, interface, map, or slice type nil不能通过:=方式赋值给一个变量，下面代码是编译不通过的：</description>
+    </item>
+    
+    <item>
+      <title>panic与recover机制</title>
+      <link>https://go.cyub.vip/feature/panic-recover/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/feature/panic-recover/</guid>
+      <description>恐慌与恢复 - panic/recover # 我们知道Go中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发panic异常暴露出来。这种由Go自动的触发的panic异常属于 运行时panic(Run-time panics)。当发生panic时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了panic函数，可以用于用户手动触发panic。
+Go内置的recover函数可以用来捕获panic异常，但recover函数只能放在延迟函数调用中，才能起作用。我们从之前的章节 语言特性-defer函数了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了recover函数调用，若调用了则panic异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该panic没有被捕获，进程异常终止，这个过程叫做panicking。我们需要知道的是即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出。
+接下来我们来将深入了解下panic和recover底层的实现机制。在开始之前，我们来看下下面的测试题。
+测试题：下面哪些panic异常将会捕获？ # case 1:
+func main() { recover() panic(&amp;#34;it is panic&amp;#34;) // not recover } case 2:
+func main() { defer func() { recover() }() panic(&amp;#34;it is panic&amp;#34;) // recover } case 3:
+func main() { defer recover() panic(&amp;#34;it is panic&amp;#34;) // not recover } case 4:
+func main() { defer func() { defer recover() }() panic(&amp;#34;it is panic&amp;#34;) // recover } case 5:</description>
+    </item>
+    
+    <item>
+      <title>一次性操作 - sync.Once</title>
+      <link>https://go.cyub.vip/concurrency/sync-once/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-once/</guid>
+      <description> 一次性操作 - sync.Once # sync.Once用来完成一次性操作，比如配置加载，单例对象初始化等。
+源码分析 # sync.Once定义如下：
+type Once struct { done uint32 // 用来标志操作是否操作 m Mutex // 锁，用来第一操作时候，加锁处理 } 接下来看剩下的全部代码：
+func (o *Once) Do(f func()) { if atomic.LoadUint32(&amp;amp;o.done) == 0 {// 原子性加载o.done，若值为1，说明已完成操作，若为0，说明未完成操作 o.doSlow(f) } } func (o *Once) doSlow(f func()) { o.m.Lock() // 加锁 defer o.m.Unlock() if o.done == 0 { // 再次进行o.done是否等于0判断，因为存在并发调用doSlow的情况 defer atomic.StoreUint32(&amp;amp;o.done, 1) // 将o.done值设置为1，用来标志操作完成 f() // 执行操作 } } </description>
+    </item>
+    
+    <item>
+      <title>上下文 - context</title>
+      <link>https://go.cyub.vip/concurrency/context/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/context/</guid>
+      <description>&lt;h1 id=&#34;上下文---context&#34;&gt;
+  上下文 - context
+  &lt;a class=&#34;anchor&#34; href=&#34;#%e4%b8%8a%e4%b8%8b%e6%96%87---context&#34;&gt;#&lt;/a&gt;
+&lt;/h1&gt;
+&lt;p&gt;Context是由Golang官方开发的并发控制包，一方面可以用于当请求超时或者取消时候，相关的goroutine马上退出释放资源，另一方面Context本身含义就是上下文，其可以在多个goroutine或者多个处理函数之间传递共享的信息。&lt;/p&gt;
+&lt;p&gt;创建一个新的context，必须基于一个父context，新的context又可以作为其他context的父context。所有context在一起构造成一个context树。&lt;/p&gt;
+&lt;p&gt;
+  &lt;img src=&#34;https://static.cyub.vip/images/202008/context-tree.jpg&#34; alt=&#34;context tree&#34; /&gt;&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>互斥锁 - sync.Mutex</title>
+      <link>https://go.cyub.vip/concurrency/sync-mutex/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-mutex/</guid>
+      <description> 互斥锁 - sync.Mutex # </description>
+    </item>
+    
+    <item>
+      <title>值传递</title>
+      <link>https://go.cyub.vip/function/pass-by-value/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/function/pass-by-value/</guid>
+      <description>值传递 # 函数传参有三种方式，分别是值传递（pass by value)、引用传递（pass by reference)，以及指针传递（pass by pointer)。指针传递也称为地址传递，本质上也属于值传递，它只不过传递的值是地址而已。所以按照广义的函数传递来分，分为值传递和引用传递。Go语言中函数传参值传递，不支持引用传递。但是由于切片，通道，映射等具有引用传递的某些特性，往往令人疑惑其应该是引用传递。这个章节我们就来探究下Go语言中函数传递的问题。
+在探究Go语言中函数传递的问题，我们先研究C++语言下的引用传递和指针传递是怎么回事。
+C++中指针传递 # #include &amp;lt;stdio.h&amp;gt; void swap(int* a,int *b){ printf(&amp;#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&amp;#34;, *a, &amp;amp;a, *b, &amp;amp;b); int temp = *a; *a = *b; *b = temp; } int main() { int a = 1; int b = 2; printf(&amp;#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&amp;#34;, a, &amp;amp;a, b, &amp;amp;b); swap(&amp;amp;a,&amp;amp;b); printf(&amp;#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&amp;#34;, a, &amp;amp;a, b, &amp;amp;b); return 0; } C++中引用传递 # #include &amp;lt;stdio.h&amp;gt; void swap(int &amp;amp;a, int &amp;amp;b){ printf(&amp;#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&amp;#34;, a, &amp;amp;a, b, &amp;amp;b); int temp = a; a = b; b = temp; } int main() { int a = 1; int b = 2; printf(&amp;#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&amp;#34;, a, &amp;amp;a, b, &amp;amp;b); swap(a,b); printf(&amp;#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&amp;#34;, a, &amp;amp;a, b, &amp;amp;b); return 0; } 进一步阅读 # When are function parameters passed by value?</description>
+    </item>
+    
+    <item>
+      <title>内存模型 - memroy model</title>
+      <link>https://go.cyub.vip/concurrency/memory-model/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/memory-model/</guid>
+      <description>内存模型 # Go语言中的内存模型规定了多个goroutine读取变量时候，变量的可见性情况。注意本章节的内存模型并不是内存对象分配、管理、回收的模型，准确的说这里面的内存模型是内存一致性模型。
+Happens Before原则 # Happens Before原则的定义是如果一个操作e1先于操作e2发生，那么我们就说e1 happens before e2，也可以描述成e2 happens after e2，此时e1操作的变量结果对e2都是可见的。如果e1操作既不先于e2发生又不晚于e2发生，我们说e1操作与e2操作并发发生。
+Happens Before具有传导性：如果操作e1 happens before 操作e2，e3 happends before e1，那么e3一定也 happends before e2。
+由于存在指令重排和多核CPU并发访问情况，我们代码中变量顺序和实际方法顺序并不总是一致的。考虑下面一种情况：
+a := 1 b := 2 c := a + 1 上面代码中是先给变量a赋值，然后给变量b赋值，最后给编程c赋值。但是在底层实现指令时候，可能发生指令重排：变量b赋值在前，变量a赋值在后，最后变量c赋值。对于依赖于a变量的c变量的赋值，不管怎样指令重排，Go语言都会保证变量a赋值操作 happends before c变量赋值操作。
+上面代码运行是运行在同一goroutine中，Go语言时能够保证happends before原则的，实现正确的变量可见性。但对于多个goroutine共享数据时候，Go语言是无法保证Happens Before原则的，这时候就需要我们采用锁、通道等同步手段来保证数据一致性。考虑下面场景：
+var a, b int // goroutine A go func() { a = 1 b = 2 }() // goroutine B go func() { if b == 2 { print(a) } }() 当执行goroutine B打印变量a时并不一定打印出来1，有可能打印出来的是0。这是因为goroutine A中可能存在指令重排，先将b变量赋值2，若这时候接着执行goroutine B那么就会打印出来0</description>
+    </item>
+    
+    <item>
+      <title>切片</title>
+      <link>https://go.cyub.vip/type/slice/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type/slice/</guid>
+      <description>切片 # 切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。
+初始化 # 切片初始化方式可以分为三种：
+使用make函数创建切片
+make函数语法格式为：make([]T, length, capacity)，capacity可以省略，默认等于length
+使用字面量创建切片
+从数组或者切片派生(reslice)出新切片
+Go支持从数组、指向数组的指针、切片类型变量再reslice一个新切片。
+reslice操作语法可以是[]T[low : high]，也可以是[]T[low : high : max]。其中low,high,max都可以省略，low默认值是0，high默认值cap([]T)，max默认值cap([]T)。low,hight,max取值范围是0 &amp;lt;= low &amp;lt;= high &amp;lt;= max &amp;lt;= cap([]T)，其中high-low是新切片的长度，max-low是新切片的容量。
+对于[]T[low : high]，其包含的元素是[]T中下标low开始，到high结束（不含high所在位置的，相当于左闭右开[low, high)）的元素，元素个数是high - low个，容量是cap([]T) - low。
+func main() { slice1 := make([]int, 0) slice2 := make([]int, 1, 3) slice3 := []int{} slice4 := []int{1: 2, 3} arr := []int{1, 2, 3} slice5 := arr[1:2] slice6 := arr[1:2:2] slice7 := arr[1:] slice8 := arr[:1] slice9 := arr[3:] slice10 := slice2[1:2] fmt.</description>
+    </item>
+    
+    <item>
+      <title>原子操作-atomic</title>
+      <link>https://go.cyub.vip/concurrency/atomic/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/atomic/</guid>
+      <description>原子操作 - atomic # atomic是Go内置原子操作包。下面是官方说明：
+Package atomic provides low-level atomic memory primitives useful for implementing synchronization algorithms. atomic包提供了用于实现同步机制的底层原子内存原语。
+These functions require great care to be used correctly. Except for special, low-level applications, synchronization is better done with channels or the facilities of the sync package. Share memory by communicating; don&amp;rsquo;t communicate by sharing memory. 使用这些功能需要非常小心。除了特殊的底层应用程序外，最好使用通道或sync包来进行同步。通过通信来共享内存；不要通过共享内存来通信。
+atomic包提供的操作可以分为三类：
+对整数类型T的操作 # T类型是int32、int64、uint32、uint64、uintptr其中一种。
+func AddT(addr *T, delta T) (new T) func CompareAndSwapT(addr *T, old, new T) (swapped bool) func LoadT(addr *T) (val T) func StoreT(addr *T, val T) func SwapT(addr *T, new T) (old T) 对于unsafe.</description>
+    </item>
+    
+    <item>
+      <title>反射</title>
+      <link>https://go.cyub.vip/type-system/reflect/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type-system/reflect/</guid>
+      <description> 反射 # </description>
+    </item>
+    
+    <item>
+      <title>字符串</title>
+      <link>https://go.cyub.vip/type/string/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type/string/</guid>
+      <description>字符串 # C语言中字符串是使用字符数组char[]表示，数组的最后一位是\0用来作为字符串的定界符。Go语言中字符串最底层也是字符数组， 但是Go语言使用长度来记录字符串边界，字符串的长度就是数组大小。
+数据结构 # Go语言字符串底层数据结构是reflect.StringHeader( reflect/value.go)，其中包含了指向字节数组的指针，以及数组大小：
+type StringHeader struct { Data uintptr Len int } 当一个字符串变量赋值给另外一个变量时候，他们StringHeader.Data都指向同一个内存地址：
+a := &amp;#34;hello&amp;#34; b := a .. image:: https://static.cyub.vip/images/202104/go_string.png :alt: go字符底层表示 :width: 400px :align: center 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
+接来下我们借助 (GDB)来验证Go语言中字符串数据结构是不是按照上面说的那样。
+package main import ( &amp;#34;fmt&amp;#34; ) func main() { a := &amp;#34;hello&amp;#34; b := a fmt.Printf(&amp;#34;a变量地址：%p\n&amp;#34;, &amp;amp;a) fmt.Printf(&amp;#34;b变量地址：%p\n&amp;#34;, &amp;amp;b) print(&amp;#34;断点打在这里&amp;#34;) } 将上面代码构建二进制应用(go build -o string string.go)， 然后使用 GDB调试一下(gdb ./string)：
+len(str) == 0 和 str == &amp;ldquo;&amp;ldquo;有区别吗？ # 判断一个字符串是否是空字符串，我们既可以使用len判断其长度是0，也可以判断其是否等于空字符&amp;quot;&amp;quot;。那么它们有什么区别吗？答案是没有区别。因为他们底层实现是一样的。我们来探究一下。</description>
+    </item>
+    
+    <item>
+      <title>并发Map - sync.Map</title>
+      <link>https://go.cyub.vip/concurrency/sync-map/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-map/</guid>
+      <description>并发Map - sync.Map # 源码分析 # sync.Map的结构：
+type Map struct { mu Mutex // 排他锁，用于对dirty map操作时候加锁处理 read atomic.Value // read map // dirty map。新增key时候，只写入dirty map中，需要使用mu dirty map[interface{}]*entry // 用来记录从read map中读取key时miss的次数 misses int } sync.Map结构体中read字段是atomic.Value类型，底层是readOnly结构体：
+type readOnly struct { m map[interface{}]*entry amended bool // 当amended为true时候，表示sync.Map中的key也存在dirty map中 } read map和dirty map的value类型是*entry， entry结构体定义如下：
+// expunged用来标记从dirty map删除掉了 var expunged = unsafe.Pointer(new(interface{})) type entry struct { // 如果p == nil 说明对应的entry已经被删除掉了， 且m.dirty == nil // 如果 p == expunged 说明对应的entry已经被删除了，但m.</description>
+    </item>
+    
+    <item>
+      <title>延迟执行 - defer语法</title>
+      <link>https://go.cyub.vip/feature/defer/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/feature/defer/</guid>
+      <description>延迟执行 - defer语法 # defer语法支持是Go 语言中一大特性，通过defer关键字，我们可以声明一个延迟执行函数，当调用者返回之前开始执行该函数，一般用来完成资源、锁、连接等释放工作，或者recover可能发生的panic。
+三大特性 # defer延迟执行语法有三大特性：
+defer函数的传入参数在定义时就已经明确 # func main() { i := 1 defer fmt.Println(i) i++ return } 上面代码输出1，而不是2。
+defer函数是按照后进先出的顺序执行 # func main() { for i := 1; i &amp;lt;= 5; i++ { defer fmt.Print(i) } } 上面代码输出54321，而不是12345。
+defer函数可以读取和修改函数的命名返回值 # func main() { fmt.Println(test()) } func test() (i int) { defer func() { i++ }() return 100 } 上面代码输出输出101，而不是100或者1。
+白话defer原理 # defer函数底层数据结构是_defer结构体，多个defer函数会构建成一个_defer链表，后面加入的defer函数会插入链表的头部，该链表链表头部会链接到G上。当函数执行完成返回的时候，会从_defer链表头部开始依次执行defer函数。这也就是defer函数执行时会LIFO的原因。_defer链接结构示意图如下：
+.. image:: https://static.cyub.vip/images/202105/defer_profile.png :alt: defer结构示意图 :width: 450px :align: center 创建_defer结构体是需要进行内存分配的，为了减少分配_defer结构体时资源消耗，Go底层使用了defer缓冲池（defer pool），用来缓存上次使用完的_defer结构体，这样下次可以直接使用，不必再重新分配内存了。defer缓冲池一共有两级：per-P级defer缓冲池和全局defer缓冲池。当创建_defer结构体时候，优先从当前M关联的P的缓冲池中取得_defer结构体，即从per-P缓冲池中获取，这个过程是无锁操作。如果per-P缓冲池中没有，则在尝试从全局defer缓冲池获取，若也没有获取到，则重新分配一个新的_defer结构体。</description>
+    </item>
+    
+    <item>
+      <title>指针</title>
+      <link>https://go.cyub.vip/type/pointer/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type/pointer/</guid>
+      <description>指针 # Golang支持指针，但是不能像C语言中那样进行算术运算。对于任意类型T，其对应的的指针类型是*T，类型T称为指针类型*T的基类型。
+引用与解引用 # 一个指针类型*T变量B存储的是类型T变量A的内存地址，我们称该指针类型变量B引用(reference)了A。从指针类型变量B获取（或者称为访问）A变量的值的过程，叫解引用。解引用是通过解引用操作符*操作的。
+func main() { var A int = 100 var B *int = &amp;amp;A fmt.Println(A == *B) } 转换和可比较性 # 对于指针类型变量能不能够比较和显示转换需要满足以下规则：
+指针类型*T1和*T2相应的基类型T1和T2的底层类型必须一致。 type MyInt int type PInt *int type PMyInt *MyInt func main() { p1 := new(int) var p2 PInt = p1 // p2底层类型是*int p3 := new(MyInt) var p4 PMyInt = p3 // p4底层类型是*MyInt fmt.Println(p1, p2, p3, p4) } uintptr # uintptr是一个足够大的整数类型，能够存放任何指针。不同C语言，Go语言中普通类型指针不能进行算术运算，我们可以将普通类型指针转换成uintptr然后进行运算，但普通类型指针不能直接转换成uintptr，必须先转换成unsafe.Pointer类型之后，再转换成uintptr。
+// uintptr is an integer type that is large enough to hold the bit pattern of // any pointer.</description>
+    </item>
+    
+    <item>
+      <title>接口</title>
+      <link>https://go.cyub.vip/type-system/interface/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type-system/interface/</guid>
+      <description> 接口 # </description>
+    </item>
+    
+    <item>
+      <title>数组</title>
+      <link>https://go.cyub.vip/type/array/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type/array/</guid>
+      <description>数组 # 数组是Go语言中常见的数据结构，相比切片，数组我们使用的比较少。
+初始化 # Go语言数组有两个声明初始化方式，一个需要显示指明数组大小，另一个使用...由编译器在编译阶段推断出来：
+arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 .. hint:: 上面代码中arr3和arr4的初始化方式，是指定数组索引对应的值。这种方式并不常见。 可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
+func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：</description>
+    </item>
+    
+    <item>
+      <title>方法</title>
+      <link>https://go.cyub.vip/function/method/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/function/method/</guid>
+      <description>方法 # Go 语言中具有接收者的函数，即为方法。若函数的接收者类型是T，那么我们可以说该函数是类型T的方法。那么方法底层实现是怎么样的，和函数有什么区别呢？这一章节我们将探讨这个。
+方法的本质就是普通函数 # 我们来看下如下的代码：
+type A struct { name string } func (a A) Name() string { a.name = &amp;#34;Hi &amp;#34; + a.name return a.name } func main() { a := A{name: &amp;#34;new world&amp;#34;} println(a.Name()) println(A.Name(a)) } func NameofA(a A) string { a.name = &amp;#34;Hi &amp;#34; + a.name return a.name } 上面代码中，a.Name()表示的是调用对象a的Name方法。它实际上是一个语法糖，等效于A.Name(a)，其中a就是方法接收者。我们可以通过以下代码证明两者是相等的：
+t1 := reflect.TypeOf(A.Name) t2 := relect.TypeOf(NameOfA) fmt.Println(t1 == t2) // true 我们在看下a.Name()底层实现是怎么样的，点击 在线查看：
+LEAQ go.</description>
+    </item>
+    
+    <item>
+      <title>映射类型</title>
+      <link>https://go.cyub.vip/type/map/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type/map/</guid>
+      <description>映射 # 映射也被称为哈希表(hash table)、字典。它是一种由key-value组成的抽象数据结构。大多数情况下，它都能在O(1)的时间复杂度下实现增删改查功能。若在极端情况下出现所有key都发生哈希碰撞时则退回成链表形式，此时复杂度为O(N)。
+映射底层一般都是由数组组成，该数组每个元素称为桶，它使用hash函数将key分配到不同桶中，若出现碰撞冲突时候，则采用链地址法（也称为拉链法）或者开放寻址法解决冲突。下图就是一个由姓名-号码构成的哈希表的结构图：
+Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决，Go语言中映射具有以下特点：
+引用类型变量 读写并发不安全 遍历结果是随机的 数据结构 # .. image:: https://static.cyub.vip/images/202106/map_struct.png :alt: 映射底层结构 :width: 80% :align: center Go语言中映射的数据结构是runtime.hmap( runtime/map.go):
+// A header for a Go map. type hmap struct { count int // 元素个数，用于len函数返回map元素数量 flags uint8 // 标志位，标志当前map正在写等状态 B uint8 // buckets个数的对数，即桶数量 = 2 ^ B noverflow uint16 // overflow桶数量的近似值，overflow桶即溢出桶，即链表法中存在链表上的桶的个数 hash0 uint32 // 随机数种子，用于计算key的哈希值 buckets unsafe.Pointer // 指向buckets数组，如果元素个数为0时，该值为nil oldbuckets unsafe.Pointer // 扩容时指向旧的buckets nevacuate uintptr // 用于指示迁移进度，小于此值的桶已经迁移完成 extra *mapextra // 额外记录overflow桶信息 } 映射中每一个桶的结构是runtime.</description>
+    </item>
+    
+    <item>
+      <title>条件变量 - sync.Cond</title>
+      <link>https://go.cyub.vip/concurrency/sync-cond/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-cond/</guid>
+      <description> 条件变量 - sync.Cond # </description>
+    </item>
+    
+    <item>
+      <title>空结构体</title>
+      <link>https://go.cyub.vip/type/empty_struct/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type/empty_struct/</guid>
+      <description>空结构体 # 空结构体指的是没有任何字段的结构体。
+大小与内存地址 # 空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向runtime.zerobase。
+// empty_struct.go type Empty struct{} //go:linkname zerobase runtime.zerobase var zerobase uintptr // 使用go:linkname编译指令，将zerobase变量指向runtime.zerobase func main() { a := Empty{} b := struct{}{} fmt.Println(unsafe.Sizeof(a) == 0) // true fmt.Println(unsafe.Sizeof(b) == 0) // true fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;a) // 0x590d00 fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;b) // 0x590d00 fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;zerobase) // 0x590d00 c := new(Empty) d := new(Empty) fmt.Sprint(c, d) // 目的是让变量c和d发生逃逸 println(c) // 0x590d00 println(d) // 0x590d00 fmt.Println(c == d) // true e := new(Empty) f := new(Empty) println(e) // 0xc00008ef47 println(f) // 0xc00008ef47 fmt.</description>
+    </item>
+    
+    <item>
+      <title>等待组 - sync.WaitGroup</title>
+      <link>https://go.cyub.vip/concurrency/sync-waitgroup/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-waitgroup/</guid>
+      <description>等待组 - sync.WaitGroup # 源码分析 # type WaitGroup struct { noCopy noCopy // waitgroup是不能够拷贝复制的，是通过go vet来检测实现 /* waitgroup使用一个int64来计数：高32位，用来add计数，低32位用来记录waiter数量。 若要原子性更新int64就必须保证该int64对齐系数是8，即64位对齐。 对于64位系统，直接使用一个int64类型字段就能保证原子性要求，但对32位系统就不行了。 所以实现的时候并没有直接一个int64， 而是使用[3]int32数组，若[0]int32地址恰好是8对齐的，那就waitgroup int64 = [0]int32 + [1]int32， 否则一定是4对齐的， 故[0]int32不用，恰好错开了4字节，此时[1]int32一定是8对齐的。此时waitgroup int64 = [1]int32 + [2]int32 通过这个技巧恰好满足32位和64位系统下int64都能原子性操作 */ state1 [3]uint32 // waitgroup对齐系数是4 } func (wg *WaitGroup) state() (statep *uint64, semap *uint32) { // 当state1是8对齐的，则返回低8字节(statep)用来计数，即state1[0]是add计数，state1[1]是waiter计数 if uintptr(unsafe.Pointer(&amp;amp;wg.state1))%8 == 0 { return (*uint64)(unsafe.Pointer(&amp;amp;wg.state1)), &amp;amp;wg.state1[2] } else { // 反之，则返回高8字节用来计数，即state1[1]是add计数，state1[2]是waiter计数 return (*uint64)(unsafe.Pointer(&amp;amp;wg.state1[1])), &amp;amp;wg.state1[0] } } // Add方法用来更新add计数器。即将原来计数值加上delta，delta可以为负值 // waitgroup的Done方法本质上就是Add(-1) // Add更新之后的计数器值不能小于0。当计数器值等于0时候，会释放信号，所有调用Wait方法而阻塞的Goroutine不再阻塞（释放的信号量=waiter计数） func (wg *WaitGroup) Add(delta int) { statep, semap := wg.</description>
+    </item>
+    
+    <item>
+      <title>类型系统</title>
+      <link>https://go.cyub.vip/type-system/type/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type-system/type/</guid>
+      <description> 类型系统 # </description>
+    </item>
+    
+    <item>
+      <title>缓冲池 - sync.Pool</title>
+      <link>https://go.cyub.vip/concurrency/sync-pool/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-pool/</guid>
+      <description>缓冲池 - sync.Pool # A Pool is a set of temporary objects that may be individually saved and retrieved.
+Any item stored in the Pool may be removed automatically at any time without notification. If the Pool holds the only reference when this happens, the item might be deallocated.
+A Pool is safe for use by multiple goroutines simultaneously.
+Pool&amp;rsquo;s purpose is to cache allocated but unused items for later reuse, relieving pressure on the garbage collector.</description>
+    </item>
+    
+    <item>
+      <title>读写锁 - sync.RWMutex</title>
+      <link>https://go.cyub.vip/concurrency/sync-rwmutex/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/sync-rwmutex/</guid>
+      <description>读写锁 - sync.RWMutex # RWMutex是Go语言中内置的一个reader/writer锁，用来解决读者-写者问题（Readers–writers problem）。在任意一时刻，一个RWMutex只能由任意数量的reader持有，或者只能由一个writer持有。
+读者-写者问题 # 读者-写者问题（Readers–writers problem）描述了计算机并发处理读写数据遇到的问题，如何保证数据完整性、一致性。解决读者-写者问题需保证对于一份资源操作满足以下下条件：
+读写互斥 写写互斥 允许多个读者同时读取 解决读者-写者问题，可以采用读者优先（readers-preference）方案或者写者优先（writers-preference）方案。
+读者优先（readers-preference）：读者优先是读操作优先于写操作，即使写操作提出申请资源，但只要还有读者在读取操作，就还允许其他读者继续读取操作，直到所有读者结束读取，才开始写。读优先可以提供很高的并发处理性能，但是在频繁读取的系统中，会长时间写阻塞，导致写饥饿。
+写者优先（writers-preference）：写者优先是写操作优先于读操作，如果有写者提出申请资源，在申请之前已经开始读取操作的可以继续执行读取，但是如果再有读者申请读取操作，则不能够读取，只有在所有的写者写完之后才可以读取。写者优先解决了读者优先造成写饥饿的问题。但是若在频繁写入的系统中，会长时间读阻塞，导致读饥饿。
+RWMutex设计采用写者优先方法，保证写操作优先处理。
+源码分析 # 下面分析的源码进行精简处理，去掉了race检查功能的代码。
+RWMutex的定义 # type RWMutex struct { w Mutex // 互斥锁 writerSem uint32 // writers信号量 readerSem uint32 // readers信号量 readerCount int32 // reader数量 readerWait int32 // writer申请锁时候，已经申请到锁的reader的数量 } const rwmutexMaxReaders = 1 &amp;lt;&amp;lt; 30 // 最大reader数，用于反转readerCount RLock/RUnlock的实现 # func (rw *RWMutex) RLock() { if atomic.AddInt32(&amp;amp;rw.readerCount, 1) &amp;lt; 0 { // 如果rw.</description>
+    </item>
+    
+    <item>
+      <title>调度器</title>
+      <link>https://go.cyub.vip/gmp/scheduler/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/gmp/scheduler/</guid>
+      <description> 调度器 # </description>
+    </item>
+    
+    <item>
+      <title>调度机制概述</title>
+      <link>https://go.cyub.vip/gmp/gmp-model/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/gmp/gmp-model/</guid>
+      <description>&lt;h1 id=&#34;gmp模型&#34;&gt;
+  GMP模型
+  &lt;a class=&#34;anchor&#34; href=&#34;#gmp%e6%a8%a1%e5%9e%8b&#34;&gt;#&lt;/a&gt;
+&lt;/h1&gt;
+&lt;p&gt;Golang的一大特色就是Goroutine。Goroutine是Golang支持高并发的重要保障。Golang可以创建成千上万个Goroutine来处理任务，将这些Goroutine分配、负载、调度到处理器上采用的是G-M-P模型。&lt;/p&gt;
+&lt;h2 id=&#34;什么是goroutine&#34;&gt;
+  什么是Goroutine
+  &lt;a class=&#34;anchor&#34; href=&#34;#%e4%bb%80%e4%b9%88%e6%98%afgoroutine&#34;&gt;#&lt;/a&gt;
+&lt;/h2&gt;
+&lt;p&gt;Goroutine = Golang + Coroutine。&lt;strong&gt;Goroutine是golang实现的协程，是用户级线程&lt;/strong&gt;。Goroutine具有以下特点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;相比线程，其启动的代价很小，以很小栈空间启动（2Kb左右）&lt;/li&gt;
+&lt;li&gt;能够动态地伸缩栈的大小，最大可以支持到Gb级别&lt;/li&gt;
+&lt;li&gt;工作在用户态，切换成很小&lt;/li&gt;
+&lt;li&gt;与线程关系是n:m，即可以在n个系统线程上多工调度m个Goroutine&lt;/li&gt;
+&lt;/ul&gt;</description>
+    </item>
+    
+    <item>
+      <title>逗号ok模式</title>
+      <link>https://go.cyub.vip/feature/comma-ok/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/feature/comma-ok/</guid>
+      <description> 逗号ok模式 # 通过逗号ok模式(comma ok idiom)，我们可以进行类型断言，判断映射中是否存在某个key以及通道是否关闭。
+类型断言 # // 方式1 var ( v T ok bool ) v, ok = x.(T) // 方式2 v, ok := x.(T) // x是接口类型的变量，T是要断言的类型 // 方式3 var v, ok = x.(T) // 方式4 v := x.(T) // 当心此种方式断言，若断言失败会发生恐慌 判断key是否存在映射中 # // 方式1 v, ok := a[x] // 方式2 var v, ok = a[x] 判断通道是否关闭 # // 方式1 var ( x T ok bool ) x, ok = &amp;lt;-ch // 方式2 x, ok := &amp;lt;-ch // 方式3 var x, ok = &amp;lt;-ch </description>
+    </item>
+    
+    <item>
+      <title>通道 - channel</title>
+      <link>https://go.cyub.vip/concurrency/channel/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/concurrency/channel/</guid>
+      <description>&lt;h1 id=&#34;通道---channel&#34;&gt;
+  通道 - channel
+  &lt;a class=&#34;anchor&#34; href=&#34;#%e9%80%9a%e9%81%93---channel&#34;&gt;#&lt;/a&gt;
+&lt;/h1&gt;
+&lt;p&gt;Golang中Channel是goroutine间重要通信的方式，是并发安全的，通道内的数据First In First Out，我们可以把通道想象成队列。&lt;/p&gt;
+&lt;h2 id=&#34;channel数据结构&#34;&gt;
+  channel数据结构
+  &lt;a class=&#34;anchor&#34; href=&#34;#channel%e6%95%b0%e6%8d%ae%e7%bb%93%e6%9e%84&#34;&gt;#&lt;/a&gt;
+&lt;/h2&gt;
+&lt;p&gt;Channel底层数据结构是一个结构体。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-go&#34; data-lang=&#34;go&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;type&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;hchan&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;struct&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;qcount&lt;/span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;uint&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 队列中元素个数
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;dataqsiz&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;uint&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 循环队列的大小
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;buf&lt;/span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;unsafe&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;Pointer&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 指向循环队列
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;elemsize&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;uint16&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 通道里面的元素大小
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;closed&lt;/span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;uint32&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 通道关闭的标志
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;elemtype&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;_type&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 通道元素的类型
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;sendx&lt;/span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;uint&lt;/span&gt;   &lt;span style=&#34;color:#75715e&#34;&gt;// 待发送的索引，即循环队列中的队尾指针rear
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;recvx&lt;/span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;uint&lt;/span&gt;   &lt;span style=&#34;color:#75715e&#34;&gt;// 待读取的索引，即循环队列中的队头指针front
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;recvq&lt;/span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;waitq&lt;/span&gt;  &lt;span style=&#34;color:#75715e&#34;&gt;// 接收等待队列
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;sendq&lt;/span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;waitq&lt;/span&gt;  &lt;span style=&#34;color:#75715e&#34;&gt;// 发送等待队列
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#a6e22e&#34;&gt;lock&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;mutex&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;// 互斥锁
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+    <item>
+      <title>通道选择器-select</title>
+      <link>https://go.cyub.vip/feature/select/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/feature/select/</guid>
+      <description>通道选择器-select # Go 语言中select关键字结构跟switch结构类似，但是select结构的case语句都是跟通道操作相关的。Go 语言会从select结构中已经可读取或可以写入通道对应的case语句中随机选择一个执行，如果所有case语句中的通道都不能可读取或可写入且存在default语句的话，那么会执行default语句。
+根据Go 官方语法指南指出select语句执行分为以下几个步骤：
+For all the cases in the statement, the channel operands of receive operations and the channel and right-hand-side expressions of send statements are evaluated exactly once, in source order, upon entering the &amp;ldquo;select&amp;rdquo; statement. The result is a set of channels to receive from or send to, and the corresponding values to send. Any side effects in that evaluation will occur irrespective of which (if any) communication operation is selected to proceed.</description>
+    </item>
+    
+    <item>
+      <title>闭包</title>
+      <link>https://go.cyub.vip/function/closure/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/function/closure/</guid>
+      <description>闭包 # C语言中函数名称就是函数的首地址。Go语言中函数名称跟C语言一样，函数名指向函数的首地址，即函数的入口地址。从前面《 基础篇-函数-一等公民》那一章节我们知道Go 语言中函数是一等公民，它可以绑定变量，作函数参数，做函数返回值，那么它底层是怎么实现的呢？
+我们先来了解下Function Value这个概念。
+Function Value # Go 语言中函数是一等公民，函数可以绑定到变量，也可以做参数传递以及做函数返回值。Golang把这样的参数、返回值、变量称为Function value。
+Go 语言中Function value本质上是一个指针，但是其并不直接指向函数的入口地址，而是指向的runtime.funcval( runtime/runtime2.go)这个结构体。该结构体中的fn字段存储的是函数的入口地址：
+type funcval struct { fn uintptr // variable-size, fn-specific data here } 我们以下面这段代码为例来看下Function value是如何使用的:
+func A(i int) { i++ fmt.Println(i) } func B() { f1 := A f1(1) } func C() { f2 := A f2(2) } 上面代码中，函数A被赋值给变量f1和f2，这种情况下编译器会做出优化，让f1和f2共用一个funcval结构体，该结构体是在编译阶段分配到数据段的只读区域(.rodata)。如下图所示那样，f1和f2都指向了该结构体的地址addr2，该结构体的fn字段存储了函数A的入口地址addr1：
+.. image:: https://static.cyub.vip/images/202105/fuc_var.png :alt: Go语言函数调用栈 :width: 400px :align: center 为什么f1和f2需要通过了一个二级指针来获取到真正的函数入口地址，而不是直接将f1，f2指向函数入口地址addr1。关于这个原因就涉及到Golang中闭包设计与实现了。
+闭包 # 闭包(Closure)通俗点讲就是能够访问外部函数内部变量的函数。像这样能被访问的变量通常被称为捕获变量。
+闭包函数指令在编译阶段生成，但因为每个闭包对象都要保存自己捕获的变量，所以要等到执行阶段才创建对应的闭包对象。我们来看下下面闭包的例子：</description>
+    </item>
+    
+  </channel>
+</rss>

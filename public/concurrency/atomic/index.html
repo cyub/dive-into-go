@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="原子操作 - atomic # atomic是Go内置原子操作包。下面是官方说明：
+Package atomic provides low-level atomic memory primitives useful for implementing synchronization algorithms. atomic包提供了用于实现同步机制的底层原子内存原语。
+These functions require great care to be used correctly. Except for special, low-level applications, synchronization is better done with channels or the facilities of the sync package. Share memory by communicating; don&rsquo;t communicate by sharing memory. 使用这些功能需要非常小心。除了特殊的底层应用程序外，最好使用通道或sync包来进行同步。通过通信来共享内存；不要通过共享内存来通信。
+atomic包提供的操作可以分为三类：
+对整数类型T的操作 # T类型是int32、int64、uint32、uint64、uintptr其中一种。
+func AddT(addr *T, delta T) (new T) func CompareAndSwapT(addr *T, old, new T) (swapped bool) func LoadT(addr *T) (val T) func StoreT(addr *T, val T) func SwapT(addr *T, new T) (old T) 对于unsafe.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="原子操作-atomic" />
+<meta property="og:description" content="原子操作 - atomic # atomic是Go内置原子操作包。下面是官方说明：
+Package atomic provides low-level atomic memory primitives useful for implementing synchronization algorithms. atomic包提供了用于实现同步机制的底层原子内存原语。
+These functions require great care to be used correctly. Except for special, low-level applications, synchronization is better done with channels or the facilities of the sync package. Share memory by communicating; don&rsquo;t communicate by sharing memory. 使用这些功能需要非常小心。除了特殊的底层应用程序外，最好使用通道或sync包来进行同步。通过通信来共享内存；不要通过共享内存来通信。
+atomic包提供的操作可以分为三类：
+对整数类型T的操作 # T类型是int32、int64、uint32、uint64、uintptr其中一种。
+func AddT(addr *T, delta T) (new T) func CompareAndSwapT(addr *T, old, new T) (swapped bool) func LoadT(addr *T) (val T) func StoreT(addr *T, val T) func SwapT(addr *T, new T) (old T) 对于unsafe." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/concurrency/atomic/" /><meta property="article:section" content="concurrency" />
+
+
+<title>原子操作-atomic | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/"class=active>原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>原子操作-atomic</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="原子操作---atomic">
+  原子操作 - atomic
+  <a class="anchor" href="#%e5%8e%9f%e5%ad%90%e6%93%8d%e4%bd%9c---atomic">#</a>
+</h1>
+<p>atomic是Go内置原子操作包。下面是官方说明：</p>
+<blockquote>
+<p>Package atomic provides low-level atomic memory primitives useful for implementing synchronization algorithms. atomic包提供了用于实现同步机制的底层原子内存原语。</p>
+</blockquote>
+<blockquote>
+<p>These functions require great care to be used correctly. Except for special, low-level applications, synchronization is better done with channels or the facilities of the sync package. Share memory by communicating; don&rsquo;t communicate by sharing memory. 使用这些功能需要非常小心。除了特殊的底层应用程序外，最好使用通道或sync包来进行同步。<strong>通过通信来共享内存；不要通过共享内存来通信</strong>。</p>
+</blockquote>
+<p>atomic包提供的操作可以分为三类：</p>
+<h3 id="对整数类型t的操作">
+  对整数类型T的操作
+  <a class="anchor" href="#%e5%af%b9%e6%95%b4%e6%95%b0%e7%b1%bb%e5%9e%8bt%e7%9a%84%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p>T类型是<code>int32</code>、<code>int64</code>、<code>uint32</code>、<code>uint64</code>、<code>uintptr</code>其中一种。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">AddT</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">T</span>, <span style="color:#a6e22e">delta</span> <span style="color:#a6e22e">T</span>) (<span style="color:#a6e22e">new</span> <span style="color:#a6e22e">T</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">CompareAndSwapT</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">T</span>, <span style="color:#a6e22e">old</span>, <span style="color:#a6e22e">new</span> <span style="color:#a6e22e">T</span>) (<span style="color:#a6e22e">swapped</span> <span style="color:#66d9ef">bool</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">LoadT</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">T</span>) (<span style="color:#a6e22e">val</span> <span style="color:#a6e22e">T</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">StoreT</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">T</span>, <span style="color:#a6e22e">val</span> <span style="color:#a6e22e">T</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">SwapT</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">T</span>, <span style="color:#a6e22e">new</span> <span style="color:#a6e22e">T</span>) (<span style="color:#a6e22e">old</span> <span style="color:#a6e22e">T</span>)
+</span></span></code></pre></div><h3 id="对于unsafepointer类型的操作">
+  对于<code>unsafe.Pointer</code>类型的操作
+  <a class="anchor" href="#%e5%af%b9%e4%ba%8eunsafepointer%e7%b1%bb%e5%9e%8b%e7%9a%84%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">CompareAndSwapPointer</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>, <span style="color:#a6e22e">old</span>, <span style="color:#a6e22e">new</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>) (<span style="color:#a6e22e">swapped</span> <span style="color:#66d9ef">bool</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">LoadPointer</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>) (<span style="color:#a6e22e">val</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">StorePointer</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>, <span style="color:#a6e22e">val</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">SwapPointer</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>, <span style="color:#a6e22e">new</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>) (<span style="color:#a6e22e">old</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>)
+</span></span></code></pre></div><h3 id="atomicvalue类型提供loadstore操作">
+  <code>atomic.Value</code>类型提供Load/Store操作
+  <a class="anchor" href="#atomicvalue%e7%b1%bb%e5%9e%8b%e6%8f%90%e4%be%9bloadstore%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p>atomic提供了<code>atomic.Value</code>类型，用来原子性加载和存储类型一致的值（consistently typed value）。<code>atomic.Value</code>提供了对任何类型的原则性操作。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">v</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Value</span>) <span style="color:#a6e22e">Load</span>() (<span style="color:#a6e22e">x</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#75715e">// 原子性返回刚刚存储的值，若没有值返回nil
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">v</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Value</span>) <span style="color:#a6e22e">Store</span>(<span style="color:#a6e22e">x</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#75715e">// 原子性存储值x，x可以是nil，但需要每次存的值都必须是同一个具体类型。
+</span></span></span></code></pre></div><h2 id="用法">
+  用法
+  <a class="anchor" href="#%e7%94%a8%e6%b3%95">#</a>
+</h2>
+<h3 id="用法示例1原子性增加值">
+  用法示例1：原子性增加值
+  <a class="anchor" href="#%e7%94%a8%e6%b3%95%e7%a4%ba%e4%be%8b1%e5%8e%9f%e5%ad%90%e6%80%a7%e5%a2%9e%e5%8a%a0%e5%80%bc">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>	<span style="color:#e6db74">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#e6db74">&#34;sync&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#e6db74">&#34;sync/atomic&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">count</span> <span style="color:#66d9ef">int32</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">wg</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">WaitGroup</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">10</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddInt32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">count</span>, <span style="color:#ae81ff">1</span>) <span style="color:#75715e">// 原子性增加值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Done</span>()
+</span></span><span style="display:flex;"><span>		}()
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">LoadInt32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">count</span>)) <span style="color:#75715e">// 原子性加载
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		}()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Wait</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;count: &#34;</span>, <span style="color:#a6e22e">count</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="用法示例2简易自旋锁实现">
+  用法示例2：简易自旋锁实现
+  <a class="anchor" href="#%e7%94%a8%e6%b3%95%e7%a4%ba%e4%be%8b2%e7%ae%80%e6%98%93%e8%87%aa%e6%97%8b%e9%94%81%e5%ae%9e%e7%8e%b0">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>	<span style="color:#e6db74">&#34;sync/atomic&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">spin</span> <span style="color:#66d9ef">int64</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">spin</span>) <span style="color:#a6e22e">lock</span>() <span style="color:#66d9ef">bool</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">CompareAndSwapInt64</span>((<span style="color:#f92672">*</span><span style="color:#66d9ef">int64</span>)(<span style="color:#a6e22e">l</span>), <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">spin</span>) <span style="color:#a6e22e">unlock</span>() <span style="color:#66d9ef">bool</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">CompareAndSwapInt64</span>((<span style="color:#f92672">*</span><span style="color:#66d9ef">int64</span>)(<span style="color:#a6e22e">l</span>), <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span> <span style="color:#f92672">:=</span> new(<span style="color:#a6e22e">spin</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">5</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">lock</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">i</span> <span style="color:#66d9ef">int</span>) {
+</span></span><span style="display:flex;"><span>			println(<span style="color:#a6e22e">i</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">unlock</span>()
+</span></span><span style="display:flex;"><span>		}(<span style="color:#a6e22e">i</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="用法示例3-无符号整数减法操作">
+  用法示例3： 无符号整数减法操作
+  <a class="anchor" href="#%e7%94%a8%e6%b3%95%e7%a4%ba%e4%be%8b3-%e6%97%a0%e7%ac%a6%e5%8f%b7%e6%95%b4%e6%95%b0%e5%87%8f%e6%b3%95%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p>对于Uint32和Uint64类型Add方法第二个参数只能接受相应的无符号整数，<code>atomic</code>包没有提供减法<code>SubstractT</code>操作：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">AddUint32</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">uint32</span>, <span style="color:#a6e22e">delta</span> <span style="color:#66d9ef">uint32</span>) (<span style="color:#a6e22e">new</span> <span style="color:#66d9ef">uint32</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">AddUint64</span>(<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">uint64</span>, <span style="color:#a6e22e">delta</span> <span style="color:#66d9ef">uint64</span>) (<span style="color:#a6e22e">new</span> <span style="color:#66d9ef">uint64</span>)
+</span></span></code></pre></div><p>对于无符号整数<code>V</code>，我们可以传递<code>-V</code>给AddT方法第二个参数就可以实现减法操作。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>	<span style="color:#e6db74">&#34;sync/atomic&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#66d9ef">uint64</span> = <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">j</span> <span style="color:#66d9ef">uint64</span> = <span style="color:#ae81ff">10</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">k</span> = <span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddUint64</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">i</span>, <span style="color:#f92672">-</span><span style="color:#a6e22e">j</span>)
+</span></span><span style="display:flex;"><span>	println(<span style="color:#a6e22e">i</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddUint64</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">i</span>, <span style="color:#f92672">-</span>uint64(<span style="color:#a6e22e">k</span>))
+</span></span><span style="display:flex;"><span>	println(<span style="color:#a6e22e">i</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 下面这种操作是不可以的，会发生恐慌：constant -5 overflows uint64
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// atomic.AddUint64(&amp;i, -uint64(5))
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h2 id="源码分析">
+  源码分析
+  <a class="anchor" href="#%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90">#</a>
+</h2>
+<p><code>atomic</code>包提供的三类操作的前两种都是直接通过汇编源码实现的（
+  <a href="https://github.com/cyub/go-1.14.13/tree/master/src/sync/atomic/asm.s">sync/atomic/asm.s</a>):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-as" data-lang="as"><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">#</span><span style="color:#a6e22e">include</span> <span style="color:#e6db74">&#34;textflag.h&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span> <span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">SwapInt32</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span><span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">,</span><span style="color:#a6e22e">$0</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">JMP</span>	<span style="color:#a6e22e">runtime</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#66d9ef">internal</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#a6e22e">atomic</span><span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">Xchg</span>(<span style="color:#a6e22e">SB</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span> <span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">SwapUint32</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span><span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">,</span><span style="color:#a6e22e">$0</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">JMP</span>	<span style="color:#a6e22e">runtime</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#66d9ef">internal</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#a6e22e">atomic</span><span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">Xchg</span>(<span style="color:#a6e22e">SB</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span> <span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">StoreUintptr</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span><span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">,</span><span style="color:#a6e22e">$0</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">JMP</span>	<span style="color:#a6e22e">runtime</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#66d9ef">internal</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#a6e22e">atomic</span><span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">Storeuintptr</span>(<span style="color:#a6e22e">SB</span>)
+</span></span></code></pre></div><p>从上面汇编代码可以看出来atomic操作通过JMP操作跳到<code>runtime/internal/atomic</code>目录下面的汇编实现。我们把目标转移到<code>runtime/internal/atomic</code>目录下面。</p>
+<p>该目录包含针对不同平台的atomic汇编实现<code>asm_xxx.s</code>。这里面我们只关注<code>amd64</code>平台<code>asm_amd64.s</code>(
+  <a href="https://github.com/cyub/go-1.14.13/tree/master/src/runtime/internal/atomic/asm_amd64.s">runtime/internal/atomic/asm_amd64.s</a>)和<code>atomic_amd64.go</code>(
+  <a href="https://github.com/cyub/go-1.14.13/tree/master/src/runtime/internal/atomic/atomic_amd64.go">runtime/internal/atomic/atomic_amd64.go</a>)。</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>底层实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SwapInt32 / SwapUint32</td>
+<td>runtime∕internal∕atomic·Xchg</td>
+</tr>
+<tr>
+<td>SwapInt64 / SwapUint64 / SwapUintptr</td>
+<td>runtime∕internal∕atomic·Xchg64</td>
+</tr>
+<tr>
+<td>CompareAndSwapInt32 / CompareAndSwapUint32</td>
+<td>runtime∕internal∕atomic·Cas</td>
+</tr>
+<tr>
+<td>CompareAndSwapUintptr / CompareAndSwapInt64 / CompareAndSwapUint64</td>
+<td>runtime∕internal∕atomic·Cas64</td>
+</tr>
+<tr>
+<td>AddInt32 / AddUint32</td>
+<td>runtime∕internal∕atomic·Xadd</td>
+</tr>
+<tr>
+<td>AddUintptr / AddInt64 / AddUint64</td>
+<td>runtime∕internal∕atomic·Xadd64</td>
+</tr>
+<tr>
+<td>LoadInt32 / LoadUint32</td>
+<td>runtime∕internal∕atomic·Load</td>
+</tr>
+<tr>
+<td>LoadInt64 / LoadUint64 / LoadUint64/ LoadUintptr</td>
+<td>runtime∕internal∕atomic·Load64</td>
+</tr>
+<tr>
+<td>LoadPointer</td>
+<td>runtime∕internal∕atomic·Loadp</td>
+</tr>
+<tr>
+<td>StoreInt32 / StoreUint32</td>
+<td>runtime∕internal∕atomic·Store</td>
+</tr>
+<tr>
+<td>StoreInt64 / StoreUint64 / StoreUintptr</td>
+<td>runtime∕internal∕atomic·Store64</td>
+</tr>
+</tbody>
+</table>
+<h3 id="add操作">
+  Add操作
+  <a class="anchor" href="#add%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p><code>AddUintptr</code> 、 <code>AddInt64</code> 以及 <code>AddUint64</code>都是由方法<code>runtime∕internal∕atomic·Xadd64</code>实现:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-as" data-lang="as"><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span> <span style="color:#a6e22e">runtime</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#66d9ef">internal</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#a6e22e">atomic</span><span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">Xadd64</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">$0</span><span style="color:#f92672">-</span><span style="color:#ae81ff">24</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">ptr</span><span style="color:#f92672">+</span><span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">BX</span> <span style="color:#75715e">// 第一个参数保存到BX
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">delta</span><span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">AX</span> <span style="color:#75715e">// 第二个参数保存到AX
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">CX</span>  <span style="color:#75715e">// 将第二个参数临时存到CX寄存器中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">LOCK</span>			<span style="color:#75715e">// LOCK指令进行锁住操作，实现对共享内存独占访问
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">XADDQ</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">BX</span>) <span style="color:#75715e">// xaddq指令，实现寄存器AX的值与BX指向的内存存的值互换，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 并将这两个值的和存在BX指向的内存中，此时AX寄存器存的是第一个参数指向的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">ADDQ</span>	<span style="color:#a6e22e">CX</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">AX</span> <span style="color:#75715e">// 此时AX寄存器的值是Add操作之后的值，和0(BX)值一样
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">ret</span><span style="color:#f92672">+</span><span style="color:#ae81ff">16</span>(<span style="color:#a6e22e">FP</span>) <span style="color:#960050;background-color:#1e0010">#</span> <span style="color:#960050;background-color:#1e0010">返回值</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">RET</span>
+</span></span></code></pre></div><p><strong>LOCK</strong>指令是一个指令前缀，其后是<strong>读-写</strong>性质的指令，在多处理器环境中，LOCK指令能够确保在执行LOCK随后的指令时，处理器拥有对数据的独占使用。若对应数据已经在cache line里，也就不用锁定总线，仅锁住缓存行即可，否则需要锁住总线来保证独占性。</p>
+<p><strong>XADDQ</strong>指令用于交换加操作，会将源操作数与目的操作数互换，并将两者的和保存到源操作数中。</p>
+<p><code>AddInt32</code> 、 <code>AddUint32</code> 都是由方法<code>runtime∕internal∕atomic·Xadd</code>实现，实现逻辑和<code>runtime∕internal∕atomic·Xadd64</code>一样，只是Xadd中相关数据操作指令后缀是<code>L</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-as" data-lang="as"><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span> <span style="color:#a6e22e">runtime</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#66d9ef">internal</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#a6e22e">atomic</span><span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">Xadd</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">$0</span><span style="color:#f92672">-</span><span style="color:#ae81ff">20</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">ptr</span><span style="color:#f92672">+</span><span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">BX</span> <span style="color:#75715e">// 注意第一个参数是一个指针类型，是64位，所以还是MOVQ指令
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVL</span>	<span style="color:#a6e22e">delta</span><span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">AX</span> <span style="color:#75715e">// 第二个参数32位的，所以是MOVL指令
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVL</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">CX</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">LOCK</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">XADDL</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">BX</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ADDL</span>	<span style="color:#a6e22e">CX</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">AX</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">MOVL</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">ret</span><span style="color:#f92672">+</span><span style="color:#ae81ff">16</span>(<span style="color:#a6e22e">FP</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">RET</span>
+</span></span></code></pre></div><h3 id="store操作">
+  Store操作
+  <a class="anchor" href="#store%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p><code>StoreInt64</code>、<code>StoreUint64</code>、<code>StoreUintptr</code>三个是<code>runtime∕internal∕atomic·Store64</code>方法实现:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-as" data-lang="as"><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span> <span style="color:#a6e22e">runtime</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#66d9ef">internal</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#a6e22e">atomic</span><span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">Store64</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">$0</span><span style="color:#f92672">-</span><span style="color:#ae81ff">16</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">ptr</span><span style="color:#f92672">+</span><span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">BX</span> <span style="color:#75715e">// 第一个参数保存到BX
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">val</span><span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">AX</span> <span style="color:#75715e">// 第二个参数保存到AX
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">XCHGQ</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">BX</span>) <span style="color:#75715e">// 将AX寄存器与BX寄存指向内存的值互换，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 那么第一个参数指向的内存存的值为第二个参数
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">RET</span>
+</span></span></code></pre></div><p><strong>XCHGQ</strong>指令是交换指令，用于交换源操作数和目的操作数。</p>
+<p><code>StoreInt32</code>、<code>StoreUint32</code>是由<code>runtime∕internal∕atomic·Store</code>方法实现，与<code>runtime∕internal∕atomic·Store64</code>逻辑一样，这里不在赘述。</p>
+<h3 id="compareandswap操作">
+  CompareAndSwap操作
+  <a class="anchor" href="#compareandswap%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p><code>CompareAndSwapUintptr</code>、<code>CompareAndSwapInt64</code>和<code>CompareAndSwapUint64</code>都是由<code>runtime∕internal∕atomic·Cas64</code>实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-as" data-lang="as"><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span> <span style="color:#a6e22e">runtime</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#66d9ef">internal</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#a6e22e">atomic</span><span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">Cas64</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">$0</span><span style="color:#f92672">-</span><span style="color:#ae81ff">25</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">ptr</span><span style="color:#f92672">+</span><span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">BX</span> <span style="color:#75715e">// 将第一个参数保存到BX
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">old</span><span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">AX</span> <span style="color:#75715e">// 将第二个参数保存到AX
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#66d9ef">new</span><span style="color:#f92672">+</span><span style="color:#ae81ff">16</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">CX</span> <span style="color:#75715e">// 将第三个参数保存CX
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">LOCK</span>				 <span style="color:#75715e">// LOCK指令进行上锁操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">CMPXCHGQ</span>	<span style="color:#a6e22e">CX</span><span style="color:#f92672">,</span> <span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">BX</span>) <span style="color:#75715e">// BX寄存器指向的内存的值与AX寄存器值进行比较，若相等则把CX寄存器值存储到BX寄存器指向的内存中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">SETEQ</span>	<span style="color:#a6e22e">ret</span><span style="color:#f92672">+</span><span style="color:#ae81ff">24</span>(<span style="color:#a6e22e">FP</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">RET</span>
+</span></span></code></pre></div><p><strong>CMPXCHGQ</strong>指令是比较并交换指令，它的用法是将目的操作数和累加寄存器AX进行比较，若相等，则将源操作数复制到目的操作数中，否则将目的操作复制到累加寄存器中。</p>
+<h3 id="swap操作">
+  Swap操作
+  <a class="anchor" href="#swap%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p><code>SwapInt64</code>、<code>SwapUint64</code>、<code>SwapUintptr</code>实现的方法是<code>runtime∕internal∕atomic·Xchg64</code>，<code>SwapInt32</code>和<code>SwapUint32</code>底层实现是<code>runtime∕internal∕atomic·Xchg</code>，这里面只分析64的操作：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-as" data-lang="as"><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span> <span style="color:#a6e22e">runtime</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#66d9ef">internal</span><span style="color:#960050;background-color:#1e0010">∕</span><span style="color:#a6e22e">atomic</span><span style="color:#960050;background-color:#1e0010">·</span><span style="color:#a6e22e">Xchg64</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">$0</span><span style="color:#f92672">-</span><span style="color:#ae81ff">24</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">ptr</span><span style="color:#f92672">+</span><span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">BX</span> <span style="color:#75715e">// 第一个参数保存到BX
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#66d9ef">new</span><span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">FP</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">AX</span> <span style="color:#75715e">// 第一个参数保存到AX中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">XCHGQ</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#ae81ff">0</span>(<span style="color:#a6e22e">BX</span>) <span style="color:#75715e">// XCHGQ指令交互AX值到0(BX)中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">MOVQ</span>	<span style="color:#a6e22e">AX</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">ret</span><span style="color:#f92672">+</span><span style="color:#ae81ff">16</span>(<span style="color:#a6e22e">FP</span>) <span style="color:#75715e">// 将旧值返回
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">RET</span>
+</span></span></code></pre></div><h3 id="load操作">
+  Load操作
+  <a class="anchor" href="#load%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p><code>LoadInt32</code>、<code>LoadUint32</code>、<code>LoadInt64</code> 、 <code>LoadUint64</code> 、 <code>LoadUint64</code>、 <code>LoadUintptr</code>、<code>LoadPointer</code>实现都是Go实现的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">//go:linkname Load
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//go:linkname Loadp
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//go:linkname Load64
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//go:nosplit
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//go:noinline
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Load</span>(<span style="color:#a6e22e">ptr</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">uint32</span>) <span style="color:#66d9ef">uint32</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">ptr</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//go:nosplit
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//go:noinline
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Loadp</span>(<span style="color:#a6e22e">ptr</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>) <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>)(<span style="color:#a6e22e">ptr</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//go:nosplit
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//go:noinline
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Load64</span>(<span style="color:#a6e22e">ptr</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">uint64</span>) <span style="color:#66d9ef">uint64</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">ptr</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>最后我们来分析atomic.Value类型提供Load/Store操作。</p>
+<h3 id="atomicvalue类型的loadstore操作">
+  atomic.Value类型的Load/Store操作
+  <a class="anchor" href="#atomicvalue%e7%b1%bb%e5%9e%8b%e7%9a%84loadstore%e6%93%8d%e4%bd%9c">#</a>
+</h3>
+<p>atomic.Value类型定义如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Value</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">v</span> <span style="color:#66d9ef">interface</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> <span style="color:#75715e">// ifaceWords是空接口底层表示
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">ifaceWords</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">typ</span>  <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">data</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>atomic.Value底层存储的是空接口类型，空接口底层结构如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">eface</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">_type</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">_type</span> <span style="color:#75715e">// 空接口持有的类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">data</span>  <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span> <span style="color:#75715e">// 指向空接口持有类型变量的指针
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>atomic.Value内存布局如下所示：</p>
+<p>
+  <img src="https://static.cyub.vip/images/202104/atomic_value_mem_layout.png" alt="" /></p>
+<p>从上图可以看出来atomic.Value内部分为两部分，第一个部分是_type类型指针，第二个部分是unsafe.Pointer类型，两个部分大小都是8字节（64系统下）。我们可以通过以下代码进行测试：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Value</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">v</span> <span style="color:#66d9ef">interface</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">ifaceWords</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">typ</span>  <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">data</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">val</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">Value</span>{<span style="color:#a6e22e">v</span>: <span style="color:#ae81ff">123456</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">t</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">ifaceWords</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">val</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">dp</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">t</span>).<span style="color:#a6e22e">data</span>            <span style="color:#75715e">// dp是非安全指针类型变量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#f92672">*</span>((<span style="color:#f92672">*</span><span style="color:#66d9ef">int</span>)(<span style="color:#a6e22e">dp</span>))) <span style="color:#75715e">// 输出123456
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">val2</span> <span style="color:#a6e22e">Value</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">t</span> = (<span style="color:#f92672">*</span><span style="color:#a6e22e">ifaceWords</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">val2</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">typ</span>) <span style="color:#75715e">// 输出nil
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>接下来我们看下Store方法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">v</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Value</span>) <span style="color:#a6e22e">Store</span>(<span style="color:#a6e22e">x</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> { <span style="color:#75715e">// atomic.Value类型变量不能是nil
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		panic(<span style="color:#e6db74">&#34;sync/atomic: store of nil value into Value&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">vp</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">ifaceWords</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">v</span>)) <span style="color:#75715e">// 将指向atomic.Value类型指针转换成*ifaceWords类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">xp</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">ifaceWords</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">x</span>)) <span style="color:#75715e">// xp是*faceWords类型指针，指向传入参数x
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">typ</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">LoadPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">vp</span>.<span style="color:#a6e22e">typ</span>) <span style="color:#75715e">// 原子性返回vp.typ
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">typ</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> { <span style="color:#75715e">// 第一次调用Store时候，atomic.Value底层结构体第一部分是nil，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#75715e">// 我们可以从上面测试代码可以看出来
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">runtime_procPin</span>() <span style="color:#75715e">// pin process处理，防止M被抢占
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">CompareAndSwapPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">vp</span>.<span style="color:#a6e22e">typ</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(^uintptr(<span style="color:#ae81ff">0</span>))) { <span style="color:#75715e">// 通过cas操作，将atomic.Value的第一部分存储为unsafe.Pointer(^uintptr(0))，若没操作成功，继续操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#a6e22e">runtime_procUnpin</span>() <span style="color:#75715e">// unpin process处理，释放对当前M的锁定
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// vp.data == xp.data
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#75715e">// vp.typ == xp.typ
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">StorePointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">vp</span>.<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">xp</span>.<span style="color:#a6e22e">data</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">StorePointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">vp</span>.<span style="color:#a6e22e">typ</span>, <span style="color:#a6e22e">xp</span>.<span style="color:#a6e22e">typ</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">runtime_procUnpin</span>()
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> uintptr(<span style="color:#a6e22e">typ</span>) <span style="color:#f92672">==</span> ^uintptr(<span style="color:#ae81ff">0</span>) { <span style="color:#75715e">// 此时说明第一次的Store操作未完成，正在处理中，此时其他的Store等待第一次操作完成
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">typ</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">xp</span>.<span style="color:#a6e22e">typ</span> { <span style="color:#75715e">// 再次Store操作时进行typ类型校验，确保每次Store数据对象都必须是同一类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			panic(<span style="color:#e6db74">&#34;sync/atomic: store of inconsistently typed value into Value&#34;</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">StorePointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">vp</span>.<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">xp</span>.<span style="color:#a6e22e">data</span>) <span style="color:#75715e">// vp.data == xp.data
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>总结上面Store流程：</p>
+<ol>
+<li>每次调用Store方法时候，会将传入参数转换成interface{}类型。当第一次调用Store方法时候，分两部分操作，分别将传入参数空接口类型的_typ和data，存储到Value类型中。</li>
+<li>当再次调用Store类型时候，进行传入参数空接口类型的_type和Value的_type比较，若不一致直接panic，若一致则将data存储到Value类型中</li>
+</ol>
+<p>从流程2可以看出来，<strong>每次调用Store方法时传入参数都必须是同一类型的变量</strong>。当Store完成之后，实现了“鸠占鹊巢”，atomic.Value底层存储的实际上是(interface{})x。</p>
+<p>最后我们看看atomic.Value的Load操作：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">v</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Value</span>) <span style="color:#a6e22e">Load</span>() (<span style="color:#a6e22e">x</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">vp</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">ifaceWords</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">v</span>)) <span style="color:#75715e">// 将指向v指针转换成*ifaceWords类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">typ</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">LoadPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">vp</span>.<span style="color:#a6e22e">typ</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">typ</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> <span style="color:#f92672">||</span> uintptr(<span style="color:#a6e22e">typ</span>) <span style="color:#f92672">==</span> ^uintptr(<span style="color:#ae81ff">0</span>) { <span style="color:#75715e">// typ == nil 说明Store方法未调用过
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// uintptr(typ) == ^uintptr(0) 说明第一Store方法调用正在进行中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">data</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">LoadPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">vp</span>.<span style="color:#a6e22e">data</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">xp</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">ifaceWords</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">x</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">xp</span>.<span style="color:#a6e22e">typ</span> = <span style="color:#a6e22e">typ</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">xp</span>.<span style="color:#a6e22e">data</span> = <span style="color:#a6e22e">data</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div></article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

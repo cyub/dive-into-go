@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="值传递 # 函数传参有三种方式，分别是值传递（pass by value)、引用传递（pass by reference)，以及指针传递（pass by pointer)。指针传递也称为地址传递，本质上也属于值传递，它只不过传递的值是地址而已。所以按照广义的函数传递来分，分为值传递和引用传递。Go语言中函数传参值传递，不支持引用传递。但是由于切片，通道，映射等具有引用传递的某些特性，往往令人疑惑其应该是引用传递。这个章节我们就来探究下Go语言中函数传递的问题。
+在探究Go语言中函数传递的问题，我们先研究C&#43;&#43;语言下的引用传递和指针传递是怎么回事。
+C&#43;&#43;中指针传递 # #include &lt;stdio.h&gt; void swap(int* a,int *b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, *a, &amp;a, *b, &amp;b); int temp = *a; *a = *b; *b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(&amp;a,&amp;b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } C&#43;&#43;中引用传递 # #include &lt;stdio.h&gt; void swap(int &amp;a, int &amp;b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); int temp = a; a = b; b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(a,b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } 进一步阅读 # When are function parameters passed by value?">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="值传递" />
+<meta property="og:description" content="值传递 # 函数传参有三种方式，分别是值传递（pass by value)、引用传递（pass by reference)，以及指针传递（pass by pointer)。指针传递也称为地址传递，本质上也属于值传递，它只不过传递的值是地址而已。所以按照广义的函数传递来分，分为值传递和引用传递。Go语言中函数传参值传递，不支持引用传递。但是由于切片，通道，映射等具有引用传递的某些特性，往往令人疑惑其应该是引用传递。这个章节我们就来探究下Go语言中函数传递的问题。
+在探究Go语言中函数传递的问题，我们先研究C&#43;&#43;语言下的引用传递和指针传递是怎么回事。
+C&#43;&#43;中指针传递 # #include &lt;stdio.h&gt; void swap(int* a,int *b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, *a, &amp;a, *b, &amp;b); int temp = *a; *a = *b; *b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(&amp;a,&amp;b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } C&#43;&#43;中引用传递 # #include &lt;stdio.h&gt; void swap(int &amp;a, int &amp;b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); int temp = a; a = b; b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(a,b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } 进一步阅读 # When are function parameters passed by value?" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/function/pass-by-value/" /><meta property="article:section" content="function" />
+
+
+<title>值传递 | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/"class=active>值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>值传递</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="值传递">
+  值传递
+  <a class="anchor" href="#%e5%80%bc%e4%bc%a0%e9%80%92">#</a>
+</h1>
+<p>函数传参有三种方式，分别是值传递（pass by value)、引用传递（pass by reference)，以及指针传递（pass by pointer)。指针传递也称为地址传递，本质上也属于值传递，它只不过传递的值是地址而已。所以按照广义的函数传递来分，分为值传递和引用传递。Go语言中函数传参值传递，不支持引用传递。但是由于切片，通道，映射等具有引用传递的某些特性，往往令人疑惑其应该是引用传递。这个章节我们就来探究下Go语言中函数传递的问题。</p>
+<p>在探究Go语言中函数传递的问题，我们先研究C++语言下的引用传递和指针传递是怎么回事。</p>
+<h2 id="c中指针传递">
+  C++中指针传递
+  <a class="anchor" href="#c%e4%b8%ad%e6%8c%87%e9%92%88%e4%bc%a0%e9%80%92">#</a>
+</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">swap</span>(<span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> a,<span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>b){
+</span></span><span style="display:flex;"><span>    printf(<span style="color:#e6db74">&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">*</span>a, <span style="color:#f92672">&amp;</span>a, <span style="color:#f92672">*</span>b, <span style="color:#f92672">&amp;</span>b);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> temp <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>a;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">*</span>a <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>b;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">*</span>b <span style="color:#f92672">=</span> temp;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> a <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> b <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>    printf(<span style="color:#e6db74">&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, a, <span style="color:#f92672">&amp;</span>a, b, <span style="color:#f92672">&amp;</span>b);
+</span></span><span style="display:flex;"><span>    swap(<span style="color:#f92672">&amp;</span>a,<span style="color:#f92672">&amp;</span>b);
+</span></span><span style="display:flex;"><span>    printf(<span style="color:#e6db74">&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, a, <span style="color:#f92672">&amp;</span>a, b, <span style="color:#f92672">&amp;</span>b);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="c中引用传递">
+  C++中引用传递
+  <a class="anchor" href="#c%e4%b8%ad%e5%bc%95%e7%94%a8%e4%bc%a0%e9%80%92">#</a>
+</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">swap</span>(<span style="color:#66d9ef">int</span> <span style="color:#f92672">&amp;</span>a, <span style="color:#66d9ef">int</span> <span style="color:#f92672">&amp;</span>b){
+</span></span><span style="display:flex;"><span>    printf(<span style="color:#e6db74">&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, a, <span style="color:#f92672">&amp;</span>a, b, <span style="color:#f92672">&amp;</span>b);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> temp <span style="color:#f92672">=</span> a;
+</span></span><span style="display:flex;"><span>    a <span style="color:#f92672">=</span> b;
+</span></span><span style="display:flex;"><span>    b <span style="color:#f92672">=</span> temp;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> a <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> b <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>;
+</span></span><span style="display:flex;"><span>    printf(<span style="color:#e6db74">&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, a, <span style="color:#f92672">&amp;</span>a, b, <span style="color:#f92672">&amp;</span>b);
+</span></span><span style="display:flex;"><span>    swap(a,b);
+</span></span><span style="display:flex;"><span>    printf(<span style="color:#e6db74">&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, a, <span style="color:#f92672">&amp;</span>a, b, <span style="color:#f92672">&amp;</span>b);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="进一步阅读">
+  进一步阅读
+  <a class="anchor" href="#%e8%bf%9b%e4%b8%80%e6%ad%a5%e9%98%85%e8%af%bb">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://golang.org/doc/faq#pass_by_value">When are function parameters passed by value?</a></li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

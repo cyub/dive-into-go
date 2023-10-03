@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="内存模型 # Go语言中的内存模型规定了多个goroutine读取变量时候，变量的可见性情况。注意本章节的内存模型并不是内存对象分配、管理、回收的模型，准确的说这里面的内存模型是内存一致性模型。
+Happens Before原则 # Happens Before原则的定义是如果一个操作e1先于操作e2发生，那么我们就说e1 happens before e2，也可以描述成e2 happens after e2，此时e1操作的变量结果对e2都是可见的。如果e1操作既不先于e2发生又不晚于e2发生，我们说e1操作与e2操作并发发生。
+Happens Before具有传导性：如果操作e1 happens before 操作e2，e3 happends before e1，那么e3一定也 happends before e2。
+由于存在指令重排和多核CPU并发访问情况，我们代码中变量顺序和实际方法顺序并不总是一致的。考虑下面一种情况：
+a := 1 b := 2 c := a &#43; 1 上面代码中是先给变量a赋值，然后给变量b赋值，最后给编程c赋值。但是在底层实现指令时候，可能发生指令重排：变量b赋值在前，变量a赋值在后，最后变量c赋值。对于依赖于a变量的c变量的赋值，不管怎样指令重排，Go语言都会保证变量a赋值操作 happends before c变量赋值操作。
+上面代码运行是运行在同一goroutine中，Go语言时能够保证happends before原则的，实现正确的变量可见性。但对于多个goroutine共享数据时候，Go语言是无法保证Happens Before原则的，这时候就需要我们采用锁、通道等同步手段来保证数据一致性。考虑下面场景：
+var a, b int // goroutine A go func() { a = 1 b = 2 }() // goroutine B go func() { if b == 2 { print(a) } }() 当执行goroutine B打印变量a时并不一定打印出来1，有可能打印出来的是0。这是因为goroutine A中可能存在指令重排，先将b变量赋值2，若这时候接着执行goroutine B那么就会打印出来0">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="内存模型 - memroy model" />
+<meta property="og:description" content="内存模型 # Go语言中的内存模型规定了多个goroutine读取变量时候，变量的可见性情况。注意本章节的内存模型并不是内存对象分配、管理、回收的模型，准确的说这里面的内存模型是内存一致性模型。
+Happens Before原则 # Happens Before原则的定义是如果一个操作e1先于操作e2发生，那么我们就说e1 happens before e2，也可以描述成e2 happens after e2，此时e1操作的变量结果对e2都是可见的。如果e1操作既不先于e2发生又不晚于e2发生，我们说e1操作与e2操作并发发生。
+Happens Before具有传导性：如果操作e1 happens before 操作e2，e3 happends before e1，那么e3一定也 happends before e2。
+由于存在指令重排和多核CPU并发访问情况，我们代码中变量顺序和实际方法顺序并不总是一致的。考虑下面一种情况：
+a := 1 b := 2 c := a &#43; 1 上面代码中是先给变量a赋值，然后给变量b赋值，最后给编程c赋值。但是在底层实现指令时候，可能发生指令重排：变量b赋值在前，变量a赋值在后，最后变量c赋值。对于依赖于a变量的c变量的赋值，不管怎样指令重排，Go语言都会保证变量a赋值操作 happends before c变量赋值操作。
+上面代码运行是运行在同一goroutine中，Go语言时能够保证happends before原则的，实现正确的变量可见性。但对于多个goroutine共享数据时候，Go语言是无法保证Happens Before原则的，这时候就需要我们采用锁、通道等同步手段来保证数据一致性。考虑下面场景：
+var a, b int // goroutine A go func() { a = 1 b = 2 }() // goroutine B go func() { if b == 2 { print(a) } }() 当执行goroutine B打印变量a时并不一定打印出来1，有可能打印出来的是0。这是因为goroutine A中可能存在指令重排，先将b变量赋值2，若这时候接着执行goroutine B那么就会打印出来0" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/concurrency/memory-model/" /><meta property="article:section" content="concurrency" />
+
+
+<title>内存模型 - memroy model | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/"class=active>内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/">读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>内存模型 - memroy model</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="内存模型">
+  内存模型
+  <a class="anchor" href="#%e5%86%85%e5%ad%98%e6%a8%a1%e5%9e%8b">#</a>
+</h1>
+<p>Go语言中的内存模型规定了多个goroutine读取变量时候，变量的可见性情况。注意本章节的内存模型并不是内存对象分配、管理、回收的模型，准确的说这里面的内存模型是内存一致性模型。</p>
+<h2 id="happens-before原则">
+  Happens Before原则
+  <a class="anchor" href="#happens-before%e5%8e%9f%e5%88%99">#</a>
+</h2>
+<p>Happens Before原则的定义是如果一个操作e1先于操作e2发生，那么我们就说e1 <code>happens before</code> e2，也可以描述成e2 <code>happens after</code> e2，此时e1操作的变量结果对e2都是可见的。如果e1操作既不先于e2发生又不晚于e2发生，我们说e1操作与e2操作并发发生。</p>
+<p>Happens Before具有传导性：如果操作e1 <code>happens before</code> 操作e2，e3 <code>happends before</code> e1，那么e3一定也 <code>happends before</code> e2。</p>
+<p>由于存在指令重排和多核CPU并发访问情况，我们代码中变量顺序和实际方法顺序并不总是一致的。考虑下面一种情况：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">b</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>上面代码中是先给变量a赋值，然后给变量b赋值，最后给编程c赋值。但是在底层实现指令时候，可能发生指令重排：变量b赋值在前，变量a赋值在后，最后变量c赋值。对于依赖于a变量的c变量的赋值，不管怎样指令重排，Go语言都会保证变量a赋值操作 <code>happends before</code> c变量赋值操作。</p>
+<p>上面代码运行是运行在同一goroutine中，Go语言时能够保证<code>happends before</code>原则的，实现正确的变量可见性。但对于多个goroutine共享数据时候，Go语言是无法保证<code>Happens Before</code>原则的，这时候就需要我们采用锁、通道等同步手段来保证数据一致性。考虑下面场景：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span> <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span> <span style="color:#66d9ef">int</span> 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> <span style="color:#75715e">// goroutine A
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span> <span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>     <span style="color:#a6e22e">a</span> = <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>     <span style="color:#a6e22e">b</span> = <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span> }()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> <span style="color:#75715e">// goroutine B
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span> <span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>     <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">b</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">2</span> {
+</span></span><span style="display:flex;"><span>        print(<span style="color:#a6e22e">a</span>)
+</span></span><span style="display:flex;"><span>     }
+</span></span><span style="display:flex;"><span> }()
+</span></span></code></pre></div><p>当执行goroutine B打印变量a时并不一定打印出来1，有可能打印出来的是0。这是因为goroutine A中可能存在指令重排，先将b变量赋值2，若这时候接着执行goroutine B那么就会打印出来0</p>
+<h2 id="go语言中保证的-happens-before-场景">
+  Go语言中保证的 happens-before 场景
+  <a class="anchor" href="#go%e8%af%ad%e8%a8%80%e4%b8%ad%e4%bf%9d%e8%af%81%e7%9a%84-happens-before-%e5%9c%ba%e6%99%af">#</a>
+</h2>
+<p>Go语言提供了某些场景下面的<code>happens-before</code>原则保证。详细内容可以阅读文章末尾进一步阅读中提供的Go官方资料。</p>
+<h3 id="初始化">
+  初始化
+  <a class="anchor" href="#%e5%88%9d%e5%a7%8b%e5%8c%96">#</a>
+</h3>
+<p>当进行包初始化或程序初始化时候，会保证下面的<code>happens-before</code>:</p>
+<ul>
+<li>如果包p导入了包q，则q的init函数的<code>happens before</code>在任何p的开始之前。</li>
+<li>所有init函数happens before 入口函数main.main</li>
+</ul>
+<h3 id="goroutine">
+  goroutine
+  <a class="anchor" href="#goroutine">#</a>
+</h3>
+<p>与goroutine有关的<code>happens-before</code>保证场景有：</p>
+<ul>
+<li>goroutine的创建<code>happens before</code>其执行</li>
+<li>goroutine的完成不保证<code>happens-before</code>任何代码</li>
+</ul>
+<p>对于第一条场景，考虑下面代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">f</span>() {
+</span></span><span style="display:flex;"><span>	print(<span style="color:#a6e22e">a</span>) <span style="color:#75715e">// 3
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">hello</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> = <span style="color:#e6db74">&#34;hello, world&#34;</span> <span style="color:#75715e">// 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">f</span>() <span style="color:#75715e">// 2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>根据goroutine的创建<code>happens before</code>其执行，我们知道操作2 <code>happens before</code> 操作3。又因为在同一goroutine中，先书写的代码一定会<code>happens before</code>后面代码（注意：即使发生了执行重排，其并不会影响<code>happends before</code>），操作1 <code>happends before</code> 操作3，那么操作1 <code>happends before</code> 操作3，所以最终一定会打印出<code>hello, world</code>，不可能出现打印空字符串情况。</p>
+<p>注意goroutine f()的执行完成，并不能保证hello()返回之前，其有可能是在hello返回之后执行完成。</p>
+<p>对于第二条场景，考虑下面代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">hello</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() { <span style="color:#a6e22e">a</span> = <span style="color:#e6db74">&#34;hello&#34;</span> }() <span style="color:#75715e">// 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	print(<span style="color:#a6e22e">a</span>) <span style="color:#75715e">// 2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>由于goroutine的完成不保证<code>happens-before</code>任何代码，那么操作1和操作2无法确定谁先执行，谁后执行，那么最终可能打印出<code>hello</code>，也有可能打印出空字符串。</p>
+<h3 id="通道通信">
+  通道通信
+  <a class="anchor" href="#%e9%80%9a%e9%81%93%e9%80%9a%e4%bf%a1">#</a>
+</h3>
+<ul>
+<li>对于缓冲通道，向通道发送数据<code>happens-before</code>从通道接收到数据</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">c</span> = make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>, <span style="color:#ae81ff">10</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">f</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> = <span style="color:#e6db74">&#34;hello, world&#34;</span> <span style="color:#75715e">// 4
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">0</span> <span style="color:#75715e">// 5
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">f</span>() <span style="color:#75715e">// 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">c</span> <span style="color:#75715e">// 2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	print(<span style="color:#a6e22e">a</span>) <span style="color:#75715e">// 3
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>c是一个缓存通道，操作5 <code>happens before</code> 操作2，所以最终会打印<code>hello, world</code></p>
+<ul>
+<li>对于无缓冲通道，从通道接收数据<code>happens-before</code>向通道发送数据</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">c</span> = make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">int</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">f</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> = <span style="color:#e6db74">&#34;hello, world&#34;</span> <span style="color:#75715e">// 4
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">c</span> <span style="color:#75715e">// 5
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">f</span>() <span style="color:#75715e">// 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">0</span> <span style="color:#75715e">// 2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	print(<span style="color:#a6e22e">a</span>) <span style="color:#75715e">// 3
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>c是无缓存通道，操作5 <code>happens before</code> 操作2，所以最终会打印<code>hello, world</code>。</p>
+<p>对于上面通道的两种<code>happens before</code>场景下打印数据结果，我们都可以通过通道特性得出相关结果。</p>
+<h3 id="锁">
+  锁
+  <a class="anchor" href="#%e9%94%81">#</a>
+</h3>
+<ul>
+<li>对于任意的<code>sync.Mutex</code>或者<code>sync.RWMutex</code>，n次Unlock()调用<code>happens before</code> m次Lock()调用，其中n&lt;m</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">l</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">Mutex</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">a</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">f</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> = <span style="color:#e6db74">&#34;hello, world&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>() <span style="color:#75715e">// 2
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Lock</span>() <span style="color:#75715e">// 1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">f</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Lock</span>() <span style="color:#75715e">// 3
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	print(<span style="color:#a6e22e">a</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>操作2 <code>happends before</code> 操作3，所以最终一定会打印出来hello,world。</p>
+<p>对于这种情况，我们可以从锁的机制方面理解，操作3一定会阻塞到操作为2完成释放锁，那么最终一定会打印<code>hello, world</code>。</p>
+<h2 id="进一步阅读">
+  进一步阅读
+  <a class="anchor" href="#%e8%bf%9b%e4%b8%80%e6%ad%a5%e9%98%85%e8%af%bb">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://golang.org/ref/mem">The Go Memory Model</a></li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

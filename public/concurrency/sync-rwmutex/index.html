@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="读写锁 - sync.RWMutex # RWMutex是Go语言中内置的一个reader/writer锁，用来解决读者-写者问题（Readers–writers problem）。在任意一时刻，一个RWMutex只能由任意数量的reader持有，或者只能由一个writer持有。
+读者-写者问题 # 读者-写者问题（Readers–writers problem）描述了计算机并发处理读写数据遇到的问题，如何保证数据完整性、一致性。解决读者-写者问题需保证对于一份资源操作满足以下下条件：
+读写互斥 写写互斥 允许多个读者同时读取 解决读者-写者问题，可以采用读者优先（readers-preference）方案或者写者优先（writers-preference）方案。
+读者优先（readers-preference）：读者优先是读操作优先于写操作，即使写操作提出申请资源，但只要还有读者在读取操作，就还允许其他读者继续读取操作，直到所有读者结束读取，才开始写。读优先可以提供很高的并发处理性能，但是在频繁读取的系统中，会长时间写阻塞，导致写饥饿。
+写者优先（writers-preference）：写者优先是写操作优先于读操作，如果有写者提出申请资源，在申请之前已经开始读取操作的可以继续执行读取，但是如果再有读者申请读取操作，则不能够读取，只有在所有的写者写完之后才可以读取。写者优先解决了读者优先造成写饥饿的问题。但是若在频繁写入的系统中，会长时间读阻塞，导致读饥饿。
+RWMutex设计采用写者优先方法，保证写操作优先处理。
+源码分析 # 下面分析的源码进行精简处理，去掉了race检查功能的代码。
+RWMutex的定义 # type RWMutex struct { w Mutex // 互斥锁 writerSem uint32 // writers信号量 readerSem uint32 // readers信号量 readerCount int32 // reader数量 readerWait int32 // writer申请锁时候，已经申请到锁的reader的数量 } const rwmutexMaxReaders = 1 &lt;&lt; 30 // 最大reader数，用于反转readerCount RLock/RUnlock的实现 # func (rw *RWMutex) RLock() { if atomic.AddInt32(&amp;rw.readerCount, 1) &lt; 0 { // 如果rw.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:title" content="读写锁 - sync.RWMutex" />
+<meta property="og:description" content="读写锁 - sync.RWMutex # RWMutex是Go语言中内置的一个reader/writer锁，用来解决读者-写者问题（Readers–writers problem）。在任意一时刻，一个RWMutex只能由任意数量的reader持有，或者只能由一个writer持有。
+读者-写者问题 # 读者-写者问题（Readers–writers problem）描述了计算机并发处理读写数据遇到的问题，如何保证数据完整性、一致性。解决读者-写者问题需保证对于一份资源操作满足以下下条件：
+读写互斥 写写互斥 允许多个读者同时读取 解决读者-写者问题，可以采用读者优先（readers-preference）方案或者写者优先（writers-preference）方案。
+读者优先（readers-preference）：读者优先是读操作优先于写操作，即使写操作提出申请资源，但只要还有读者在读取操作，就还允许其他读者继续读取操作，直到所有读者结束读取，才开始写。读优先可以提供很高的并发处理性能，但是在频繁读取的系统中，会长时间写阻塞，导致写饥饿。
+写者优先（writers-preference）：写者优先是写操作优先于读操作，如果有写者提出申请资源，在申请之前已经开始读取操作的可以继续执行读取，但是如果再有读者申请读取操作，则不能够读取，只有在所有的写者写完之后才可以读取。写者优先解决了读者优先造成写饥饿的问题。但是若在频繁写入的系统中，会长时间读阻塞，导致读饥饿。
+RWMutex设计采用写者优先方法，保证写操作优先处理。
+源码分析 # 下面分析的源码进行精简处理，去掉了race检查功能的代码。
+RWMutex的定义 # type RWMutex struct { w Mutex // 互斥锁 writerSem uint32 // writers信号量 readerSem uint32 // readers信号量 readerCount int32 // reader数量 readerWait int32 // writer申请锁时候，已经申请到锁的reader的数量 } const rwmutexMaxReaders = 1 &lt;&lt; 30 // 最大reader数，用于反转readerCount RLock/RUnlock的实现 # func (rw *RWMutex) RLock() { if atomic.AddInt32(&amp;rw.readerCount, 1) &lt; 0 { // 如果rw." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://go.cyub.vip/concurrency/sync-rwmutex/" /><meta property="article:section" content="concurrency" />
+
+
+<title>读写锁 - sync.RWMutex | 深入Go语言之旅</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" >
+<link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
+  <script defer src="/flexsearch.min.js"></script>
+  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><img src="http://go2.cyub.vip/_static/golang-480.png" alt="Logo" /><span>深入Go语言之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+  
+<ul>
+  
+  <li>
+    <a href="https://www.cyub.vip/"  target="_blank" rel="noopener">
+        个人博客
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://github.com/cyub"  target="_blank" rel="noopener">
+        Github主页
+      </a>
+  </li>
+  
+  <li>
+    <a href="https://www.topgoer.cn/?ref=go.cyub.vip"  target="_blank" rel="noopener">
+        地鼠文档
+      </a>
+  </li>
+  
+</ul>
+
+
+
+
+
+
+
+  <ul>
+<li>
+<p><strong>准备篇</strong></p>
+<ul>
+<li>
+  <a href="/compiler/">编译流程</a></li>
+<li>
+  <a href="/analysis-tools/">分析工具</a>
+<ul>
+<li>
+  <a href="/analysis-tools/gdb/">GDB</a></li>
+<li>
+  <a href="/analysis-tools/dlv/">Delve</a></li>
+<li>
+  <a href="/analysis-tools/go-buildin-tools/">Go 内置工具</a></li>
+</ul>
+</li>
+<li>
+  <a href="/go-assembly/">Go汇编</a></li>
+</ul>
+</li>
+<li>
+<p><strong>基础篇</strong></p>
+<ul>
+<li>
+  <a href="/type/">数据类型与数据结构</a>
+<ul>
+<li>
+  <a href="/type/string/">字符串</a></li>
+<li>
+  <a href="/type/array/">数组</a></li>
+<li>
+  <a href="/type/slice/">切片</a></li>
+<li>
+  <a href="/type/nil/">nil</a></li>
+<li>
+  <a href="/type/empty_struct/">空结构体</a></li>
+<li>
+  <a href="/type/pointer/">指针</a></li>
+<li>
+  <a href="/type/map/">映射</a></li>
+</ul>
+</li>
+<li>
+  <a href="/function/">函数</a>
+<ul>
+<li>
+  <a href="/function/first-class/">一等公民</a></li>
+<li>
+  <a href="/function/call-stack/">函数调用栈</a></li>
+<li>
+  <a href="/function/pass-by-value/">值传递</a></li>
+<li>
+  <a href="/function/closure/">闭包</a></li>
+<li>
+  <a href="/function/method/">方法</a></li>
+</ul>
+</li>
+<li>
+  <a href="/feature/">语言特性</a>
+<ul>
+<li>
+  <a href="/feature/comma-ok/">逗号ok模式</a></li>
+<li>
+  <a href="/feature/for-range/">遍历 - for-range语法</a></li>
+<li>
+  <a href="/feature/defer/">延迟执行 - defer语法</a></li>
+<li>
+  <a href="/feature/select/">通道选择器 - select语法</a></li>
+<li>
+  <a href="/feature/panic-recover/">恐慌与恢复  - panic/recover</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>运行时篇</strong></p>
+<ul>
+<li>
+  <a href="/concurrency/">并发编程</a>
+<ul>
+<li>
+  <a href="/concurrency/memory-model/">内存模型</a></li>
+<li>
+  <a href="/concurrency/context/">上下文 - context</a></li>
+<li>
+  <a href="/concurrency/channel/">通道 - channel</a></li>
+<li>
+  <a href="/concurrency/atomic/">原子操作 - atomic</a></li>
+<li>
+  <a href="/concurrency/sync-map/">并发Map - sync.Map</a></li>
+<li>
+  <a href="/concurrency/sync-waitgroup/">等待组 - sync.WaitGroup</a></li>
+<li>
+  <a href="/concurrency/sync-once/">一次性操作 - sync.Once</a></li>
+<li>
+  <a href="/concurrency/sync-pool/">缓冲池 - sync.Pool</a></li>
+<li>
+  <a href="/concurrency/sync-cond/">条件变量 - sync.Cond</a></li>
+<li>
+  <a href="/concurrency/sync-mutex/">互斥锁 - sync.Mutex</a></li>
+<li>
+  <a href="/concurrency/sync-rwmutex/"class=active>读写锁 - sync.RWMutex</a></li>
+</ul>
+</li>
+<li>
+  <a href="/gmp/">G-M-P调度机制</a>
+<ul>
+<li>
+  <a href="/gmp/gmp-model/">调度机制概述</a></li>
+<li>
+  <a href="/gmp/scheduler/">调度器</a></li>
+</ul>
+</li>
+<li>
+  <a href="/memory/">内存管理</a>
+<ul>
+<li>
+  <a href="/memory/allocator/">内存分配器</a></li>
+<li>
+  <a href="/memory/gc/">GC</a></li>
+</ul>
+</li>
+<li>
+  <a href="/type-system/">类型系统</a>
+<ul>
+<li>
+  <a href="/type-system/type/">类型系统</a></li>
+<li>
+  <a href="/type-system/interface/">接口</a></li>
+<li>
+  <a href="/type-system/reflect/">反射</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>读写锁 - sync.RWMutex</strong>
+
+  <label for="toc-control">
+    
+  </label>
+</div>
+
+
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="读写锁---syncrwmutex">
+  读写锁 - sync.RWMutex
+  <a class="anchor" href="#%e8%af%bb%e5%86%99%e9%94%81---syncrwmutex">#</a>
+</h1>
+<p>RWMutex是Go语言中内置的一个reader/writer锁，用来解决读者-写者问题（Readers–writers problem）。在任意一时刻，一个RWMutex只能由任意数量的reader持有，或者只能由一个writer持有。</p>
+<h2 id="读者-写者问题">
+  读者-写者问题
+  <a class="anchor" href="#%e8%af%bb%e8%80%85-%e5%86%99%e8%80%85%e9%97%ae%e9%a2%98">#</a>
+</h2>
+<p>读者-写者问题（Readers–writers problem）描述了计算机并发处理读写数据遇到的问题，如何保证数据完整性、一致性。解决读者-写者问题需保证对于一份资源操作满足以下下条件：</p>
+<ul>
+<li>读写互斥</li>
+<li>写写互斥</li>
+<li>允许多个读者同时读取</li>
+</ul>
+<p>解决读者-写者问题，可以采用<code>读者优先（readers-preference）</code>方案或者<code>写者优先（writers-preference）</code>方案。</p>
+<ul>
+<li>
+<p><strong>读者优先（readers-preference）</strong>：读者优先是读操作优先于写操作，即使写操作提出申请资源，但只要还有读者在读取操作，就还允许其他读者继续读取操作，直到所有读者结束读取，才开始写。读优先可以提供很高的并发处理性能，但是在频繁读取的系统中，会长时间写阻塞，导致写饥饿。</p>
+</li>
+<li>
+<p><strong>写者优先（writers-preference）</strong>：写者优先是写操作优先于读操作，如果有写者提出申请资源，在申请之前已经开始读取操作的可以继续执行读取，但是如果再有读者申请读取操作，则不能够读取，只有在所有的写者写完之后才可以读取。写者优先解决了读者优先造成写饥饿的问题。但是若在频繁写入的系统中，会长时间读阻塞，导致读饥饿。</p>
+</li>
+</ul>
+<p>RWMutex设计采用写者优先方法，保证写操作优先处理。</p>
+<h2 id="源码分析">
+  源码分析
+  <a class="anchor" href="#%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90">#</a>
+</h2>
+<p>下面分析的源码进行精简处理，去掉了race检查功能的代码。</p>
+<h3 id="rwmutex的定义">
+  RWMutex的定义
+  <a class="anchor" href="#rwmutex%e7%9a%84%e5%ae%9a%e4%b9%89">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">RWMutex</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">w</span>           <span style="color:#a6e22e">Mutex</span>  <span style="color:#75715e">// 互斥锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">writerSem</span>   <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// writers信号量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">readerSem</span>   <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// readers信号量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">readerCount</span> <span style="color:#66d9ef">int32</span>  <span style="color:#75715e">// reader数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">readerWait</span>  <span style="color:#66d9ef">int32</span>  <span style="color:#75715e">// writer申请锁时候，已经申请到锁的reader的数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">rwmutexMaxReaders</span> = <span style="color:#ae81ff">1</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">30</span> <span style="color:#75715e">// 最大reader数，用于反转readerCount
+</span></span></span></code></pre></div><h3 id="rlockrunlock的实现">
+  RLock/RUnlock的实现
+  <a class="anchor" href="#rlockrunlock%e7%9a%84%e5%ae%9e%e7%8e%b0">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rw</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RWMutex</span>) <span style="color:#a6e22e">RLock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddInt32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">readerCount</span>, <span style="color:#ae81ff">1</span>) &lt; <span style="color:#ae81ff">0</span> { <span style="color:#75715e">// 如果rw.readerCount为负数，说明此时已有一个writer持有锁或者正在申请锁。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">runtime_SemacquireMutex</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">readerSem</span>, <span style="color:#66d9ef">false</span>, <span style="color:#ae81ff">0</span>) <span style="color:#75715e">// 此时reader休眠阻塞在readerSem信号上，等待唤醒
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rw</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RWMutex</span>) <span style="color:#a6e22e">RUnlock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">r</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddInt32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">readerCount</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>); <span style="color:#a6e22e">r</span> &lt; <span style="color:#ae81ff">0</span> { <span style="color:#75715e">// r小于0说明此时有等待请求锁的writer
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">rUnlockSlow</span>(<span style="color:#a6e22e">r</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rw</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RWMutex</span>) <span style="color:#a6e22e">rUnlockSlow</span>(<span style="color:#a6e22e">r</span> <span style="color:#66d9ef">int32</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">r</span><span style="color:#f92672">+</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">r</span><span style="color:#f92672">+</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">==</span> <span style="color:#f92672">-</span><span style="color:#a6e22e">rwmutexMaxReaders</span> { <span style="color:#75715e">// RLock之前已经进行了RUnlock操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;sync: RUnlock of unlocked RWMutex&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddInt32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">readerWait</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> { <span style="color:#75715e">// 此时是最后一个获取到锁的reader进行RUnlock操作，那么释放writerSem信号，唤醒等待的writer来获取锁。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">runtime_Semrelease</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">writerSem</span>, <span style="color:#66d9ef">false</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="lockunlock的实现">
+  Lock/Unlock的实现
+  <a class="anchor" href="#lockunlock%e7%9a%84%e5%ae%9e%e7%8e%b0">#</a>
+</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rw</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RWMutex</span>) <span style="color:#a6e22e">Lock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Lock</span>() <span style="color:#75715e">// 加互斥锁，阻塞其他writer进行Lock操作，保证写-写互斥。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 将rw.readerCount 更改为rw.readerCount - rwmutexMaxReaders，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 此时rw.readerCount由一个正数转变成一个负数，这种方式既能保持记录reader数量，又能表明有writer正在请求锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">r</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddInt32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">readerCount</span>, <span style="color:#f92672">-</span><span style="color:#a6e22e">rwmutexMaxReaders</span>) <span style="color:#f92672">+</span> <span style="color:#a6e22e">rwmutexMaxReaders</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">r</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddInt32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">readerWait</span>, <span style="color:#a6e22e">r</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> { <span style="color:#75715e">// r!=0表明此时有reader持有锁，则当前writer只能阻塞等待，但为了保证写优先，需要readerWait记录当前已获取到锁的读者数量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">runtime_SemacquireMutex</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">writerSem</span>, <span style="color:#66d9ef">false</span>, <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rw</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RWMutex</span>) <span style="color:#a6e22e">Unlock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">r</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">AddInt32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">readerCount</span>, <span style="color:#a6e22e">rwmutexMaxReaders</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">r</span> <span style="color:#f92672">&gt;=</span> <span style="color:#a6e22e">rwmutexMaxReaders</span> { <span style="color:#75715e">// Lock之前先进行了Unlock操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;sync: Unlock of unlocked RWMutex&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; int(<span style="color:#a6e22e">r</span>); <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> { <span style="color:#75715e">// 释放信号，唤醒阻塞的reader们
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">runtime_Semrelease</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">readerSem</span>, <span style="color:#66d9ef">false</span>, <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">rw</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Unlock</span>() <span style="color:#75715e">// 是否互锁锁，允许其他writer进行获取锁操作了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>对于<code>读者优先（readers-preference）</code>的读写锁，只需要一个<code>readerCount</code>记录所有读者，就可以轻易实现。Go中的RWMutex实现的是<code>写者优先（writers-preference）</code>的读写锁，那就需要用到<code>readerWait</code>来记录写者申请锁时候，已经获取到锁的读者数量。</p>
+<p>这样当后续有其他读者继续申请锁时候，可以读取<code>readerWait</code>是否大于0，大于0则说明有写者已经申请锁了，按照<code>写者优先（writers-preference）</code>原则，该读者需要排到写者之后，但是我们还需要记录这些排在写者后面读者的数量呀，毕竟写着将来释放锁的时候，还得唤醒一个个这些读者。这种情况下既要读取<code>readerWait</code>，又要更新排队的读者数量，这是两个操作，无法原子化。RWMutex在实现时候，通过将readerCount转换成负数，一方面表明有写者申请了锁，另一方面readerCount还可以继续记录排队的读者数量，解决刚描述的无法原子化的问题，真是巧妙！</p>
+<p>对于<code>读者优先（readers-preference）</code>的读写锁，我们可以借助Mutex实现。示例代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">rwlock</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">reader_cnt</span>  <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">reader_lock</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">Mutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">writer_lock</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">Mutex</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">NewRWLock</span>() <span style="color:#f92672">*</span><span style="color:#a6e22e">rwlock</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rwlock</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">rwlock</span>) <span style="color:#a6e22e">RLock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">reader_lock</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">reader_lock</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">reader_cnt</span><span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">reader_cnt</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span> { <span style="color:#75715e">// first reader
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">writer_lock</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">rwlock</span>) <span style="color:#a6e22e">RUnlock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">reader_lock</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">reader_lock</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">reader_cnt</span><span style="color:#f92672">--</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">reader_cnt</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> { <span style="color:#75715e">// latest reader
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">writer_lock</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">rwlock</span>) <span style="color:#a6e22e">Lock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">writer_lock</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">rwlock</span>) <span style="color:#a6e22e">Unlock</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">writer_lock</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面示例代码中，尽管读者操作的实现上用到互斥锁，但由于它是用完立马就是释放掉，性能不会差太多。</p>
+<h2 id="三大错误使用场景">
+  三大错误使用场景
+  <a class="anchor" href="#%e4%b8%89%e5%a4%a7%e9%94%99%e8%af%af%e4%bd%bf%e7%94%a8%e5%9c%ba%e6%99%af">#</a>
+</h2>
+<h3 id="rlockrunlocklockunlock未成对出现">
+  RLock/RUnlock、Lock/Unlock未成对出现
+  <a class="anchor" href="#rlockrunlocklockunlock%e6%9c%aa%e6%88%90%e5%af%b9%e5%87%ba%e7%8e%b0">#</a>
+</h3>
+<p>同互斥锁一样，sync.RWMutex的RLock/RUnlock，以及Lock/Unlock总是成对出现的。Lock或RLock多余调用会导致锁没有释放，可能出现死锁，Unlock或RUnlock多余的调用会大导致panic.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">l</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>() <span style="color:#75715e">// fatal error: sync: Unlock of unlocked RWMutex
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>对于Lock/Unlock未成对出现所有可能情况如下：</p>
+<ul>
+<li>
+<p>如果只有Lock情况</p>
+<p>如果有一个 goroutine 只执行 Lock 操作而不执行 Unlock 操作，那么其他的 goroutine 就会一直被阻塞（拿不到锁），随着越来越多的阻塞的 goroutine 越来越多，整个系统最终会崩溃。</p>
+</li>
+<li>
+<p>如果只有Unlock情况</p>
+<ul>
+<li>如果其他 goroutine 持有锁，锁将被释放。</li>
+<li>如果锁处于空闲状态（unoccupied state），它会panic。</li>
+</ul>
+</li>
+</ul>
+<h3 id="复制syncrwmutex作为函数值传递">
+  复制sync.RWMutex作为函数值传递
+  <a class="anchor" href="#%e5%a4%8d%e5%88%b6syncrwmutex%e4%bd%9c%e4%b8%ba%e5%87%bd%e6%95%b0%e5%80%bc%e4%bc%a0%e9%80%92">#</a>
+</h3>
+<p>同Mutex一样，RWMutex也是不能复制使用的，考虑下面场景代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">l</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">foo</span>(<span style="color:#a6e22e">l</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>(<span style="color:#a6e22e">l</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面场景代码中本意先使用l.Lock()进行上锁操作，然后调用foo(l)释放该锁，最后再次上锁和释放锁。但这种操作是错误的，会导致死锁。foo()函数接收的参数是变量l的一个副本，该副本把之前l变量的锁状态（锁状态指的是writerSem，readerCount等字段信息）也复制了一遍，此时副本的锁状态是上锁状态的，所以foo函数中是可以进行释放锁操作的，但释放的并不是最开始的那个锁。</p>
+<p>我们可以使用<code>go vet</code>命令检测复制锁情况：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vagrant@vagrant:~$ go vet main.go
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># command-line-arguments</span>
+</span></span><span style="display:flex;"><span>./main.go:8:6: call of foo copies lock value: sync.RWMutex
+</span></span><span style="display:flex;"><span>./main.go:13:12: foo passes lock by value: sync.RWMutex
+</span></span></code></pre></div><p>解决上面问题可以使用指针传递:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>(<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="不可重入导致死锁">
+  不可重入导致死锁
+  <a class="anchor" href="#%e4%b8%8d%e5%8f%af%e9%87%8d%e5%85%a5%e5%af%bc%e8%87%b4%e6%ad%bb%e9%94%81">#</a>
+</h3>
+<p>可重入锁(ReentrantLock)指的一个线程中可以多次获取同一把锁，换到Go语言场景就是一个Goroutine中，Mutex和RWMutex可以连续Lock操作，而不会导致死锁。同互斥体Mutex一样，RWMutex也是不可重入锁，不支持重入。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">l</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">foo</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">l</span>) <span style="color:#75715e">// foo中尝试重入锁，会导致死锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>(<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>下面是读锁和写锁重入时候导致的死锁：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">l</span> <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">RLock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">foo</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">l</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">RUnlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">foo</span>(<span style="color:#a6e22e">l</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>上面代码中写锁重入时候，需要读锁先释放，而读锁释放又依赖写锁，这样就形成了死循环，导致死锁。</p>
+<h2 id="进一步阅读">
+  进一步阅读
+  <a class="anchor" href="#%e8%bf%9b%e4%b8%80%e6%ad%a5%e9%98%85%e8%af%bb">#</a>
+</h2>
+<ul>
+<li>
+  <a href="https://en.wikipedia.org/wiki/Readers%E2%80%93writers_problem">Readers–writers problem</a></li>
+<li>
+  <a href="https://medium.com/golangspec/sync-rwmutex-ca6c6c3208a0">sync.RWMutex: Solving readers-writers problems</a></li>
+<li>
+  <a href="https://cloudolife.com/2020/04/18/Programming-Language/Golang-Go/Synchronization/Use-sync-Mutex-sync-RWMutex-to-lock-share-data-for-race-condition/">Use sync.Mutex, sync.RWMutex to lock share data for race condition</a></li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

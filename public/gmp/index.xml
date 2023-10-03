@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>G-M-P调度机制 on 深入Go语言之旅</title>
+    <link>https://go.cyub.vip/gmp/</link>
+    <description>Recent content in G-M-P调度机制 on 深入Go语言之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language><atom:link href="https://go.cyub.vip/gmp/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>调度器</title>
+      <link>https://go.cyub.vip/gmp/scheduler/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/gmp/scheduler/</guid>
+      <description> 调度器 # </description>
+    </item>
+    
+    <item>
+      <title>调度机制概述</title>
+      <link>https://go.cyub.vip/gmp/gmp-model/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/gmp/gmp-model/</guid>
+      <description>&lt;h1 id=&#34;gmp模型&#34;&gt;
+  GMP模型
+  &lt;a class=&#34;anchor&#34; href=&#34;#gmp%e6%a8%a1%e5%9e%8b&#34;&gt;#&lt;/a&gt;
+&lt;/h1&gt;
+&lt;p&gt;Golang的一大特色就是Goroutine。Goroutine是Golang支持高并发的重要保障。Golang可以创建成千上万个Goroutine来处理任务，将这些Goroutine分配、负载、调度到处理器上采用的是G-M-P模型。&lt;/p&gt;
+&lt;h2 id=&#34;什么是goroutine&#34;&gt;
+  什么是Goroutine
+  &lt;a class=&#34;anchor&#34; href=&#34;#%e4%bb%80%e4%b9%88%e6%98%afgoroutine&#34;&gt;#&lt;/a&gt;
+&lt;/h2&gt;
+&lt;p&gt;Goroutine = Golang + Coroutine。&lt;strong&gt;Goroutine是golang实现的协程，是用户级线程&lt;/strong&gt;。Goroutine具有以下特点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;相比线程，其启动的代价很小，以很小栈空间启动（2Kb左右）&lt;/li&gt;
+&lt;li&gt;能够动态地伸缩栈的大小，最大可以支持到Gb级别&lt;/li&gt;
+&lt;li&gt;工作在用户态，切换成很小&lt;/li&gt;
+&lt;li&gt;与线程关系是n:m，即可以在n个系统线程上多工调度m个Goroutine&lt;/li&gt;
+&lt;/ul&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

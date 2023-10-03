@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>类型系统 on 深入Go语言之旅</title>
+    <link>https://go.cyub.vip/type-system/</link>
+    <description>Recent content in 类型系统 on 深入Go语言之旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language><atom:link href="https://go.cyub.vip/type-system/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>反射</title>
+      <link>https://go.cyub.vip/type-system/reflect/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type-system/reflect/</guid>
+      <description> 反射 # </description>
+    </item>
+    
+    <item>
+      <title>接口</title>
+      <link>https://go.cyub.vip/type-system/interface/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type-system/interface/</guid>
+      <description> 接口 # </description>
+    </item>
+    
+    <item>
+      <title>类型系统</title>
+      <link>https://go.cyub.vip/type-system/type/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://go.cyub.vip/type-system/type/</guid>
+      <description> 类型系统 # </description>
+    </item>
+    
+  </channel>
+</rss>
