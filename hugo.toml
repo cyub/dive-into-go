@@ -3,6 +3,7 @@ languageCode = 'zh-cn'
 title = '深入Go语言之旅'
 theme = "hugo-book"
 disqusShortname = 'go-cyub-vip'
+googleAnalytics = "G-BQ229RRTTX"
 
 [menu]
 # [[menu.before]]
