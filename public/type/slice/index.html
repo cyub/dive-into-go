@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="切片 # 切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。
-初始化 # 切片初始化方式可以分为三种：
+<meta name="description" content="切片 # 切片是Go语言中最常用的数据类型之一，它类似数组，但相比数组它更加灵活，高效，由于它本身的特性，往往也更容易用错。
+不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），如果切片使用不当，会产生意想不到的副作用。
+初始化 # 切片的初始化方式可以分为三种：
 使用make函数创建切片
 make函数语法格式为：make([]T, length, capacity)，capacity可以省略，默认等于length
 使用字面量创建切片
@@ -16,8 +17,9 @@ func main() { slice1 := make([]int, 0) slice2 := make([]int, 1, 3) slice3 := []i
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="切片" />
-<meta property="og:description" content="切片 # 切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。
-初始化 # 切片初始化方式可以分为三种：
+<meta property="og:description" content="切片 # 切片是Go语言中最常用的数据类型之一，它类似数组，但相比数组它更加灵活，高效，由于它本身的特性，往往也更容易用错。
+不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），如果切片使用不当，会产生意想不到的副作用。
+初始化 # 切片的初始化方式可以分为三种：
 使用make函数创建切片
 make函数语法格式为：make([]T, length, capacity)，capacity可以省略，默认等于length
 使用字面量创建切片
@@ -35,7 +37,7 @@ func main() { slice1 := make([]int, 0) slice2 := make([]int, 1, 3) slice3 := []i
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -293,12 +295,13 @@ https://github.com/alex-shpak/hugo-book
   切片
   <a class="anchor" href="#%e5%88%87%e7%89%87">#</a>
 </h1>
-<p>切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。</p>
+<p>切片是Go语言中最常用的数据类型之一，它类似数组，但相比数组它更加灵活，高效，由于它本身的特性，往往也更容易用错。</p>
+<p>不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），如果切片使用不当，会产生意想不到的副作用。</p>
 <h2 id="初始化">
   初始化
   <a class="anchor" href="#%e5%88%9d%e5%a7%8b%e5%8c%96">#</a>
 </h2>
-<p>切片初始化方式可以分为三种：</p>
+<p>切片的初始化方式可以分为三种：</p>
 <ul>
 <li>
 <p>使用make函数创建切片</p>
@@ -348,34 +351,46 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>slice8 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 1, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>
 </span></span><span style="display:flex;"><span>slice9 <span style="color:#f92672">=</span> <span style="color:#f92672">[]</span>,	 len <span style="color:#f92672">=</span> 0, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
 </span></span><span style="display:flex;"><span>slice10 <span style="color:#f92672">=</span> <span style="color:#f92672">[</span>0<span style="color:#f92672">]</span>,	 len <span style="color:#f92672">=</span> 1, cap <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>
-</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. hint:: 当我们使用arr[3]访问切片元素时候会报 ``index out of range [3] with length`` 错误，而使用arr[3:]来初始化slice9却是OK的。这是Go语言故意为之的。具体原因可以参见 `Why slice not painc &lt;https://github.com/golang/go/issues/42069&gt;`_ 这个issue。
-</code></pre><p>接下来我们来看看切片底层数据结构。</p>
+</span></span></code></pre></div><blockquote class="book-hint warning">
+  <p><strong>注意：</strong></p>
+<p>我们使用arr[3]访问切片元素时候会报 <code>index out of range [3] with length</code> 错误，而使用arr[3:]来初始化slice9却是可以的。因为这是Go语言故意为之的。具体原因可以参见 
+  <a href="https://github.com/golang/go/issues/42069">Why slice not painc</a> 这个issue。</p>
+
+</blockquote>
+
+<p>接下来我们来看看切片的底层数据结构。</p>
 <h2 id="数据结构">
   数据结构
   <a class="anchor" href="#%e6%95%b0%e6%8d%ae%e7%bb%93%e6%9e%84">#</a>
 </h2>
-<p>Go语言中切片的底层数据结构是<code>runtime.slice</code>（
-  <a href="https://github.com/golang/go/blob/go1.14.13/src/runtime/slice.go#L13-L17">runtime/slice.go</a>），其中包含了指向数据数组的指针，切片长度以及切片容量：</p>
+<p>Go语言中切片的底层数据结构是 <code>runtime.slice</code>（<strong>
+  <a href="https://github.com/golang/go/blob/go1.14.13/src/runtime/slice.go#L13-L17">runtime/slice.go</a></strong>），其中包含了指向数据数组的指针，切片长度以及切片容量：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">slice</span> <span style="color:#66d9ef">struct</span> {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">array</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span> <span style="color:#75715e">// 底层数据数组的指针
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">len</span>   <span style="color:#66d9ef">int</span> <span style="color:#75715e">// 切片长度
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">cap</span>   <span style="color:#66d9ef">int</span> <span style="color:#75715e">// 切片容量
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
-</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. hint:: 切片底层数据结构也可以说成是reflect.SliceHeader，两者没有冲突。
-</code></pre><p>我们来看看下面切片如何共用同一个底层数组的：</p>
+</span></span></code></pre></div><blockquote class="book-hint warning">
+  <p><strong>注意：</strong></p>
+<p>切片底层数据结构也可以说成是 <code>reflect.SliceHeader</code>，两者没有冲突。<code>reflect.SliceHeader</code> 是暴露出来的类型，可以被用户程序代码直接使用。</p>
+
+</blockquote>
+
+<p>我们来看看下面切片如何共用同一个底层数组的：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">byte</span>{<span style="color:#e6db74">&#39;h&#39;</span>, <span style="color:#e6db74">&#39;e&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;o&#39;</span>}
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>]
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>:<span style="color:#ae81ff">3</span>]
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">a</span>), string(<span style="color:#a6e22e">b</span>), string(<span style="color:#a6e22e">c</span>)) <span style="color:#75715e">// 输出 hello l l
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
-</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/go_slice.png
-    :alt: go切片底层表示
-    :width: 400px
-    :align: center
-</code></pre><p>在前面
-  <a href="/type/string/">字符串</a>章节，我们使用了
-  <a href="/analysis-tools/gdb/">GDB</a>工具验证了字符串的数据结构，这一次我们使用另外一种方式验证切片的数据结构：</p>
+</span></span></code></pre></div><figure class="text-center"><img src="https://static.cyub.vip/images/202104/go_slice.png" width="400px"/><figcaption>
+            <h4>Go语言切片底层结构示意图</h4>
+        </figcaption>
+</figure>
+
+<p>在前面 《<strong>
+  <a href="/type/string/">基础篇-字符串</a></strong> 》 章节，我们使用了 <strong>
+  <a href="/analysis-tools/gdb/">GDB</a></strong> 工具验证了字符串的数据结构，这一次我们使用另外一种方式验证切片的数据结构。我们通过打印切片的底层结构信息来验证：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
 </span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">type</span> <span style="color:#a6e22e">sliceHeader</span> <span style="color:#66d9ef">struct</span> {
 </span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">array</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span> <span style="color:#75715e">// 底层数据数组的指针
@@ -393,11 +408,12 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;切片%s: 底层数组地址=0x%x, 长度=%d, 容量=%d\n&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#a6e22e">ptrB</span>.<span style="color:#a6e22e">array</span>, <span style="color:#a6e22e">ptrB</span>.<span style="color:#a6e22e">len</span>, <span style="color:#a6e22e">ptrB</span>.<span style="color:#a6e22e">cap</span>)
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;切片%s: 底层数组地址=0x%x, 长度=%d, 容量=%d\n&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#a6e22e">ptrC</span>.<span style="color:#a6e22e">array</span>, <span style="color:#a6e22e">ptrC</span>.<span style="color:#a6e22e">len</span>, <span style="color:#a6e22e">ptrC</span>.<span style="color:#a6e22e">cap</span>)
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>上面代码输出以下内容，完全符合预期：</p>
-<pre tabindex="0"><code>切片a: 底层数组地址=0xc00009400b, 长度=5, 容量=5
-切片b: 底层数组地址=0xc00009400d, 长度=1, 容量=3
-切片c: 底层数组地址=0xc00009400d, 长度=1, 容量=1
-</code></pre><h2 id="副作用">
+</span></span></code></pre></div><p>上面代码输出以下内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>切片a: 底层数组地址<span style="color:#f92672">=</span>0xc00009400b, 长度<span style="color:#f92672">=</span>5, 容量<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span>切片b: 底层数组地址<span style="color:#f92672">=</span>0xc00009400d, 长度<span style="color:#f92672">=</span>1, 容量<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span>切片c: 底层数组地址<span style="color:#f92672">=</span>0xc00009400d, 长度<span style="color:#f92672">=</span>1, 容量<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><p>从输出内容可以看到切片变量 <code>b</code>和 <code>c</code> 都指向同一个底层数组地址 <code>0xc00009400d</code>，它们与切片变量 <code>a</code> 指向的底层数组地址 <code>0xc00009400b</code> 恰好相差2个字节，这两个字节大小的内存空间存在的是 <code>h</code> 和 <code>e</code> 字符。</p>
+<h2 id="副作用">
   副作用
   <a class="anchor" href="#%e5%89%af%e4%bd%9c%e7%94%a8">#</a>
 </h2>
@@ -414,12 +430,24 @@ https://github.com/alex-shpak/hugo-book
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice1</span>)) <span style="color:#75715e">// 输出helge，slice1的值也变了。
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
 </span></span></code></pre></div><p>上面代码本意是将切片slice2追加<code>g</code>字符，却产生副作用，即也修改了slice1的值：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/slice_append_effect.png
-    :alt: 追加切片时候发生副作用
-    :width: 400px
-    :align: center
-</code></pre><p>解决这个问题有两种方式：一种是reslice时候指定max边界，第二种使用copy函数拷贝出一个副本。</p>
-<p><strong>reslice时候指定max边界</strong></p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/slice_append_effect.png" width="400px"/><figcaption>
+            <h4>Go语言append切片时产生副作用</h4>
+        </figcaption>
+</figure>
+
+<h4 id="解决append产生的副作用">
+  解决append产生的副作用
+  <a class="anchor" href="#%e8%a7%a3%e5%86%b3append%e4%ba%a7%e7%94%9f%e7%9a%84%e5%89%af%e4%bd%9c%e7%94%a8">#</a>
+</h4>
+<p>解决由于append产生的副作用，有两种解决办法：</p>
+<ul>
+<li>reslice时候指定max边界</li>
+<li>使用copy函数拷贝出一个副本</li>
+</ul>
+<h5 id="reslice时候指定max边界">
+  reslice时候指定max边界
+  <a class="anchor" href="#reslice%e6%97%b6%e5%80%99%e6%8c%87%e5%ae%9amax%e8%be%b9%e7%95%8c">#</a>
+</h5>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice1</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">byte</span>{<span style="color:#e6db74">&#39;h&#39;</span>, <span style="color:#e6db74">&#39;e&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;o&#39;</span>}
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">slice1</span>[<span style="color:#ae81ff">2</span>:<span style="color:#ae81ff">3</span>:<span style="color:#ae81ff">3</span>]
@@ -427,12 +455,16 @@ https://github.com/alex-shpak/hugo-book
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice2</span>)) <span style="color:#75715e">// 输出lg
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">slice1</span>)) <span style="color:#75715e">// 输出hello
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
-</span></span></code></pre></div><p><code>slice2 := slice1[2:3:3]</code>方式reslice之后slice2的长度和容量一样，若对slice2再进行append操作其一定会进行扩容，此后slice2和slice1之间就没有任何关系了。</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/slice_append_effect2.png
-    :alt: 追加切片时候避免副作用
-    :width: 500px
-    :align: center
-</code></pre><p><strong>使用copy函数拷贝出一个副本</strong></p>
+</span></span></code></pre></div><p>通过<code>slice2 := slice1[2:3:3]</code> 方式进行reslice之后，slice2的长度和容量一样，若对slice2再进行append操作其一定会发送扩容操作，此后slice2和slice1之间就没有任何关系了。</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/slice_append_effect2.png" width="500px"/><figcaption>
+            <h4>reslice时候指定max边界</h4>
+        </figcaption>
+</figure>
+
+<h5 id="使用copy函数拷贝出一个副本">
+  使用copy函数拷贝出一个副本
+  <a class="anchor" href="#%e4%bd%bf%e7%94%a8copy%e5%87%bd%e6%95%b0%e6%8b%b7%e8%b4%9d%e5%87%ba%e4%b8%80%e4%b8%aa%e5%89%af%e6%9c%ac">#</a>
+</h5>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice1</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">byte</span>{<span style="color:#e6db74">&#39;h&#39;</span>, <span style="color:#e6db74">&#39;e&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;l&#39;</span>, <span style="color:#e6db74">&#39;o&#39;</span>}
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">slice2</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">byte</span>, <span style="color:#ae81ff">1</span>)
@@ -465,23 +497,26 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>指向上面代码输出以下内容：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">所有用户</span><span style="color:#960050;background-color:#1e0010">：</span>
-</span></span><span style="display:flex;"><span><span style="color:#a6e22e">User</span>: <span style="color:#ae81ff">0</span> <span style="color:#a6e22e">Likes</span>: <span style="color:#ae81ff">1</span>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>所有用户：
+</span></span><span style="display:flex;"><span>User: <span style="color:#ae81ff">0</span> Likes: <span style="color:#ae81ff">1</span>
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#a6e22e">所有用户</span><span style="color:#960050;background-color:#1e0010">：</span>
-</span></span><span style="display:flex;"><span><span style="color:#a6e22e">User</span>: <span style="color:#ae81ff">0</span> <span style="color:#a6e22e">Likes</span>: <span style="color:#ae81ff">1</span>
-</span></span><span style="display:flex;"><span><span style="color:#a6e22e">User</span>: <span style="color:#ae81ff">1</span> <span style="color:#a6e22e">Likes</span>: <span style="color:#ae81ff">0</span>
-</span></span></code></pre></div><p>代码本意是通过User类型指针变量<code>pUsers</code>进行第一个用户Likes更新操作，没想到切片进行append之后，发生了副作用：<code>pUsers</code>指向切片已经与切片变量<code>users</code>不一样了。</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/slice_append_effect3.png
-    :alt: 追加切片时候避免副作用
-    :width: 500px
-    :align: center
-</code></pre><h3 id="避免切片副作用黄金法则">
+</span></span><span style="display:flex;"><span>所有用户：
+</span></span><span style="display:flex;"><span>User: <span style="color:#ae81ff">0</span> Likes: <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>User: <span style="color:#ae81ff">1</span> Likes: <span style="color:#ae81ff">0</span>
+</span></span></code></pre></div><p>代码本意是通过User类型指针变量<code>pUsers</code>进行第一个用户Likes更新操作，没想到切片进行append之后，产生了副作用：<code>pUsers</code>指向切片已经与切片变量<code>users</code>不一样了。</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/slice_append_effect3.png" width="500px"/><figcaption>
+            <h4>引用切片变量产生副作用</h4>
+        </figcaption>
+</figure>
+
+<h3 id="避免切片副作用黄金法则">
   避免切片副作用黄金法则
   <a class="anchor" href="#%e9%81%bf%e5%85%8d%e5%88%87%e7%89%87%e5%89%af%e4%bd%9c%e7%94%a8%e9%bb%84%e9%87%91%e6%b3%95%e5%88%99">#</a>
 </h3>
-<p><strong>黄金法则1：在边界处拷贝切片</strong>，这里面的边界指的是函数接受切片参数或返回切片的时候。</p>
-<p><strong>黄金法则2：永远不要使用一个变量来引用切片数据</strong>。</p>
+<ol>
+<li><strong>在边界处拷贝切片</strong>，这里面的边界指的是函数接受切片参数或返回切片的时候。</li>
+<li><strong>永远不要使用一个变量来引用切片数据</strong></li>
+</ol>
 <h2 id="扩容策略">
   扩容策略
   <a class="anchor" href="#%e6%89%a9%e5%ae%b9%e7%ad%96%e7%95%a5">#</a>
@@ -582,11 +617,11 @@ https://github.com/alex-shpak/hugo-book
   string类型与[]byte类型如何实现zero-copy互相转换？
   <a class="anchor" href="#string%e7%b1%bb%e5%9e%8b%e4%b8%8ebyte%e7%b1%bb%e5%9e%8b%e5%a6%82%e4%bd%95%e5%ae%9e%e7%8e%b0zero-copy%e4%ba%92%e7%9b%b8%e8%bd%ac%e6%8d%a2">#</a>
 </h2>
-<h3 id="zero-copy">
-  zero-copy
-  <a class="anchor" href="#zero-copy">#</a>
+<h3 id="什么是零拷贝zero-copy">
+  什么是零拷贝(zero-copy)
+  <a class="anchor" href="#%e4%bb%80%e4%b9%88%e6%98%af%e9%9b%b6%e6%8b%b7%e8%b4%9dzero-copy">#</a>
 </h3>
-<p>零拷贝(zero-copy)指的是CPU不需要先将数据从某处内存复制到另一个特定区域。当应用程序读取文件，需要从磁盘中加载内核区域，然后将内核区域内容复制到应用内存区域，这就涉及到内存拷贝。若采用mmap技术可以文件映射到特定内存中，只需加载一次，应用程序和内核都可以共享内存中文件数据，这就实现了zero-copy。或者当应用程序需要发送文件给远程时候，可以采用sendfile技术实现零拷贝，若未实现零拷贝，则需要进行四次拷贝过程:</p>
+<p><strong>零拷贝(zero-copy)</strong> 指的是CPU不需要先将数据从某处内存复制到另一个特定区域。当应用程序读取文件，需要从磁盘中加载内核区域，然后将内核区域内容复制到应用内存区域，这就涉及到内存拷贝。若采用mmap技术可以文件映射到特定内存中，只需加载一次，应用程序和内核都可以共享内存中文件数据，这就实现了zero-copy。或者当应用程序需要发送文件给远程时候，可以采用sendfile技术实现零拷贝，若未实现零拷贝，则需要进行四次拷贝过程:</p>
 <blockquote>
 <p>磁盘&mdash;（DMA copy）&ndash;&gt; 系统内核 &ndash;&gt; 应用程序区域 &ndash;&gt; 系统内核(socket) &mdash;（DMA copy）&mdash;&gt; 网卡</p>
 </blockquote>
@@ -606,45 +641,79 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>我们来看下上面代码中的底层实现：<code>go tool compile -N -l -S main.go</code></p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. code-block::
-   :emphasize-lines: 15,25
-
-    &#34;&#34;.byteArrayToString STEXT size=117 args=0x28 locals=0x38
-    	0x0000 00000 (main.go:3)	TEXT	&#34;&#34;.byteArrayToString(SB), ABIInternal, $56-40
-    	0x0000 00000 (main.go:3)	MOVQ	(TLS), CX
-    	0x0009 00009 (main.go:3)	CMPQ	SP, 16(CX)
-    	0x000d 00013 (main.go:3)	PCDATA	$0, $-2
-    	0x000d 00013 (main.go:3)	JLS	110
-    	0x000f 00015 (main.go:3)	PCDATA	$0, $-1
-    	0x000f 00015 (main.go:3)	SUBQ	$56, SP
-    	0x0013 00019 (main.go:3)	MOVQ	BP, 48(SP)
-    	0x0018 00024 (main.go:3)	LEAQ	48(SP), BP
-    	...
-    	0x003c 00060 (main.go:4)	MOVQ	AX, 8(SP)
-    	0x0041 00065 (main.go:4)	MOVQ	CX, 16(SP)
-    	0x0046 00070 (main.go:4)	MOVQ	DX, 24(SP)
-    	0x004b 00075 (main.go:4)	CALL	runtime.slicebytetostring(SB)
-    	0x0050 00080 (main.go:4)	MOVQ	40(SP), AX
-    	....
-    &#34;&#34;.stringToByteArray STEXT size=144 args=0x28 locals=0x50
-    	0x0000 00000 (main.go:7)	TEXT	&#34;&#34;.stringToByteArray(SB), ABIInternal, $80-40
-    	0x0000 00000 (main.go:7)	MOVQ	(TLS), CX
-    	0x0009 00009 (main.go:7)	CMPQ	SP, 16(CX)
-    	...
-    	0x0040 00064 (main.go:8)	MOVQ	AX, 8(SP)
-    	0x0045 00069 (main.go:8)	MOVQ	CX, 16(SP)
-    	0x004a 00074 (main.go:8)	CALL	runtime.stringtoslicebyte(SB)
-    	0x004f 00079 (main.go:8)	MOVQ	32(SP), AX
-    	0x0054 00084 (main.go:8)	MOVQ	40(SP), CX
-    	....
-</code></pre><p>从上面汇编代码可以看到<code>string([]byte)</code>底层调用的是<code>runtime.slicebytetostring</code>，<code>[]byte(string)</code>底层调用的是<code>runtime.stringtoslicebyte</code>。查看这两个底层函数实现可以看到两者都是先创建一段内存空间，然后使用memmove函数拷贝内存，将数据拷贝到新内存空间。这也就是说<code>[]byte(string)</code> 和 <code>string([]byte)</code>进行转换时候需要内存拷贝。</p>
+</span></span></code></pre></div><p>我们来看下上面代码中的底层实现</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>go tool compile -N -l -S main.go
+</span></span></code></pre></div><p>执行上面命名，输出以下内容：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="background-color:#3c3d38"><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="background-color:#3c3d38"><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span></span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#e6db74">&#34;&#34;</span>.byteArrayToString STEXT size<span style="color:#f92672">=</span><span style="color:#ae81ff">117</span> args<span style="color:#f92672">=</span>0x28 locals<span style="color:#f92672">=</span>0x38
+</span></span><span style="display:flex;"><span>	0x0000 <span style="color:#ae81ff">00000</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	TEXT	<span style="color:#e6db74">&#34;&#34;</span>.byteArrayToString<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>, ABIInternal, $56-40
+</span></span><span style="display:flex;"><span>	0x0000 <span style="color:#ae81ff">00000</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	MOVQ	<span style="color:#f92672">(</span>TLS<span style="color:#f92672">)</span>, CX
+</span></span><span style="display:flex;"><span>	0x0009 <span style="color:#ae81ff">00009</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	CMPQ	SP, 16<span style="color:#f92672">(</span>CX<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	0x000d <span style="color:#ae81ff">00013</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	PCDATA	$0, $-<span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>	0x000d <span style="color:#ae81ff">00013</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	JLS	<span style="color:#ae81ff">110</span>
+</span></span><span style="display:flex;"><span>	0x000f <span style="color:#ae81ff">00015</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	PCDATA	$0, $-<span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>	0x000f <span style="color:#ae81ff">00015</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	SUBQ	$56, SP
+</span></span><span style="display:flex;"><span>	0x0013 <span style="color:#ae81ff">00019</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	MOVQ	BP, 48<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	0x0018 <span style="color:#ae81ff">00024</span> <span style="color:#f92672">(</span>main.go:3<span style="color:#f92672">)</span>	LEAQ	48<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, BP
+</span></span><span style="display:flex;"><span>	...
+</span></span><span style="display:flex;"><span>	0x003c <span style="color:#ae81ff">00060</span> <span style="color:#f92672">(</span>main.go:4<span style="color:#f92672">)</span>	MOVQ	AX, 8<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	0x0041 <span style="color:#ae81ff">00065</span> <span style="color:#f92672">(</span>main.go:4<span style="color:#f92672">)</span>	MOVQ	CX, 16<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	0x0046 <span style="color:#ae81ff">00070</span> <span style="color:#f92672">(</span>main.go:4<span style="color:#f92672">)</span>	MOVQ	DX, 24<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>	0x004b <span style="color:#ae81ff">00075</span> <span style="color:#f92672">(</span>main.go:4<span style="color:#f92672">)</span>	CALL	runtime.slicebytetostring<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	0x0050 <span style="color:#ae81ff">00080</span> <span style="color:#f92672">(</span>main.go:4<span style="color:#f92672">)</span>	MOVQ	40<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, AX
+</span></span><span style="display:flex;"><span>	....
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;&#34;</span>.stringToByteArray STEXT size<span style="color:#f92672">=</span><span style="color:#ae81ff">144</span> args<span style="color:#f92672">=</span>0x28 locals<span style="color:#f92672">=</span>0x50
+</span></span><span style="display:flex;"><span>	0x0000 <span style="color:#ae81ff">00000</span> <span style="color:#f92672">(</span>main.go:7<span style="color:#f92672">)</span>	TEXT	<span style="color:#e6db74">&#34;&#34;</span>.stringToByteArray<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>, ABIInternal, $80-40
+</span></span><span style="display:flex;"><span>	0x0000 <span style="color:#ae81ff">00000</span> <span style="color:#f92672">(</span>main.go:7<span style="color:#f92672">)</span>	MOVQ	<span style="color:#f92672">(</span>TLS<span style="color:#f92672">)</span>, CX
+</span></span><span style="display:flex;"><span>	0x0009 <span style="color:#ae81ff">00009</span> <span style="color:#f92672">(</span>main.go:7<span style="color:#f92672">)</span>	CMPQ	SP, 16<span style="color:#f92672">(</span>CX<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	...
+</span></span><span style="display:flex;"><span>	0x0040 <span style="color:#ae81ff">00064</span> <span style="color:#f92672">(</span>main.go:8<span style="color:#f92672">)</span>	MOVQ	AX, 8<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	0x0045 <span style="color:#ae81ff">00069</span> <span style="color:#f92672">(</span>main.go:8<span style="color:#f92672">)</span>	MOVQ	CX, 16<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>	0x004a <span style="color:#ae81ff">00074</span> <span style="color:#f92672">(</span>main.go:8<span style="color:#f92672">)</span>	CALL	runtime.stringtoslicebyte<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	0x004f <span style="color:#ae81ff">00079</span> <span style="color:#f92672">(</span>main.go:8<span style="color:#f92672">)</span>	MOVQ	32<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, AX
+</span></span><span style="display:flex;"><span>	0x0054 <span style="color:#ae81ff">00084</span> <span style="color:#f92672">(</span>main.go:8<span style="color:#f92672">)</span>	MOVQ	40<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, CX
+</span></span><span style="display:flex;"><span>	....</span></span></code></pre></td></tr></table>
+</div>
+</div>
+<p>从上面汇编代码可以看到 <code>string([]byte)</code> 底层调用的是 <code>runtime.slicebytetostring</code>，<code>[]byte(string)</code> 底层调用的是 <code>runtime.stringtoslicebyte</code>。查看这两个底层函数实现可以看到两者都是先创建一段内存空间，然后使用 <code>memmove</code> 函数拷贝内存，将数据拷贝到新内存空间。这也就是说 <code>[]byte(string)</code> 和 <code>string([]byte)</code> 进行转换时候需要内存拷贝。</p>
 <h3 id="string类型与byte类型-zero-copy转换实现">
   string类型与[]byte类型 zero-copy转换实现
   <a class="anchor" href="#string%e7%b1%bb%e5%9e%8b%e4%b8%8ebyte%e7%b1%bb%e5%9e%8b-zero-copy%e8%bd%ac%e6%8d%a2%e5%ae%9e%e7%8e%b0">#</a>
 </h3>
-<p>那么能不能实现不需要内存拷贝的字符串和字节切片的转换呢？答案是可以的。根据前面
-  <a href="/type/string/">字符串</a>章节和本章节，我们可以看到字符串和字节切片底层结构很相似，它们相同部分都有指向底层数据指针和记录底层数据长度len字段，字节切片额外多了一个字段cap，记录底层数据的容量，只要转换时候让它们共享底层数据就能实现zero-copy。</p>
+<p>那么能不能实现不需要内存拷贝的字符串和字节切片的转换呢？答案是可以的。</p>
+<p>根据前面 《<strong>
+  <a href="/type/string/">基础篇-字符串</a></strong> 》 章节和本章节，我们可以看到字符串和字节切片底层结构很相似，它们相同部分都有指向底层数据指针和记录底层数据长度len字段，而字节切片额外多了一个字段cap，记录底层数据的容量。我们只要转换时候让它们共享底层数据就能实现zero-copy。让我们再看看字符串和切片的数组结构：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">StringHeader</span> <span style="color:#66d9ef">struct</span> {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Data</span> <span style="color:#66d9ef">uintptr</span>
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Len</span>  <span style="color:#66d9ef">int</span>
@@ -670,9 +739,10 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(string(<span style="color:#a6e22e">b</span>), len(<span style="color:#a6e22e">b</span>), cap(<span style="color:#a6e22e">b</span>))
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>上面代码输出以下内容：</p>
-<pre tabindex="0"><code>hello 5 824634122328
-</code></pre><p>可以看到字节切片的容量明显有问题的。我们来分析下。上面两个函数借助
-  <a href="/type/pointer/#unsafe-pointer">非安全指针类型</a>强制转换类型实现的。对于字节切片转换字符串使用这种方式是可以的，字节切片多余的cap字段会自动溢出掉；而反过来由于字符串没有记录容量字段，那么将其强制转换成字节切片时候，字节切片的cap字段是未知的，这有可能导致非常严重问题。所以将字符串转换成字节切片时候需要保证字节切片的cap设置正确。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>hello <span style="color:#ae81ff">5</span> <span style="color:#ae81ff">824634122328</span>
+</span></span></code></pre></div><p>从上面输入内容，我们可以看到字符串转换成字节切片后的容量明显是有问题的。让我们来分析下具体原因。</p>
+<p>上面两个函数借助 <strong>
+  <a href="/type/pointer/#unsafepointer">非安全指针类型</a></strong> 强制转换类型实现的。对于字节切片转换字符串使用这种方式是可以的，字节切片多余的cap字段会自动溢出掉；而反过来由于字符串没有记录容量字段，那么将其强制转换成字节切片时候，字节切片的cap字段是未知的，这有可能导致非常严重问题。所以将字符串转换成字节切片时候需要保证字节切片的cap设置正确。</p>
 <p>正确的字符串转字节切片实现如下：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">StringToBytes</span>(<span style="color:#a6e22e">s</span> <span style="color:#66d9ef">string</span>) (<span style="color:#a6e22e">b</span> []<span style="color:#66d9ef">byte</span>) {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sh</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">StringHeader</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>))

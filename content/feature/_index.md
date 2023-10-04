@@ -4,6 +4,8 @@ title: "语言特性"
 
 # 语言特性
 
+仰之弥高，钻之弥坚。
+
 - [逗号ok模式]({{< relref "feature/comma-ok" >}})
 - [遍历 - for-range语法]({{< relref "feature/for-range" >}})
 - [延迟执行 - defer语法]({{< relref "feature/defer" >}})

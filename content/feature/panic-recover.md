@@ -4,9 +4,9 @@ title: "panic与recover机制"
 
 # 恐慌与恢复 - panic/recover
 
-我们知道Go中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发panic异常暴露出来。这种由Go自动的触发的panic异常属于[运行时panic(Run-time panics)](https://go.dev/ref/spec#Run_time_panics)。当发生panic时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了panic函数，可以用于用户手动触发panic。
+我们知道Go语言中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发 `panic` 异常暴露出来。这种由Go语言自动的触发的 `panic` 异常属于**运行时panic(Run-time panics)**[^1]。当发生 `panic` 时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了 `panic` 函数，可以用于用户手动触发`panic`。
 
-Go内置的recover函数可以用来捕获panic异常，但recover函数只能放在延迟函数调用中，才能起作用。我们从之前的章节[语言特性-defer函数](./defer.md)了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了recover函数调用，若调用了则panic异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该panic没有被捕获，进程异常终止，这个过程叫做**panicking**。我们需要知道的是**即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出**。
+Go语言中内置的 `recover` 函数可以用来捕获 `panic`异常，但 `recover` 函数只能放在延迟函数调用中，才能起作用。我们从之前的章节《**[基础篇-语言特性-defer函数]({{< relref "feature/defer" >}})** 》了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了 `recover` 函数调用，若调用了则 `panic` 异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该 `panic` 没有被捕获，进程异常终止，这个过程叫做**panicking**。我们需要知道的是**即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出**。
 
 接下来我们来将深入了解下panic和recover底层的实现机制。在开始之前，我们来看下下面的测试题。
 
@@ -102,66 +102,64 @@ func doRecover() {
 
 我们先分析`case 2`案例，我们可以通过`go tool compile -N -l -S case2.go`获取[汇编代码](https://go.godbolt.org/z/713T1TvoG)，来查看panic和recover在底层真正的实现：
 
-```eval_rst
-.. code-block::
-   :emphasize-lines: 23,44
+{{< highlight shell "linenos=table,hl_lines=23 44" >}}
+main_pc0:
+	TEXT    "".main(SB), ABIInternal, $104-0
+	MOVQ    (TLS), CX
+	CMPQ    SP, 16(CX)
+	JLS     main_pc113
+	SUBQ    $104, SP
+	MOVQ    BP, 96(SP)
+	LEAQ    96(SP), BP
+	MOVL    $0, ""..autotmp_1+16(SP)
+	LEAQ    "".main.func1·f(SB), AX
+	MOVQ    AX, ""..autotmp_1+40(SP)
+	LEAQ    ""..autotmp_1+16(SP), AX
+	MOVQ    AX, (SP)
+	CALL    runtime.deferprocStack(SB)
+	TESTL   AX, AX
+	JNE     main_pc97
+	JMP     main_pc69
+main_pc69:
+	LEAQ    type.string(SB), AX
+	MOVQ    AX, (SP)
+	LEAQ    ""..stmp_0(SB), AX
+	MOVQ    AX, 8(SP)
+	CALL    runtime.gopanic(SB)
+main_pc97:
+	XCHGL   AX, AX
+	CALL    runtime.deferreturn(SB)
+	MOVQ    96(SP), BP
+	ADDQ    $104, SP
+	RET
+main_pc113:
+	NOP
+	CALL    runtime.morestack_noctxt(SB)
+	JMP     main_pc0
+main_func1_pc0:
+	TEXT    "".main.func1(SB), ABIInternal, $32-0
+	MOVQ    (TLS), CX
+	CMPQ    SP, 16(CX)
+	JLS     main_func1_pc53
+	SUBQ    $32, SP
+	MOVQ    BP, 24(SP)
+	LEAQ    24(SP), BP
+	LEAQ    ""..fp+40(SP), AX
+	MOVQ    AX, (SP)
+	CALL    runtime.gorecover(SB)
+	MOVQ    24(SP), BP
+	ADDQ    $32, SP
+	RET
+main_func1_pc53:
+	NOP
+	CALL    runtime.morestack_noctxt(SB)
+	JMP     main_func1_pc0
+{{< / highlight >}}
 
-    main_pc0:
-        TEXT    "".main(SB), ABIInternal, $104-0
-        MOVQ    (TLS), CX
-        CMPQ    SP, 16(CX)
-        JLS     main_pc113
-        SUBQ    $104, SP
-        MOVQ    BP, 96(SP)
-        LEAQ    96(SP), BP
-        MOVL    $0, ""..autotmp_1+16(SP)
-        LEAQ    "".main.func1·f(SB), AX
-        MOVQ    AX, ""..autotmp_1+40(SP)
-        LEAQ    ""..autotmp_1+16(SP), AX
-        MOVQ    AX, (SP)
-        CALL    runtime.deferprocStack(SB)
-        TESTL   AX, AX
-        JNE     main_pc97
-        JMP     main_pc69
-    main_pc69:
-        LEAQ    type.string(SB), AX
-        MOVQ    AX, (SP)
-        LEAQ    ""..stmp_0(SB), AX
-        MOVQ    AX, 8(SP)
-        CALL    runtime.gopanic(SB)
-    main_pc97:
-        XCHGL   AX, AX
-        CALL    runtime.deferreturn(SB)
-        MOVQ    96(SP), BP
-        ADDQ    $104, SP
-        RET
-    main_pc113:
-        NOP
-        CALL    runtime.morestack_noctxt(SB)
-        JMP     main_pc0
-    main_func1_pc0:
-        TEXT    "".main.func1(SB), ABIInternal, $32-0
-        MOVQ    (TLS), CX
-        CMPQ    SP, 16(CX)
-        JLS     main_func1_pc53
-        SUBQ    $32, SP
-        MOVQ    BP, 24(SP)
-        LEAQ    24(SP), BP
-        LEAQ    ""..fp+40(SP), AX
-        MOVQ    AX, (SP)
-        CALL    runtime.gorecover(SB)
-        MOVQ    24(SP), BP
-        ADDQ    $32, SP
-        RET
-    main_func1_pc53:
-        NOP
-        CALL    runtime.morestack_noctxt(SB)
-        JMP     main_func1_pc0
-```
 
-从上面汇编代码中，可以看出panic函数底层实现`runtime.gopanic`，recover函数底层实现是`runtime.gorecover`。
+从上面汇编代码中，可以看出 `panic` 函数底层实现 `runtime.gopanic`，`recover` 函数底层实现是 `runtime.gorecover`。
 
-panic函数底层实现`runtime.gopanic`源码如下：
+panic函数底层实现的 `runtime.gopanic` 源码如下：
 
 ```go
 func gopanic(e interface{}) {
@@ -324,3 +322,5 @@ func gorecover(argp uintptr) interface{} {
 	return nil
 }
 ```
+
+[^1]:[Go官方语法指南：运行时恐慌](https://go.dev/ref/spec#Run_time_panics)

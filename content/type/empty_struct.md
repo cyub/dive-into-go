@@ -8,7 +8,7 @@ title: "空结构体"
 
 ## 大小与内存地址
 
-空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向`runtime.zerobase`。
+空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向了 `runtime.zerobase`。
 
 ```go
 // empty_struct.go
@@ -42,16 +42,16 @@ func main() {
 }
 ```
 
-从上面代码输出可以看到`a`, `b`, `zerobase`这三个变量的地址都是一样的，最终指向的都是全局变量`runtime.zerobase`([runtime/malloc.go](https://github.com/golang/go/blob/go1.14.13/src/runtime/malloc.go#L827))。
+从上面代码输出可以看到 `a`, `b`, `zerobase` 这三个变量的地址都是一样的，最终指向的都是全局变量`runtime.zerobase`(**[runtime/malloc.go](https://github.com/golang/go/blob/go1.14.13/src/runtime/malloc.go#L827)**)。
 
 ```go
 // base address for all 0-byte allocations
 var zerobase uintptr
 ```
 
-我们可以通过下面方法再次来验证一下`runtime.zerobase`变量的地址是不是也是`0x590d00`：
+我们可以通过下面方法再次来验证一下 `runtime.zerobase` 变量的地址是不是也是`0x590d00`：
 
-```bash
+```shell
 go build -o empty_struct empty_struct.go
 go tool nm ./empty_struct | grep 590d00
 # 或者
@@ -60,18 +60,18 @@ objdump -t empty_struct | grep 590d00
 
 执行上面命令输出以下的内容：
 
-```
+```shell
 590d00 D runtime.zerobase
 # 或者
 0000000000590d00 g     O .noptrbss	0000000000000008 runtime.zerobase
 ```
 
-从上面输出的内容可以看到`runtime.zerobase`的地址也是`0x590d00`。
+从上面输出的内容可以看到 `runtime.zerobase` 的地址也是 `0x590d00`。
 
 
 接下来我们看看变量逃逸的情况：
 
-```
+```shell
  go run -gcflags="-m -l" empty_struct.go
 # command-line-arguments
 ./empty_struct.go:15:2: moved to heap: a
@@ -94,20 +94,20 @@ objdump -t empty_struct | grep 590d00
 ./empty_struct.go:35:16: e == f escapes to heap
 ```
 
-可以看到变量`c`和`d`逃逸到堆上，它们打印出来的都是`0x591d00`，且两者进行相等比较时候返回`true`。而变量`e`和`f`打印出来的都是`0xc00008ef47`，但两者进行相等比较时候却返回`false`。这因为Go有意为之的，当空结构体变量未发生逃逸时候，指向该变量的指针是不等的，当空结构体变量发生逃逸之后，指向该变量是相等的。这也就是[Go官方语法指南](https://go.dev/ref/spec)所说的：
+可以看到变量 `c` 和 `d` 逃逸到堆上，它们打印出来的都是 `0x591d00`，且两者进行相等比较时候返回 `true`。而变量 `e` 和 `f` 打印出来的都是`0xc00008ef47`，但两者进行相等比较时候却返回`false`。这因为Go有意为之的，当空结构体变量未发生逃逸时候，指向该变量的指针是不等的，当空结构体变量发生逃逸之后，指向该变量是相等的。这也就是 **[Go官方语法指南](https://go.dev/ref/spec)** 所说的：
 
 > Pointers to distinct zero-size variables may or may not be equal
 
-```eval_rst
-.. image:: http://static.cyub.vip/images/202201/go-compare-operators.png
-    :alt: Go比较操作符
-    :width: 800px
-    :align: center
-```
+{{< figure src="http://static.cyub.vip/images/202201/go-compare-operators.png" width="800px" class="text-center" title="Go语言比较操作符比较规则">}}
+
+{{< hint danger >}}
+**注意：**  
+不论逃逸还是未逃逸，我们都不应该对空结构体类型变量指向的内存地址是否一样，做任何预期。
+{{< /hint >}}
 
 ## 当一个结构体嵌入空结构体时，占用空间怎么计算？
 
-空结构体本身不占用空间，但是作为某结构体内嵌字段时候，有可能是占用空间的：
+空结构体本身不占用空间，但是作为某结构体内嵌字段时候，有可能是占用空间的。具体计算规则如下：
 
 - 当空结构体是该结构体唯一的字段时，该结构体是不占用空间的，空结构体自然也不占用空间
 - 当空结构体作为第一个字段或者中间字段时候，是不占用空间的

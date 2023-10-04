@@ -4,11 +4,11 @@ title: "nil类型"
 
 # nil
 
-在探究nil之前，我们先看看零值的概念。
+在探究 `nil` 之前，我们先看看零值的概念。
 
 ## 零值
 
-[零值(zero value)](https://go.dev/ref/spec#The_zero_value)指的是当声明变量且未显示初始化时，Go语言会自动给变量赋予一个默认初始值。对于值类型变量来说不同值类型，有不同的零值，比如整数型零值是0，字符串类型是""，布尔类型是false。对于引用类型变量其零值都是nil。
+**零值(zero value)**[^1] 指的是当声明变量且未显示初始化时，Go语言会自动给变量赋予一个默认初始值。对于值类型变量来说不同值类型，有不同的零值，比如整数型零值是 `0`，字符串类型是 `""`，布尔类型是 `false`。对于引用类型变量其零值都是 `nil`。
 
 类型 | 零值
 --- | ---
@@ -22,10 +22,13 @@ title: "nil类型"
 映射 | nil
 切片 | nil
 结构体 | 每个结构体字段对应类型的零值
+自定义类型 | 其底层类型的对应的零值
+
+从零值的定义，可以看出Go语言引入 `nil` 概念，是为了将其作为引用类型变量的零值而存在。
 
 ## nil
 
-`nil`是Go语言中的一个变量，是预先声明的标识符，用来作为引用类型变量的零值。
+`nil` 是Go语言中的一个变量，是预先声明的标识符，用来作为引用类型变量的零值。
 
 ```go
 // nil is a predeclared identifier representing the zero value for a
@@ -33,13 +36,13 @@ title: "nil类型"
 var nil Type // Type must be a pointer, channel, func, interface, map, or slice type
 ```
 
-nil不能通过:=方式赋值给一个变量，下面代码是编译不通过的：
+`nil` 不能通过:=方式赋值给一个变量，下面代码是编译不通过的：
 
 ```go
 a := nil
 ```
 
-上面代码编译不通过是因为Go语言是无法通过nil自动推断出a的类型，而Go语言是强类型的。下面将nil赋值一个变量是可以的：
+上面代码编译不通过是因为Go语言是无法通过 `nil` 自动推断出a的类型，而Go语言是强类型的，每个变量都必须明确其类型。将 `nil` 赋值一个变量是可以的：
 
 ```go
 var a chan int
@@ -53,7 +56,7 @@ b = nil
 
 #### nil 与 nil比较
 
-nil是不能和nil比较的：
+`nil` 是不能和 `nil` 比较的：
 
 ```go
 func main() {
@@ -63,9 +66,9 @@ func main() {
 
 #### nil 与 指针类型变量、通道、切片、函数、映射比较
 
-nil 是可以和指针类型变量，通道、切片、函数、映射比较的。
+`nil` 是可以和指针类型变量，通道、切片、函数、映射比较的。
 
-对于指针类型变量，只有其未指向任何对象时候，才能等于nil：
+1. 对于指针类型变量，只有其未指向任何对象时候，才能等于 `nil`：
 
 ```go
 func main() {
@@ -77,7 +80,7 @@ func main() {
 }
 ```
 
-对于通道、切片、映射只有`var t T`或者手动赋值为nil时候(`t = nil`)，才能等于nil:
+2. 对于通道、切片、映射只有 `var t T` 或者手动赋值为nil时候(`t = nil`)，才能等于nil:
 
 ```go
 func main() {
@@ -113,13 +116,13 @@ func main() {
 }
 ```
 
-从上面可以看到，通过make函数初始化的变量都不等于nil。
+从上面可以看到，通过make函数初始化的变量都不等于 `nil`。
 
 #### nil 与 接口比较
 
-接口类型变量包含两个基础属性：Type和Value，Type指的是接口类型变量的底层类型，Value指的是接口类型变量的底层值。**接口类型变量是可以比较的**。**当它们具有相同的底层类型，且相等的底层值时候，或者两者都为nil时候，这两个接口值是相等的**。
+接口类型变量包含两个基础属性：`Type` 和 `Value`，`Type` 指的是接口类型变量的底层类型，`Value` 指的是接口类型变量的底层值。**接口类型变量是可以比较的**。**当它们具有相同的底层类型，且相等的底层值时候，或者两者都为nil时候，这两个接口值是相等的**。
 
-当nil 与接口比较时候，需要接口的Type和Value都是nil时候，才能相等：
+当 `nil` 与接口比较时候，需要接口的 `Type` 和 `Value`都是 `nil` 时候，两者才相等：
 
 ```go
 func main() {
@@ -141,7 +144,7 @@ func main() {
 }
 ```
 
-nil和接口比较最容易出错的场景是使用error接口时候。Go官方文档举了一个例子[Why is my nil error value not equal to nil?](https://golang.org/doc/faq#nil_error):
+`nil` 和接口比较最容易出错的场景是使用error接口时候。Go官方文档举了一个例子 **[Why is my nil error value not equal to nil?](https://golang.org/doc/faq#nil_error)**:
 
 ```go
 type MyError int
@@ -171,7 +174,7 @@ println(err == nil) // false
 checkError(err) // 输出not nil
 ```
 
-我们可以看到上面代码中checkError函数输出的并不是nil，而是not nil。这是因为接口类型变量err的底层类型是(T=*MyError, V=nil)，不再是(T=nil, V=nil)。解决办法是当需返回nil时候，直接返回nil
+我们可以看到上面代码中 `checkError` 函数输出的并不是 `nil`，而是 `not nil`。这是因为接口类型变量 `err` 的底层类型是 `(T=*MyError, V=nil)`，不再是 `(T=nil, V=nil)`。解决办法是当需返回 `nil` 时候，直接返回 `nil`。
 
 ```go
 func returnError() error {
@@ -186,11 +189,11 @@ func returnError() error {
 
 #### nil通道
 
-通道类型变量的零值是nil，对于等于nil的通道称为nil通道。当从nil通道读取或写入数据时候，会发生永久性阻塞，若关闭则会发生恐慌。nil通道存在的意义可以参考[Why are there nil channels in Go?](https://medium.com/justforfunc/why-are-there-nil-channels-in-go-9877cc0b2308)
+通道类型变量的零值是 `nil`，对于等于 `nil` 的通道称为 `nil通道`。当从 `nil通道` 读取或写入数据时候，会发生永久性阻塞，若关闭则会发生恐慌。`nil通道` 存在的意义可以参考 **[Why are there nil channels in Go?](https://medium.com/justforfunc/why-are-there-nil-channels-in-go-9877cc0b2308)**
 
 #### nil切片
 
-对nil切片进行读写操作时候会发生panic。但对nil切片进行append操作时候是可以的，这是因为Go语言对append操作做了处理。
+对 `nil切片` 进行读写操作时候会发生恐慌。但对 `nil切片` 进行 `append` 操作时候是可以的，这是因为Go语言对append操作做了特殊处理。
 
 ```go
 var s []int
@@ -201,7 +204,7 @@ s = append(s, 100) // ok
 
 #### nil映射
 
-我们可以对nil映射进行读取和删除操作，当进行读取操作时候会返回映射的零值。当进行写操作时候会发生恐慌。
+我们可以对 `nil映射` 进行读取和删除操作，当进行读取操作时候会返回映射的零值。当进行写操作时候会发生恐慌。
 
 ```go
 func main() {
@@ -214,7 +217,7 @@ func main() {
 
 #### nil接收者
 
-值为nil的变量可以作为函数的接收者：
+值为 `nil` 的变量可以作为函数的接收者：
 
 ```go
 const defaultPath = "/usr/bin/"
@@ -241,7 +244,7 @@ func main() {
 
 #### nil函数
 
-nil函数可以用来处理默认值情况：
+`nil函数` 可以用来处理默认值情况：
 
 ```go
 func NewServer(logger function) {
@@ -252,7 +255,9 @@ func NewServer(logger function) {
 }
 ```
 
-## 进一步阅读
+## 参考资料
 
 - [Golang 零值、空值与空结构](https://juejin.cn/post/6895231755091968013)
 - [Why are there nil channels in Go?](https://medium.com/justforfunc/why-are-there-nil-channels-in-go-9877cc0b2308)
+
+[^1]:[Go官方语法指南：零值的定义](https://go.dev/ref/spec#The_zero_value)

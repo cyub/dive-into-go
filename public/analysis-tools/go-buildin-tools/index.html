@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。
 go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：
-go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：
+go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以查看编译器，连接器如何工作的：
 # # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &gt;$WORK/b001/importcfg &lt;&lt; &#39;EOF&#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &#34;$WORK/b001=&gt;&#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &gt;$WORK/b001/importcfg.link &lt;&lt; &#39;EOF&#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="Go语言内置分析工具" />
 <meta property="og:description" content="Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。
 go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：
-go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：
+go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以查看编译器，连接器如何工作的：
 # # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &gt;$WORK/b001/importcfg &lt;&lt; &#39;EOF&#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &#34;$WORK/b001=&gt;&#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &gt;$WORK/b001/importcfg.link &lt;&lt; &#39;EOF&#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://go.cyub.vip/analysis-tools/go-buildin-tools/" /><meta property="article:section" content="analysis-tools" />
@@ -23,7 +23,7 @@ go build -n # -n选项用来显示编译过程中所有执行的命令，不会�
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -291,67 +291,67 @@ https://github.com/alex-shpak/hugo-book
   go build -n
   <a class="anchor" href="#go-build--n">#</a>
 </h3>
-<p><code>-n</code>选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：</p>
-<pre tabindex="0"><code>#
-# _/home/vagrant/dive-into-go
-#
-
-mkdir -p $WORK/b001/
-cat &gt;$WORK/b001/importcfg &lt;&lt; &#39;EOF&#39; # internal
-# import config
-packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a
-packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
-EOF
-cd /home/vagrant/dive-into-go
-/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &#34;$WORK/b001=&gt;&#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go
-/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal
-cat &gt;$WORK/b001/importcfg.link &lt;&lt; &#39;EOF&#39; # internal
-packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.a
-packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a
-packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
-packagefile errors=/usr/lib/go/pkg/linux_amd64/errors.a
-packagefile internal/fmtsort=/usr/lib/go/pkg/linux_amd64/internal/fmtsort.a
-packagefile io=/usr/lib/go/pkg/linux_amd64/io.a
-packagefile math=/usr/lib/go/pkg/linux_amd64/math.a
-packagefile os=/usr/lib/go/pkg/linux_amd64/os.a
-packagefile reflect=/usr/lib/go/pkg/linux_amd64/reflect.a
-packagefile strconv=/usr/lib/go/pkg/linux_amd64/strconv.a
-packagefile sync=/usr/lib/go/pkg/linux_amd64/sync.a
-packagefile unicode/utf8=/usr/lib/go/pkg/linux_amd64/unicode/utf8.a
-packagefile internal/bytealg=/usr/lib/go/pkg/linux_amd64/internal/bytealg.a
-packagefile internal/cpu=/usr/lib/go/pkg/linux_amd64/internal/cpu.a
-packagefile runtime/internal/atomic=/usr/lib/go/pkg/linux_amd64/runtime/internal/atomic.a
-packagefile runtime/internal/math=/usr/lib/go/pkg/linux_amd64/runtime/internal/math.a
-packagefile runtime/internal/sys=/usr/lib/go/pkg/linux_amd64/runtime/internal/sys.a
-packagefile internal/reflectlite=/usr/lib/go/pkg/linux_amd64/internal/reflectlite.a
-packagefile sort=/usr/lib/go/pkg/linux_amd64/sort.a
-packagefile math/bits=/usr/lib/go/pkg/linux_amd64/math/bits.a
-packagefile internal/oserror=/usr/lib/go/pkg/linux_amd64/internal/oserror.a
-packagefile internal/poll=/usr/lib/go/pkg/linux_amd64/internal/poll.a
-packagefile internal/syscall/execenv=/usr/lib/go/pkg/linux_amd64/internal/syscall/execenv.a
-packagefile internal/syscall/unix=/usr/lib/go/pkg/linux_amd64/internal/syscall/unix.a
-packagefile internal/testlog=/usr/lib/go/pkg/linux_amd64/internal/testlog.a
-packagefile sync/atomic=/usr/lib/go/pkg/linux_amd64/sync/atomic.a
-packagefile syscall=/usr/lib/go/pkg/linux_amd64/syscall.a
-packagefile time=/usr/lib/go/pkg/linux_amd64/time.a
-packagefile unicode=/usr/lib/go/pkg/linux_amd64/unicode.a
-packagefile internal/race=/usr/lib/go/pkg/linux_amd64/internal/race.a
-EOF
-mkdir -p $WORK/b001/exe/
-cd .
-/usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode=exe -buildid=nR64Q3qx-0ZdNI4_-qJS/RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0/nR64Q3qx-0ZdNI4_-qJS -extld=gcc $WORK/b001/_pkg_.a
-/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out # internal
-mv $WORK/b001/exe/a.out dive-into-go
-</code></pre><h3 id="go-build--race">
+<p><code>-n</code>选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以查看编译器，连接器如何工作的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># _/home/vagrant/dive-into-go</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>mkdir -p $WORK/b001/
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b001/importcfg <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># import config
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>cd /home/vagrant/dive-into-go
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b001=&gt;&#34;</span> -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b001/importcfg.link <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile errors=/usr/lib/go/pkg/linux_amd64/errors.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/fmtsort=/usr/lib/go/pkg/linux_amd64/internal/fmtsort.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile io=/usr/lib/go/pkg/linux_amd64/io.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile math=/usr/lib/go/pkg/linux_amd64/math.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile os=/usr/lib/go/pkg/linux_amd64/os.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile reflect=/usr/lib/go/pkg/linux_amd64/reflect.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile strconv=/usr/lib/go/pkg/linux_amd64/strconv.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile sync=/usr/lib/go/pkg/linux_amd64/sync.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile unicode/utf8=/usr/lib/go/pkg/linux_amd64/unicode/utf8.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/bytealg=/usr/lib/go/pkg/linux_amd64/internal/bytealg.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/cpu=/usr/lib/go/pkg/linux_amd64/internal/cpu.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime/internal/atomic=/usr/lib/go/pkg/linux_amd64/runtime/internal/atomic.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime/internal/math=/usr/lib/go/pkg/linux_amd64/runtime/internal/math.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime/internal/sys=/usr/lib/go/pkg/linux_amd64/runtime/internal/sys.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/reflectlite=/usr/lib/go/pkg/linux_amd64/internal/reflectlite.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile sort=/usr/lib/go/pkg/linux_amd64/sort.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile math/bits=/usr/lib/go/pkg/linux_amd64/math/bits.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/oserror=/usr/lib/go/pkg/linux_amd64/internal/oserror.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/poll=/usr/lib/go/pkg/linux_amd64/internal/poll.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/syscall/execenv=/usr/lib/go/pkg/linux_amd64/internal/syscall/execenv.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/syscall/unix=/usr/lib/go/pkg/linux_amd64/internal/syscall/unix.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/testlog=/usr/lib/go/pkg/linux_amd64/internal/testlog.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile sync/atomic=/usr/lib/go/pkg/linux_amd64/sync/atomic.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile syscall=/usr/lib/go/pkg/linux_amd64/syscall.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile time=/usr/lib/go/pkg/linux_amd64/time.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile unicode=/usr/lib/go/pkg/linux_amd64/unicode.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/race=/usr/lib/go/pkg/linux_amd64/internal/race.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>mkdir -p $WORK/b001/exe/
+</span></span><span style="display:flex;"><span>cd .
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode<span style="color:#f92672">=</span>exe -buildid<span style="color:#f92672">=</span>nR64Q3qx-0ZdNI4_-qJS/RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0/nR64Q3qx-0ZdNI4_-qJS -extld<span style="color:#f92672">=</span>gcc $WORK/b001/_pkg_.a
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>mv $WORK/b001/exe/a.out dive-into-go
+</span></span></code></pre></div><h3 id="go-build--race">
   go build -race
   <a class="anchor" href="#go-build--race">#</a>
 </h3>
-<p><code>-race</code>用来检查代码中是否存在数据竞态问题。<code>-race</code>可以用在多个命令中：</p>
+<p><code>-race</code>选项用来检查代码中是否存在竞态问题。<code>-race</code>可以用在多个子命令中：</p>
 <pre tabindex="0"><code>go test -race mypkg
 go run -race mysrc.go
 go build -race mycmd
 go install -race mypkg
-</code></pre><p>我们使用<code>-race</code>检查下面代码是否存在数据竞态问题，示例来自go官方博客：</p>
+</code></pre><p>下面是来自Go语言官方博客的一个示例<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>，在该示例中演示了使用<code>-race</code>选项检查代码中的竞态问题：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">start</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Now</span>()
 </span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Timer</span>
@@ -366,26 +366,26 @@ go install -race mypkg
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">randomDuration</span>() <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span> {
 </span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>(<span style="color:#a6e22e">rand</span>.<span style="color:#a6e22e">Int63n</span>(<span style="color:#ae81ff">1e9</span>))
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>上面代码功能是通过<code>time.AfterFunc</code>创建<code>timer</code>，定时的间隔从<code>randomDuration</code>函数获得，定时函数打印消息，然后通过<code>timer</code>的<code>Reset</code>方法重置定时器，重复利用。</p>
-<p>我们<code>-race</code>选项运行检查可以发现，上面代码是存在竞态问题的：</p>
-<pre tabindex="0"><code>$ go run -race main.go
-==================
-WARNING: DATA RACE
-Read by goroutine 5:
-  main.func·001()
-     race.go:14 +0x169
-
-Previous write by goroutine 1:
-  main.main()
-      race.go:15 +0x174
-
-Goroutine 5 (running) created at:
-  time.goFunc()
-      src/pkg/time/sleep.go:122 +0x56
-  timerproc()
-     src/pkg/runtime/ztime_linux_amd64.c:181 +0x189
-==================
-</code></pre><h3 id="go-build--gcflags">
+</span></span></code></pre></div><p>上面代码完成的功能是通过<code>time.AfterFunc</code>创建定时器，该定时器会在<code>randomDuration()</code>时候打印消息，此外还会通过<code>Rest()</code>方法重置该定时器，以达到重复利用该定时器目的。</p>
+<p>当我们使用<code>-race</code>选项执行检查时候，可以发现上面代码是存在竞态问题的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>$ go run -race main.go
+</span></span><span style="display:flex;"><span><span style="color:#f92672">==================</span>
+</span></span><span style="display:flex;"><span>WARNING: DATA RACE
+</span></span><span style="display:flex;"><span>Read by goroutine 5:
+</span></span><span style="display:flex;"><span>  main.func·001<span style="color:#f92672">()</span>
+</span></span><span style="display:flex;"><span>     race.go:14 +0x169
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Previous write by goroutine 1:
+</span></span><span style="display:flex;"><span>  main.main<span style="color:#f92672">()</span>
+</span></span><span style="display:flex;"><span>      race.go:15 +0x174
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Goroutine <span style="color:#ae81ff">5</span> <span style="color:#f92672">(</span>running<span style="color:#f92672">)</span> created at:
+</span></span><span style="display:flex;"><span>  time.goFunc<span style="color:#f92672">()</span>
+</span></span><span style="display:flex;"><span>      src/pkg/time/sleep.go:122 +0x56
+</span></span><span style="display:flex;"><span>  timerproc<span style="color:#f92672">()</span>
+</span></span><span style="display:flex;"><span>     src/pkg/runtime/ztime_linux_amd64.c:181 +0x189
+</span></span><span style="display:flex;"><span><span style="color:#f92672">==================</span>
+</span></span></code></pre></div><h3 id="go-build--gcflags">
   go build -gcflags
   <a class="anchor" href="#go-build--gcflags">#</a>
 </h3>
@@ -410,15 +410,15 @@ go build -gcflags=&#34;log=-N -l&#34; main.go // 只对log包进行禁止优化�
 <li>-S选项指示打印出汇编代码</li>
 <li>-m选项指示打印出变量内存逃逸信息</li>
 </ul>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go tool compile -N -l -S main.go <span style="color:#75715e"># 打印出main.go对应的汇编代码</span>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>go tool compile -N -l -S main.go <span style="color:#75715e"># 打印出main.go对应的汇编代码</span>
 </span></span><span style="display:flex;"><span>GOOS<span style="color:#f92672">=</span>linux GOARCH<span style="color:#f92672">=</span>amd64 go tool compile -N -l -S main.go <span style="color:#75715e"># 打印出针对特定系统和CPU架构的汇编代码</span>
 </span></span></code></pre></div><h2 id="go-tool-nm">
   go tool nm
   <a class="anchor" href="#go-tool-nm">#</a>
 </h2>
 <p><code>go tool nm</code>命令用来查看Go 二进制文件中符号表信息。</p>
-<pre tabindex="0"><code>go tool nm ./main | grep &#34;runtime.zerobase&#34;
-</code></pre><h2 id="go-tool-objdump">
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>go tool nm ./main | grep <span style="color:#e6db74">&#34;runtime.zerobase&#34;</span>
+</span></span></code></pre></div><h2 id="go-tool-objdump">
   go tool objdump
   <a class="anchor" href="#go-tool-objdump">#</a>
 </h2>
@@ -479,16 +479,16 @@ go tool objdump -s &#34;main.(main|add)&#34; ./test # objdump支持搜索特定�
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Wait</span>()
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>执行以下代码获取GMP调度信息：</p>
-<pre tabindex="0"><code>GODEBUG=schedtrace=1000 go run ./test.go
-</code></pre><p>笔者本人电脑输出以下内容：</p>
-<pre tabindex="0"><code>SCHED 0ms: gomaxprocs=8 idleprocs=6 threads=4 spinningthreads=1 idlethreads=0 runqueue=0 [0 0 0 0 0 0 0 0]
-SCHED 0ms: gomaxprocs=8 idleprocs=5 threads=3 spinningthreads=1 idlethreads=0 runqueue=0 [1 0 0 0 0 0 0 0]
-SCHED 0ms: gomaxprocs=8 idleprocs=5 threads=5 spinningthreads=1 idlethreads=0 runqueue=0 [0 0 0 0 0 0 0 0]
-SCHED 0ms: gomaxprocs=8 idleprocs=5 threads=5 spinningthreads=2 idlethreads=0 runqueue=0 [0 0 0 0 0 0 0 0]
-SCHED 1007ms: gomaxprocs=8 idleprocs=8 threads=16 spinningthreads=0 idlethreads=9 runqueue=0 [0 0 0 0 0 0 0 0]
-SCHED 1000ms: gomaxprocs=8 idleprocs=8 threads=5 spinningthreads=0 idlethreads=3 runqueue=0 [0 0 0 0 0 0 0 0]
-SCHED 2018ms: gomaxprocs=8 idleprocs=8 threads=16 spinningthreads=0 idlethreads=9 runqueue=0 [0 0 0 0 0 0 0 0]
-</code></pre><p>上面输出内容解释说明：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>GODEBUG<span style="color:#f92672">=</span>schedtrace<span style="color:#f92672">=</span><span style="color:#ae81ff">1000</span> go run ./test.go
+</span></span></code></pre></div><p>笔者本人电脑输出以下内容：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>SCHED 0ms: gomaxprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> idleprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">6</span> threads<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span> spinningthreads<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> idlethreads<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> runqueue<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> 0<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>SCHED 0ms: gomaxprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> idleprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> threads<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span> spinningthreads<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> idlethreads<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> runqueue<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">1</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> 0<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>SCHED 0ms: gomaxprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> idleprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> threads<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> spinningthreads<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> idlethreads<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> runqueue<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> 0<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>SCHED 0ms: gomaxprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> idleprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> threads<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> spinningthreads<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span> idlethreads<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> runqueue<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> 0<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>SCHED 1007ms: gomaxprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> idleprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> threads<span style="color:#f92672">=</span><span style="color:#ae81ff">16</span> spinningthreads<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> idlethreads<span style="color:#f92672">=</span><span style="color:#ae81ff">9</span> runqueue<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> 0<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>SCHED 1000ms: gomaxprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> idleprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> threads<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> spinningthreads<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> idlethreads<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span> runqueue<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> 0<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>SCHED 2018ms: gomaxprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> idleprocs<span style="color:#f92672">=</span><span style="color:#ae81ff">8</span> threads<span style="color:#f92672">=</span><span style="color:#ae81ff">16</span> spinningthreads<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> idlethreads<span style="color:#f92672">=</span><span style="color:#ae81ff">9</span> runqueue<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> <span style="color:#f92672">[</span><span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> <span style="color:#ae81ff">0</span> 0<span style="color:#f92672">]</span>
+</span></span></code></pre></div><p>上面输出内容解释说明：</p>
 <ul>
 <li>SCHED XXms: SCHED是调度日志输出标志符。XXms是自程序启动之后到输出当前行时间</li>
 <li>gomaxprocs： P的数量，等于当前的 CPU 核心数，或者GOMAXPROCS环境变量的值</li>
@@ -504,8 +504,8 @@ SCHED 2018ms: gomaxprocs=8 idleprocs=8 threads=16 spinningthreads=0 idlethreads=
   <a class="anchor" href="#gc">#</a>
 </h3>
 <p>与GC相关的参数是gctrace，当设置为1时候，会输出gc信息到标准err输出中。使用方式示例如下：</p>
-<pre tabindex="0"><code>GODEBUG=gctrace=1 godoc -http=:8080
-</code></pre><p>GC时候输出的内容格式如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>GODEBUG<span style="color:#f92672">=</span>gctrace<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> godoc -http<span style="color:#f92672">=</span>:8080
+</span></span></code></pre></div><p>GC时候输出的内容格式如下：</p>
 <blockquote>
 <p>gc# @#s #%: #+#+# ms clock, #+#/#/#+# ms cpu, #-&gt;#-&gt;# MB, # MB goal, #P</p>
 </blockquote>
@@ -575,14 +575,22 @@ SCHED 2018ms: gomaxprocs=8 idleprocs=8 threads=16 spinningthreads=0 idlethreads=
   进一步阅读
   <a class="anchor" href="#%e8%bf%9b%e4%b8%80%e6%ad%a5%e9%98%85%e8%af%bb">#</a>
 </h2>
+<!-- raw HTML omitted -->
 <ul>
-<li>
-  <a href="https://blog.golang.org/race-detector">Introducing the Go Race Detector</a></li>
 <li>
   <a href="https://eddycjy.gitbook.io/golang/di-9-ke-gong-ju/go-tool-trace">Go 大杀器之跟踪剖析 trace</a></li>
 <li>
   <a href="https://pkg.go.dev/runtime#hdr-Environment_Variables">go runtime Environment Variables</a></li>
 </ul>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>
+  <a href="https://blog.golang.org/race-detector">Introducing the Go Race Detector</a>&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
 </article>
  
       

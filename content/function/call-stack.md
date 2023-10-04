@@ -4,7 +4,7 @@ title: "Go函数调用栈"
 
 # 调用栈
 
-这一章节延续前面《[准备篇-Go汇编](../go-assembly)》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《[准备篇-Go汇编](../go-assembly)》查看了解。
+这一章节延续前面《**[准备篇-Go汇编]({{< relref "go-assembly" >}})** 》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《**[准备篇-Go汇编]({{< relref "go-assembly" >}})** 》查看了解。
 
 
 在详细分析函数栈之前，我们先复习以下几个概念。
@@ -19,7 +19,7 @@ title: "Go函数调用栈"
 
 ## 函数调用约定
 
-函数调用约定(Calling Conventions)是[ABI](https://en.wikipedia.org/wiki/Application_binary_interface)(Application Binary Interface)的组成部分，它描述了：
+函数调用约定(Calling Conventions)是 **[ABI](https://en.wikipedia.org/wiki/Application_binary_interface)**(Application Binary Interface) 的组成部分，它描述了：
 
 - 如何将执行控制权交给callee，以及返还给caller
 - 如何保存和恢复caller的状态
@@ -39,12 +39,7 @@ title: "Go函数调用栈"
 
 Go 语言中函数栈全景图如下：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202105/go-func-stack.png
-    :alt: Go语言函数调用栈
-    :width: 400px
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202105/go-func-stack.png" width="400px" class="text-center" title="Go语言函数调用栈">}}
 
 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
 
@@ -70,12 +65,7 @@ func main() {
 
 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202105/go-stack-sum.png
-    :alt: main函数调用栈
-    :width: 400px
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202105/go-stack-sum.png" width="400px" class="text-center" title="main函数调用栈">}}
 
 从栈底往栈顶，我们依次可以看到：
 
@@ -100,11 +90,12 @@ TEXT	"".sum(SB), NOSPLIT|ABIInternal, $16-24 // sum函数定义
 
 从上面函数定义可以看出来给main函数分配的栈帧空间大小是56字节大小（这里面的56字节大小，是不包括返回地址空间的，实际上main函数的栈帧大小是56+8(返回地址占用8字节空间大小) = 64字节大小），由于main函数没有参数和返回值，所以参数和返回值这部分大小是0。给sum函数分配的栈帧空间大小是16字节大小，sum函数参数有2个，且都是int类型，返回值是int类型，所以参数和返回值大小是24字节。
 
-关于函数声明时每个字段的含义可以去《[准备篇-Go汇编-函数声明](../go-assembly.html#id18)》
+关于函数声明时每个字段的含义可以去《**[准备篇-Go汇编-函数声明]({{< relref "go-assembly#函数声明" >}})** 》 查看：
 
 需要注意的有两点：
+
 1. 函数分配的栈空间足以放下所有被调用者信息，如果一个函数会调用很多其他函数，那么它的栈空间是按照其调用函数中最大空间要求来分配的。
-2. 函数栈空间是可以split。当栈空间不足时候，会进行split，重新找一块2倍当前栈空间的内存空间，将当前栈帧信息拷贝过去，这个叫栈分裂。Go语言在栈分裂基础上实现了抢占式调度，这个我们会在后续篇章详细探讨。我们可以使用`//go:nosplit`这个编译指示，强制函数不进行栈分裂。从sum函数定义可以看出来，其没有进行栈分裂处理。
+2. 函数栈空间是可以split。当栈空间不足时候，会进行split，重新找一块2倍当前栈空间的内存空间，将当前栈帧信息拷贝过去，这个叫栈分裂。Go语言在栈分裂基础上实现了抢占式调度，这个我们会在后续篇章详细探讨。我们可以使用 `//go:nosplit` 这个编译指示，强制函数不进行栈分裂。从sum函数定义可以看出来，其没有进行栈分裂处理。
 
 接下来我们分析main函数的汇编代码：
 
@@ -149,11 +140,6 @@ TEXT	"".sum(SB), NOSPLIT|ABIInternal, $16-24 // sum函数定义
 0x0077 00119 (main.go:9)	JMP	0
 ```
 
-结合汇编，我们最终画出main函数调用栈图：
+结合汇编，我们最终画出 `main` 函数调用栈图：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202105/go-stack-sum2.png
-    :alt: main函数调用栈
-    :width: 450px
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202105/go-stack-sum2.png" width="450px" class="text-center" title="main函数调用栈">}}

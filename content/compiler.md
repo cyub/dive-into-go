@@ -8,9 +8,9 @@ Go语言是一门编译型语言，程序运行时需要先编译成相应平台
 
 ## 编译六阶段
 
-编译器工作目的是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两大部分，每个部分可以细分为3个阶段。两大部分别是分析部分（Analysis part）以及合成部分（Synthesis part），这两大部分也称为编译前端和编译后端。编译六阶段如下：
+编译器工作目标是**完成从高级语言（high-level langue）到机器码（machine code）的输出**。整个编译流程可分为两部分，每个部分又可以细分为三个阶段，也就是说整个编译流程分为六个阶段。编译流程的两部分别是分析部分（Analysis part）以及合成部分（Synthesis part），也称为编译前端和编译后端。编译六阶段如下：
 
-- 词法分析（Lexical analysis）
+- 词法分析（Lexical analysis)
 - 语法分析（Syntax analysis）
 - 语义分析（Semantic analysis）
 - 中间码生成（Intermediate code generator）
@@ -64,52 +64,47 @@ b | identifier
 
 上面介绍了编译器工作整个流程，Go语言编译器编译也符合上面流程：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202104/go-compile.png
-    :alt: Go语言编译流程
-    :width: 500px
-    :align: center
-```
+
+{{< figure src="https://static.cyub.vip/images/202104/go-compile.png" width="500px" class="text-center" title="Go语言编译流程">}}
+
 
 我们执行`go build`命令时候，带上`-n`选项可以观察编译流程所执行所有的命令：
 
-```eval_rst
-.. code-block::
-   :emphasize-lines: 11,24
+{{< highlight shell "linenos=table,hl_lines=5 11 24" >}}
+#
+# command-line-arguments
+#
 
-    #
-    # command-line-arguments
-    #
+mkdir -p $WORK/b001/
+cat >$WORK/b001/importcfg << 'EOF' # internal
+# import config
+packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
+EOF
+cd /home/vagrant/dive-into-go
+/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath "$WORK/b001=>" -p main -complete -buildid aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go
+/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal
+cat >$WORK/b001/importcfg.link << 'EOF' # internal
+packagefile command-line-arguments=$WORK/b001/_pkg_.a
+packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
+packagefile internal/bytealg=/usr/lib/go/pkg/linux_amd64/internal/bytealg.a
+packagefile internal/cpu=/usr/lib/go/pkg/linux_amd64/internal/cpu.a
+packagefile runtime/internal/atomic=/usr/lib/go/pkg/linux_amd64/runtime/internal/atomic.a
+packagefile runtime/internal/math=/usr/lib/go/pkg/linux_amd64/runtime/internal/math.a
+packagefile runtime/internal/sys=/usr/lib/go/pkg/linux_amd64/runtime/internal/sys.a
+EOF
+mkdir -p $WORK/b001/exe/
+cd .
+/usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode=exe -buildid=FoylCipvV-SPkhyi2PJs/aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5/FoylCipvV-SPkhyi2PJs -extld=gcc $WORK/b001/_pkg_.a
+/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out # internal
+mv $WORK/b001/exe/a.out empty_string
 
-    mkdir -p $WORK/b001/
-    cat >$WORK/b001/importcfg << 'EOF' # internal
-    # import config
-    packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
-    EOF
-    cd /home/vagrant/dive-into-go
-    /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath "$WORK/b001=>" -p main -complete -buildid aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go
-    /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal
-    cat >$WORK/b001/importcfg.link << 'EOF' # internal
-    packagefile command-line-arguments=$WORK/b001/_pkg_.a
-    packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
-    packagefile internal/bytealg=/usr/lib/go/pkg/linux_amd64/internal/bytealg.a
-    packagefile internal/cpu=/usr/lib/go/pkg/linux_amd64/internal/cpu.a
-    packagefile runtime/internal/atomic=/usr/lib/go/pkg/linux_amd64/runtime/internal/atomic.a
-    packagefile runtime/internal/math=/usr/lib/go/pkg/linux_amd64/runtime/internal/math.a
-    packagefile runtime/internal/sys=/usr/lib/go/pkg/linux_amd64/runtime/internal/sys.a
-    EOF
-    mkdir -p $WORK/b001/exe/
-    cd .
-    /usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode=exe -buildid=FoylCipvV-SPkhyi2PJs/aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5/FoylCipvV-SPkhyi2PJs -extld=gcc $WORK/b001/_pkg_.a
-    /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out # internal
-    mv $WORK/b001/exe/a.out empty_string
-```
+{{< / highlight >}}
 
 从上面命令输出的内容可以看到：
 
-1. Go编译器首先会创建一个任务输出临时目录（mkdir -p $WORK/b001/）。每次构建都是由一系列task完成，它们构成[action graph](https://github.com/golang/go/blob/master/src/cmd/go/internal/work/action.go)，b001是root task的工作目录。
+1. Go编译器首先会创建一个任务输出临时目录（mkdir -p $WORK/b001/）。b001是root task的工作目录，每次构建都是由一系列task完成，它们构成 **[action graph](https://github.com/golang/go/blob/master/src/cmd/go/internal/work/action.go)**
 
-2. 接着将empty_string.go中依赖的包（packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a）写入到importcfg中
+2. 接着将empty_string.go中依赖的包: /usr/lib/go/pkg/linux_amd64/runtime.a 写入到importcfg中
 
 3. 接着会使用compile命令，并指定importcfg文件，将主程序empty_string.go编译成_pkg.a文件（/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath "$WORK/b001=>" -p main -complete -buildid aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go）。
 
@@ -289,3 +284,6 @@ cd go1.14.13/src
 - [GcToolchainTricks](https://github.com/golang/go/wiki/GcToolchainTricks)
 - [Bootstrapping Go](https://weeraman.com/bootstrapping-go-ee5633ce3329)
 - [Gccgo in GCC 4.7.1](https://go.dev/blog/gccgo-in-gcc-471)
+
+[^1]: [Lexical analysis](https://en.wikipedia.org/wiki/Lexical_analysis)
+[^2]: [Syntax analysis](https://en.wikipedia.org/wiki/Parsing)

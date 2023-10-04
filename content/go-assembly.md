@@ -253,9 +253,9 @@ Go汇编一共有4个伪寄存器：
 ```
 
 - `TEXT`指令声明了`pagname.add`是在`.text`段
-- `pkgname·add`中的`·`，是一个 unicode 的中点。在程序被链接之后，所有的中点`·`都会被替换为点号`.`，所以通过[GDB](./analysis-tools/gdb.md)调试打断点时候，应该是`b pagname.add`。
-- `(SB)`: SB 是一个虚拟寄存器，保存了静态基地址(static-base) 指针，即我们程序地址空间的开始地址。 "".add(SB) 表明我们的符号add位于某个固定的相对地址空间起始处的偏移位置
-    ```
+- `pkgname·add`中的`·`，是一个 `unicode` 的中点。在程序被链接之后，所有的中点`·`都会被替换为点号`.`，所以通过 **[GDB]({{< relref "analysis-tools/gdb" >}})** 调试打断点时候，应该是 `b pagname.add`
+- `(SB)`: `SB` 是一个虚拟寄存器，保存了静态基地址(static-base) 指针，即我们程序地址空间的开始地址。 `"".add(SB)` 表明我们的符号add位于某个固定的相对地址空间起始处的偏移位置
+    ```shell
     objdump -j .text -t test | grep 'main.add' # 可获得main.add的绝对地址
    ```
 

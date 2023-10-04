@@ -96,17 +96,17 @@ $ gdb (gdb) attach 1785 当执行attach命令的时候，GDB首先会在当前�
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/function/call-stack/</guid>
-      <description>调用栈 # 这一章节延续前面《 准备篇-Go汇编》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编》查看了解。
+      <description>调用栈 # 这一章节延续前面《 准备篇-Go汇编 》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编 》查看了解。
 在详细分析函数栈之前，我们先复习以下几个概念。
 caller 与 callee # 如果一个函数调用另外一个函数，那么该函数被称为调用者函数，也叫做caller，而被调用的函数称为被调用者函数，也叫做callee。比如函数main中调用sum函数，那么main就是caller，而sum函数就是callee。
 栈帧 # 栈帧（stack frame）指的是未完成函数所持有的，独立连续的栈区域，用来保存其局部变量，返回地址等信息。
-函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface)的组成部分，它描述了：
+函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface) 的组成部分，它描述了：
 如何将执行控制权交给callee，以及返还给caller 如何保存和恢复caller的状态 如何将参数传递个callee 如何从callee获取返回值 简而言之，一句话就是函数调用约定指的是约定了函数调用时候，函数参数如何传递，函数栈由谁完成平衡，以及函数返回值如何返回的。
 在Go语言中，函数的参数和返回值的存储空间是由其caller的栈帧提供。这也为Go语言为啥支持多返回值以及总是值传递的原因。从Go汇编层面看，在callee中访问其参数和返回值，是通过FP寄存器来操作的（在实现层面是通过SP寄存器访问的）。Go语言中函数参数入栈顺序是从右到左入栈的。
 函数调用时候，会为其分配栈空间用来存放临时变量，返回值等信息，当完成调用后，这些栈空间应该进行回收，以恢复调用以前的状态。这个过程就是栈平衡。栈平衡工作可以由被调用者本身(callee)完成，也可以由其调用者(caller)完成。在Go语言中是由callee来完成栈平衡的。
 函数栈 # 当前函数作为caller，其本身拥有的栈帧以及其所有callee的栈帧，可以称为该函数的函数栈，也称函数调用栈。C语言中函数栈大小是固定的，如果超出栈空间，就会栈溢出异常。比如递归求斐波拉契，这时候可以使用尾调用来优化。由于Go 语言栈可以自动进行分裂扩容，栈空间不够时候，可以自动进行扩容。当用火焰图分析性能时候，火焰越高，说明栈越深。
 Go 语言中函数栈全景图如下：
-.. image:: https://static.cyub.vip/images/202105/go-func-stack.png :alt: Go语言函数调用栈 :width: 400px :align: center 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
+Go语言函数调用栈 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
 实例分析 # 我们将分析如下代码。
 package main func sum(a, b int) int { sum := 0 sum = a + b return sum } func main() { a := 3 b := 5 print(sum(a, b)) } 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：</description>
     </item>
@@ -136,8 +136,8 @@ ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
       
       <guid>https://go.cyub.vip/compiler/</guid>
       <description>编译流程 # Go语言是一门编译型语言，程序运行时需要先编译成相应平台的可执行文件。在介绍Go语言编译流程之前，我们来了解下编译器编译整个流程。
-编译六阶段 # 编译器工作目的是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两大部分，每个部分可以细分为3个阶段。两大部分别是分析部分（Analysis part）以及合成部分（Synthesis part），这两大部分也称为编译前端和编译后端。编译六阶段如下：
-词法分析（Lexical analysis） 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a+b*5为例:
+编译六阶段 # 编译器工作目标是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两部分，每个部分又可以细分为三个阶段，也就是说整个编译流程分为六个阶段。编译流程的两部分别是分析部分（Analysis part）以及合成部分（Synthesis part），也称为编译前端和编译后端。编译六阶段如下：
+词法分析（Lexical analysis) 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a+b*5为例:
 Lexemes Tokens c identifier = assignment symbol a identifier + + (addition symbol) b identifier * * (multiplication symbol) 5 5 (number) 语法分析 # 词法分析阶段接收上一阶段生成的Tokens序列，基于特定编程语言的规则生成抽象语法树（Abstract Syntax Tree）。
 抽象语法树 # 抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。
 以(a+b)*c为例，最终生成的抽象语法树如下：
@@ -154,7 +154,7 @@ Lexemes Tokens c identifier = assignment symbol a identifier + + (addition symbo
       <guid>https://go.cyub.vip/analysis-tools/go-buildin-tools/</guid>
       <description>Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。
 go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：
-go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：
+go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以查看编译器，连接器如何工作的：
 # # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &amp;gt;$WORK/b001/importcfg &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &amp;#34;$WORK/b001=&amp;gt;&amp;#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &amp;gt;$WORK/b001/importcfg.link &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.</description>
     </item>
     
@@ -164,10 +164,11 @@ go build -n # -n选项用来显示编译过程中所有执行的命令，不会�
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/type/nil/</guid>
-      <description>nil # 在探究nil之前，我们先看看零值的概念。
-零值 # 零值(zero value)指的是当声明变量且未显示初始化时，Go语言会自动给变量赋予一个默认初始值。对于值类型变量来说不同值类型，有不同的零值，比如整数型零值是0，字符串类型是&amp;quot;&amp;quot;，布尔类型是false。对于引用类型变量其零值都是nil。
-类型 零值 数值类型 0 字符串 &amp;quot;&amp;quot; 布尔类型 false 指针类型 nil 通道 nil 函数 nil 接口 nil 映射 nil 切片 nil 结构体 每个结构体字段对应类型的零值 nil # nil是Go语言中的一个变量，是预先声明的标识符，用来作为引用类型变量的零值。
-// nil is a predeclared identifier representing the zero value for a // pointer, channel, func, interface, map, or slice type. var nil Type // Type must be a pointer, channel, func, interface, map, or slice type nil不能通过:=方式赋值给一个变量，下面代码是编译不通过的：</description>
+      <description>nil # 在探究 nil 之前，我们先看看零值的概念。
+零值 # 零值(zero value)1 指的是当声明变量且未显示初始化时，Go语言会自动给变量赋予一个默认初始值。对于值类型变量来说不同值类型，有不同的零值，比如整数型零值是 0，字符串类型是 &amp;quot;&amp;quot;，布尔类型是 false。对于引用类型变量其零值都是 nil。
+类型 零值 数值类型 0 字符串 &amp;quot;&amp;quot; 布尔类型 false 指针类型 nil 通道 nil 函数 nil 接口 nil 映射 nil 切片 nil 结构体 每个结构体字段对应类型的零值 自定义类型 其底层类型的对应的零值 从零值的定义，可以看出Go语言引入 nil 概念，是为了将其作为引用类型变量的零值而存在。
+nil # nil 是Go语言中的一个变量，是预先声明的标识符，用来作为引用类型变量的零值。
+// nil is a predeclared identifier representing the zero value for a // pointer, channel, func, interface, map, or slice type. var nil Type // Type must be a pointer, channel, func, interface, map, or slice type nil 不能通过:=方式赋值给一个变量，下面代码是编译不通过的：</description>
     </item>
     
     <item>
@@ -176,14 +177,13 @@ go build -n # -n选项用来显示编译过程中所有执行的命令，不会�
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/feature/panic-recover/</guid>
-      <description>恐慌与恢复 - panic/recover # 我们知道Go中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发panic异常暴露出来。这种由Go自动的触发的panic异常属于 运行时panic(Run-time panics)。当发生panic时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了panic函数，可以用于用户手动触发panic。
-Go内置的recover函数可以用来捕获panic异常，但recover函数只能放在延迟函数调用中，才能起作用。我们从之前的章节 语言特性-defer函数了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了recover函数调用，若调用了则panic异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该panic没有被捕获，进程异常终止，这个过程叫做panicking。我们需要知道的是即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出。
+      <description>恐慌与恢复 - panic/recover # 我们知道Go语言中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发 panic 异常暴露出来。这种由Go语言自动的触发的 panic 异常属于运行时panic(Run-time panics)1。当发生 panic 时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了 panic 函数，可以用于用户手动触发panic。
+Go语言中内置的 recover 函数可以用来捕获 panic异常，但 recover 函数只能放在延迟函数调用中，才能起作用。我们从之前的章节《 基础篇-语言特性-defer函数 》了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了 recover 函数调用，若调用了则 panic 异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该 panic 没有被捕获，进程异常终止，这个过程叫做panicking。我们需要知道的是即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出。
 接下来我们来将深入了解下panic和recover底层的实现机制。在开始之前，我们来看下下面的测试题。
 测试题：下面哪些panic异常将会捕获？ # case 1:
 func main() { recover() panic(&amp;#34;it is panic&amp;#34;) // not recover } case 2:
 func main() { defer func() { recover() }() panic(&amp;#34;it is panic&amp;#34;) // recover } case 3:
-func main() { defer recover() panic(&amp;#34;it is panic&amp;#34;) // not recover } case 4:
-func main() { defer func() { defer recover() }() panic(&amp;#34;it is panic&amp;#34;) // recover } case 5:</description>
+func main() { defer recover() panic(&amp;#34;it is panic&amp;#34;) // not recover } case 4:</description>
     </item>
     
     <item>
@@ -255,8 +255,9 @@ var a, b int // goroutine A go func() { a = 1 b = 2 }() // goroutine B go func()
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/type/slice/</guid>
-      <description>切片 # 切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。
-初始化 # 切片初始化方式可以分为三种：
+      <description>切片 # 切片是Go语言中最常用的数据类型之一，它类似数组，但相比数组它更加灵活，高效，由于它本身的特性，往往也更容易用错。
+不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），如果切片使用不当，会产生意想不到的副作用。
+初始化 # 切片的初始化方式可以分为三种：
 使用make函数创建切片
 make函数语法格式为：make([]T, length, capacity)，capacity可以省略，默认等于length
 使用字面量创建切片
@@ -296,13 +297,14 @@ func AddT(addr *T, delta T) (new T) func CompareAndSwapT(addr *T, old, new T) (s
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/type/string/</guid>
-      <description>字符串 # C语言中字符串是使用字符数组char[]表示，数组的最后一位是\0用来作为字符串的定界符。Go语言中字符串最底层也是字符数组， 但是Go语言使用长度来记录字符串边界，字符串的长度就是数组大小。
-数据结构 # Go语言字符串底层数据结构是reflect.StringHeader( reflect/value.go)，其中包含了指向字节数组的指针，以及数组大小：
-type StringHeader struct { Data uintptr Len int } 当一个字符串变量赋值给另外一个变量时候，他们StringHeader.Data都指向同一个内存地址：
-a := &amp;#34;hello&amp;#34; b := a .. image:: https://static.cyub.vip/images/202104/go_string.png :alt: go字符底层表示 :width: 400px :align: center 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
-接来下我们借助 (GDB)来验证Go语言中字符串数据结构是不是按照上面说的那样。
-package main import ( &amp;#34;fmt&amp;#34; ) func main() { a := &amp;#34;hello&amp;#34; b := a fmt.Printf(&amp;#34;a变量地址：%p\n&amp;#34;, &amp;amp;a) fmt.Printf(&amp;#34;b变量地址：%p\n&amp;#34;, &amp;amp;b) print(&amp;#34;断点打在这里&amp;#34;) } 将上面代码构建二进制应用(go build -o string string.go)， 然后使用 GDB调试一下(gdb ./string)：
-len(str) == 0 和 str == &amp;ldquo;&amp;ldquo;有区别吗？ # 判断一个字符串是否是空字符串，我们既可以使用len判断其长度是0，也可以判断其是否等于空字符&amp;quot;&amp;quot;。那么它们有什么区别吗？答案是没有区别。因为他们底层实现是一样的。我们来探究一下。</description>
+      <description>字符串 # 我们知道C语言中的字符串是使用字符数组 char[] 表示，字符数组的最后一位元素是 \0，用来标记字符串的结束。C语言中字符串的结构简单，但获取字符串长度时候，需要遍历字符数组才能完成。
+Go语言中字符串的底层结构中也包含了字符数组，该字符数组是完整的字符串内容，它不同于C语言，字符数组中没有标记字符串结束的标记。为了记录底层字符数组的大小，Go语言使用了额外的一个长度字段来记录该字符数组的大小，字符数组的大小也就是字符串的长度。
+数据结构 # Go语言字符串的底层数据结构是 reflect.StringHeader( reflect/value.go)，它包含了指向字节数组的指针，以及该指针指向的字符数组的大小：
+type StringHeader struct { Data uintptr Len int } 字符串复制 # 当将一个字符串变量赋值给另外一个变量时候，他们 StringHeader.Data 都指向同一个内存地址，不会发生字符串拷贝：
+a := &amp;#34;hello&amp;#34; b := a 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
+接来下我们借助 GDB 工具来验证Go语言中字符串数据结构是不是按照上面说的那样。
+package main import ( &amp;#34;fmt&amp;#34; ) func main() { a := &amp;#34;hello&amp;#34; b := a fmt.Printf(&amp;#34;a变量地址：%p\n&amp;#34;, &amp;amp;a) fmt.Printf(&amp;#34;b变量地址：%p\n&amp;#34;, &amp;amp;b) print(&amp;#34;断点打在这里&amp;#34;) } 将上面代码构建二进制应用， 然后使用 GDB 调试一下：
+go build -o string string.go # 构建二进制应用 gdb .</description>
     </item>
     
     <item>
@@ -323,13 +325,12 @@ type readOnly struct { m map[interface{}]*entry amended bool // 当amended为tru
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/feature/defer/</guid>
-      <description>延迟执行 - defer语法 # defer语法支持是Go 语言中一大特性，通过defer关键字，我们可以声明一个延迟执行函数，当调用者返回之前开始执行该函数，一般用来完成资源、锁、连接等释放工作，或者recover可能发生的panic。
+      <description>延迟执行 - defer语法 # defer 语法支持是Go 语言中一大特性，通过 defer 关键字，我们可以声明一个延迟执行函数，当调用者返回之前开始执行该函数，一般用来完成资源、锁、连接等释放工作，或者 recover 可能发生的panic。
 三大特性 # defer延迟执行语法有三大特性：
 defer函数的传入参数在定义时就已经明确 # func main() { i := 1 defer fmt.Println(i) i++ return } 上面代码输出1，而不是2。
 defer函数是按照后进先出的顺序执行 # func main() { for i := 1; i &amp;lt;= 5; i++ { defer fmt.Print(i) } } 上面代码输出54321，而不是12345。
 defer函数可以读取和修改函数的命名返回值 # func main() { fmt.Println(test()) } func test() (i int) { defer func() { i++ }() return 100 } 上面代码输出输出101，而不是100或者1。
-白话defer原理 # defer函数底层数据结构是_defer结构体，多个defer函数会构建成一个_defer链表，后面加入的defer函数会插入链表的头部，该链表链表头部会链接到G上。当函数执行完成返回的时候，会从_defer链表头部开始依次执行defer函数。这也就是defer函数执行时会LIFO的原因。_defer链接结构示意图如下：
-.. image:: https://static.cyub.vip/images/202105/defer_profile.png :alt: defer结构示意图 :width: 450px :align: center 创建_defer结构体是需要进行内存分配的，为了减少分配_defer结构体时资源消耗，Go底层使用了defer缓冲池（defer pool），用来缓存上次使用完的_defer结构体，这样下次可以直接使用，不必再重新分配内存了。defer缓冲池一共有两级：per-P级defer缓冲池和全局defer缓冲池。当创建_defer结构体时候，优先从当前M关联的P的缓冲池中取得_defer结构体，即从per-P缓冲池中获取，这个过程是无锁操作。如果per-P缓冲池中没有，则在尝试从全局defer缓冲池获取，若也没有获取到，则重新分配一个新的_defer结构体。</description>
+白话defer原理 # defer函数底层数据结构是_defer结构体，多个defer函数会构建成一个_defer链表，后面加入的defer函数会插入链表的头部，该链表链表头部会链接到G上。当函数执行完成返回的时候，会从_defer链表头部开始依次执行defer函数。这也就是defer函数执行时会LIFO的原因。_defer链接结构示意图如下：</description>
     </item>
     
     <item>
@@ -361,9 +362,11 @@ func main() { var A int = 100 var B *int = &amp;amp;A fmt.Println(A == *B) } 转
       
       <guid>https://go.cyub.vip/type/array/</guid>
       <description>数组 # 数组是Go语言中常见的数据结构，相比切片，数组我们使用的比较少。
-初始化 # Go语言数组有两个声明初始化方式，一个需要显示指明数组大小，另一个使用...由编译器在编译阶段推断出来：
-arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 .. hint:: 上面代码中arr3和arr4的初始化方式，是指定数组索引对应的值。这种方式并不常见。 可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
-func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：</description>
+初始化 # Go语言数组有两个声明初始化方式，一种需要显示指明数组大小，另一种使用 ...保留字， 数组的长度将由编译器在编译阶段推断出来：
+arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 注意
+上面代码中arr3和arr4的初始化方式是指定数组索引对应的值。这种方式并不常见。
+可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
+func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：</description>
     </item>
     
     <item>
@@ -388,8 +391,8 @@ LEAQ go.</description>
       <description>映射 # 映射也被称为哈希表(hash table)、字典。它是一种由key-value组成的抽象数据结构。大多数情况下，它都能在O(1)的时间复杂度下实现增删改查功能。若在极端情况下出现所有key都发生哈希碰撞时则退回成链表形式，此时复杂度为O(N)。
 映射底层一般都是由数组组成，该数组每个元素称为桶，它使用hash函数将key分配到不同桶中，若出现碰撞冲突时候，则采用链地址法（也称为拉链法）或者开放寻址法解决冲突。下图就是一个由姓名-号码构成的哈希表的结构图：
 Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决，Go语言中映射具有以下特点：
-引用类型变量 读写并发不安全 遍历结果是随机的 数据结构 # .. image:: https://static.cyub.vip/images/202106/map_struct.png :alt: 映射底层结构 :width: 80% :align: center Go语言中映射的数据结构是runtime.hmap( runtime/map.go):
-// A header for a Go map. type hmap struct { count int // 元素个数，用于len函数返回map元素数量 flags uint8 // 标志位，标志当前map正在写等状态 B uint8 // buckets个数的对数，即桶数量 = 2 ^ B noverflow uint16 // overflow桶数量的近似值，overflow桶即溢出桶，即链表法中存在链表上的桶的个数 hash0 uint32 // 随机数种子，用于计算key的哈希值 buckets unsafe.Pointer // 指向buckets数组，如果元素个数为0时，该值为nil oldbuckets unsafe.Pointer // 扩容时指向旧的buckets nevacuate uintptr // 用于指示迁移进度，小于此值的桶已经迁移完成 extra *mapextra // 额外记录overflow桶信息 } 映射中每一个桶的结构是runtime.</description>
+引用类型变量 读写并发不安全 遍历结果是随机的 数据结构 # Go语言映射的数据结构 Go语言中映射的数据结构是 runtime.hmap( runtime/map.go):
+// A header for a Go map. type hmap struct { count int // 元素个数，用于len函数返回map元素数量 flags uint8 // 标志位，标志当前map正在写等状态 B uint8 // buckets个数的对数，即桶数量 = 2 ^ B noverflow uint16 // overflow桶数量的近似值，overflow桶即溢出桶，即链表法中存在链表上的桶的个数 hash0 uint32 // 随机数种子，用于计算key的哈希值 buckets unsafe.Pointer // 指向buckets数组，如果元素个数为0时，该值为nil oldbuckets unsafe.Pointer // 扩容时指向旧的buckets nevacuate uintptr // 用于指示迁移进度，小于此值的桶已经迁移完成 extra *mapextra // 额外记录overflow桶信息 } 映射中每一个桶的结构是 runtime.bmap( runtime/map.</description>
     </item>
     
     <item>
@@ -408,7 +411,7 @@ Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决
       
       <guid>https://go.cyub.vip/type/empty_struct/</guid>
       <description>空结构体 # 空结构体指的是没有任何字段的结构体。
-大小与内存地址 # 空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向runtime.zerobase。
+大小与内存地址 # 空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向了 runtime.zerobase。
 // empty_struct.go type Empty struct{} //go:linkname zerobase runtime.zerobase var zerobase uintptr // 使用go:linkname编译指令，将zerobase变量指向runtime.zerobase func main() { a := Empty{} b := struct{}{} fmt.Println(unsafe.Sizeof(a) == 0) // true fmt.Println(unsafe.Sizeof(b) == 0) // true fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;a) // 0x590d00 fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;b) // 0x590d00 fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;zerobase) // 0x590d00 c := new(Empty) d := new(Empty) fmt.Sprint(c, d) // 目的是让变量c和d发生逃逸 println(c) // 0x590d00 println(d) // 0x590d00 fmt.Println(c == d) // true e := new(Empty) f := new(Empty) println(e) // 0xc00008ef47 println(f) // 0xc00008ef47 fmt.</description>
     </item>
     
@@ -551,14 +554,15 @@ For all the cases in the statement, the channel operands of receive operations a
       
       <guid>https://go.cyub.vip/function/closure/</guid>
       <description>闭包 # C语言中函数名称就是函数的首地址。Go语言中函数名称跟C语言一样，函数名指向函数的首地址，即函数的入口地址。从前面《 基础篇-函数-一等公民》那一章节我们知道Go 语言中函数是一等公民，它可以绑定变量，作函数参数，做函数返回值，那么它底层是怎么实现的呢？
-我们先来了解下Function Value这个概念。
+我们先来了解下 Function Value 这个概念。
 Function Value # Go 语言中函数是一等公民，函数可以绑定到变量，也可以做参数传递以及做函数返回值。Golang把这样的参数、返回值、变量称为Function value。
 Go 语言中Function value本质上是一个指针，但是其并不直接指向函数的入口地址，而是指向的runtime.funcval( runtime/runtime2.go)这个结构体。该结构体中的fn字段存储的是函数的入口地址：
 type funcval struct { fn uintptr // variable-size, fn-specific data here } 我们以下面这段代码为例来看下Function value是如何使用的:
 func A(i int) { i++ fmt.Println(i) } func B() { f1 := A f1(1) } func C() { f2 := A f2(2) } 上面代码中，函数A被赋值给变量f1和f2，这种情况下编译器会做出优化，让f1和f2共用一个funcval结构体，该结构体是在编译阶段分配到数据段的只读区域(.rodata)。如下图所示那样，f1和f2都指向了该结构体的地址addr2，该结构体的fn字段存储了函数A的入口地址addr1：
-.. image:: https://static.cyub.vip/images/202105/fuc_var.png :alt: Go语言函数调用栈 :width: 400px :align: center 为什么f1和f2需要通过了一个二级指针来获取到真正的函数入口地址，而不是直接将f1，f2指向函数入口地址addr1。关于这个原因就涉及到Golang中闭包设计与实现了。
-闭包 # 闭包(Closure)通俗点讲就是能够访问外部函数内部变量的函数。像这样能被访问的变量通常被称为捕获变量。
-闭包函数指令在编译阶段生成，但因为每个闭包对象都要保存自己捕获的变量，所以要等到执行阶段才创建对应的闭包对象。我们来看下下面闭包的例子：</description>
+为什么f1和f2需要通过了一个二级指针来获取到真正的函数入口地址，而不是直接将f1，f2指向函数入口地址addr1。关于这个原因就涉及到Golang中闭包设计与实现了。
+闭包 # 闭包(Closure) 通俗点讲就是能够访问外部函数内部变量的函数。像这样能被访问的变量通常被称为捕获变量。
+闭包函数指令在编译阶段生成，但因为每个闭包对象都要保存自己捕获的变量，所以要等到执行阶段才创建对应的闭包对象。我们来看下下面闭包的例子：
+package main func A() func() int { i := 3 return func() int { return i } } func main() { f1 := A() f2 := A() print(f1()) pirnt(f2()) } 上面代码中当执行main函数时，会在其栈帧区间内为局部变量f1和f2分配栈空间，当执行第一个A函数时候，会在其栈帧空间分配栈空间来存放局部变量i，然后在堆上分配一个funcval结构体（其地址假定addr2)，该结构体的fn字段存储的是A函数内那个闭包函数的入口地址（其地址假定为addr1）。A函数除了分配一个funcval结构体外，还会挨着该结构体分配闭包函数的变量捕获列表，该捕获列表里面只有一个变量i。由于捕获列表的存在，所以说闭包函数是一个有状态函数。</description>
     </item>
     
   </channel>

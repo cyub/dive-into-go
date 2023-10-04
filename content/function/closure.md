@@ -4,15 +4,15 @@ title: "闭包"
 
 # 闭包
 
-C语言中函数名称就是函数的首地址。Go语言中函数名称跟C语言一样，函数名指向函数的首地址，即函数的入口地址。从前面《[基础篇-函数-一等公民](../first-class)》那一章节我们知道Go 语言中函数是一等公民，它可以绑定变量，作函数参数，做函数返回值，那么它底层是怎么实现的呢？
+C语言中函数名称就是函数的首地址。Go语言中函数名称跟C语言一样，函数名指向函数的首地址，即函数的入口地址。从前面《**[基础篇-函数-一等公民]({{< relref "function/first-class" >}})**》那一章节我们知道Go 语言中函数是一等公民，它可以绑定变量，作函数参数，做函数返回值，那么它底层是怎么实现的呢？
 
-我们先来了解下`Function Value`这个概念。
+我们先来了解下 `Function Value` 这个概念。
 
 ## Function Value
 
 Go 语言中函数是一等公民，函数可以绑定到变量，也可以做参数传递以及做函数返回值。Golang把这样的参数、返回值、变量称为**Function value**。
 
-Go 语言中**Function value**本质上是一个指针，但是其并不直接指向函数的入口地址，而是指向的`runtime.funcval`([runtime/runtime2.go](https://github.com/cyub/go-1.14.13/blob/master/src/runtime/runtime2.go#L195-L198))这个结构体。该结构体中的fn字段存储的是函数的入口地址：
+Go 语言中**Function value**本质上是一个指针，但是其并不直接指向函数的入口地址，而是指向的`runtime.funcval`(**[runtime/runtime2.go](https://github.com/cyub/go-1.14.13/blob/master/src/runtime/runtime2.go#L195-L198)**)这个结构体。该结构体中的fn字段存储的是函数的入口地址：
 
 ```go
 type funcval struct {
@@ -42,18 +42,13 @@ func C() {
 
 上面代码中，函数A被赋值给变量f1和f2，这种情况下编译器会做出优化，让f1和f2共用一个funcval结构体，该结构体是在编译阶段分配到数据段的只读区域(.rodata)。如下图所示那样，f1和f2都指向了该结构体的地址addr2，该结构体的fn字段存储了函数A的入口地址addr1：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202105/fuc_var.png
-    :alt: Go语言函数调用栈
-    :width: 400px
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202105/fuc_var.png" width="400px" class="text-center">}}
 
 为什么f1和f2需要通过了一个二级指针来获取到真正的函数入口地址，而不是直接将f1，f2指向函数入口地址addr1。关于这个原因就涉及到Golang中闭包设计与实现了。
 
 ## 闭包
 
-闭包(Closure)通俗点讲就是能够访问外部函数内部变量的函数。像这样能被访问的变量通常被称为捕获变量。
+**闭包(Closure)** 通俗点讲就是能够访问外部函数内部变量的函数。像这样能被访问的变量通常被称为捕获变量。
 
 闭包函数指令在编译阶段生成，但因为每个闭包对象都要保存自己捕获的变量，所以要等到执行阶段才创建对应的闭包对象。我们来看下下面闭包的例子：
 
@@ -84,13 +79,7 @@ func main() {
 
 根据上面描述，我们画出内存布局图：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202105/func_clo.png
-    :alt: Go语言函数调用栈
-    :width: 400px
-    :align: center
-```
-
+{{< figure src="https://static.cyub.vip/images/202105/func_clo.png" width="400px" class="text-center">}}
 
 若闭包捕获的变量会发生改变，编译器会智能的将该变量逃逸到堆上，这样外部函数和闭包引用的是同一个变量，此时不再是变量值的拷贝。这也是为什么下面代码总是打印循环的最后面一个值。
 

@@ -18,14 +18,9 @@ Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决
 
 ## 数据结构
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202106/map_struct.png
-    :alt: 映射底层结构
-    :width: 80%
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202106/map_struct.png" width="800px" class="text-center" title="Go语言映射的数据结构">}}
 
-Go语言中映射的数据结构是`runtime.hmap`([runtime/map.go](https://github.com/golang/go/blob/go1.14.13/src/runtime/map.go#L115-L129)):
+Go语言中映射的数据结构是 `runtime.hmap`(**[runtime/map.go](https://github.com/golang/go/blob/go1.14.13/src/runtime/map.go#L115-L129)**):
 
 ```go
 // A header for a Go map.
@@ -44,7 +39,7 @@ type hmap struct {
 }
 ```
 
-映射中每一个桶的结构是`runtime.bmap`([runtime/map.go](https://github.com/golang/go/blob/go1.14.13/src/runtime/map.go#L149-L159))：
+映射中每一个桶的结构是 `runtime.bmap`(**[runtime/map.go](https://github.com/golang/go/blob/go1.14.13/src/runtime/map.go#L149-L159)**)：
 
 ```go
 // A bucket for a Go map.
@@ -53,7 +48,7 @@ type bmap struct {
 }
 ```
 
-上面bmap结构是静态结构，在编译过程中`runtime.bmap`会拓展成以下结构体：
+上面bmap结构是静态结构，在编译过程中 `runtime.bmap` 会拓展成以下结构体：
 
 ```go
 type bmap struct{
@@ -66,12 +61,8 @@ type bmap struct{
 
 bmap结构示意图：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202106/map_bmap.png
-    :alt: bmap底层结构
-    :width: 70%
-    :align: center
-```
+
+{{< figure src="https://static.cyub.vip/images/202106/map_bmap.png" width="500px" class="text-center" title="bmap底层结构">}}
 
 每个桶bmap中可以装载8个key-value键值对。当一个key确定存储在哪个桶之后，还需要确定具体存储在桶的哪个位置（这个位置也称为桶单元，一个bmap装载8个key-value键值对，那么一个bmap共8个桶单元），bmap中tophash就是用于实现快速定位key的位置。在实现过程中会使用key的hash值的高八位作为tophash值，存放在bmap的tophash字段中。tophash计算公式如下：
 
@@ -102,16 +93,11 @@ emptyRest和emptyOne状态都表示此桶单元为空，都可以用来插入数
 
 下图中桶单元1的tophash值是emptyOne，桶单元3的tophash值是emptyRest，那么我们一定可以推断出桶单元3以上都是emptyRest状态。
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202106/map_tophash.png
-    :alt: bmap的tophash底层结构
-    :width: 40%
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202106/map_tophash.png" width="500px" class="text-center" title="bmap的tophash底层结构">}}
 
 bmap中可以装载8个key-value，这8个key-value并不是按照key1/value1/key2/value2/key3/value3...这样形式存储，而采用key1/key2../key8/value1/../value8形式存储，因为第二种形式可以减少padding，源码中以map[int64]int8举例说明。
 
-hmap中extra字段是`runtime.mapextra`类型，用来记录额外信息：
+hmap中extra字段是 `runtime.mapextra` 类型，用来记录额外信息：
 
 ```go
 // mapextra holds fields that are not present on all maps.
@@ -139,7 +125,7 @@ func makemap_small() *hmap {
 }
 ```
 
-若指定map元素数量时候，底层会使用`makemap`函数创建hmap结构：
+若指定map元素数量时候，底层会使用 `makemap` 函数创建hmap结构：
 
 ```go
 func makemap(t *maptype, hint int, h *hmap) *hmap {
@@ -244,12 +230,7 @@ func makeBucketArray(t *maptype, b uint8, dirtyalloc unsafe.Pointer) (buckets un
 
 我们画出桶初始化时候的分配示意图：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202106/map_overflow_bucket.png
-    :alt: 映射的buckets分配
-    :width: 60%
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202106/map_overflow_bucket.png" width="600px" class="text-center" title="映射中桶定位">}}
 
 
 通过上面分析整个映射创建过程，可以看到使用make创建map时候，返回都是hmap类型指针，这也就说明**Go语言中映射时引用类型的**。
@@ -264,12 +245,7 @@ func makeBucketArray(t *maptype, b uint8, dirtyalloc unsafe.Pointer) (buckets un
 4. 根据步骤3取到的值，计算该值的hash，再次比较，若相等则定位成功。否则重复步骤3去`bmap.overflow`中继续查找。
 5. 若`bmap.overflow`链表都找个遍都没有找到，则返回nil。
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202106/map_access.png
-    :alt: 映射中桶定位
-    :width: 80%
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202106/map_access.png" width="800px" class="text-center" title="映射中桶定位">}}
 
 当m为2的x幂时候，n对m取余数存在以下等式：
 

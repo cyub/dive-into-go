@@ -3,33 +3,33 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="调用栈 # 这一章节延续前面《 准备篇-Go汇编》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编》查看了解。
+<meta name="description" content="调用栈 # 这一章节延续前面《 准备篇-Go汇编 》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编 》查看了解。
 在详细分析函数栈之前，我们先复习以下几个概念。
 caller 与 callee # 如果一个函数调用另外一个函数，那么该函数被称为调用者函数，也叫做caller，而被调用的函数称为被调用者函数，也叫做callee。比如函数main中调用sum函数，那么main就是caller，而sum函数就是callee。
 栈帧 # 栈帧（stack frame）指的是未完成函数所持有的，独立连续的栈区域，用来保存其局部变量，返回地址等信息。
-函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface)的组成部分，它描述了：
+函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface) 的组成部分，它描述了：
 如何将执行控制权交给callee，以及返还给caller 如何保存和恢复caller的状态 如何将参数传递个callee 如何从callee获取返回值 简而言之，一句话就是函数调用约定指的是约定了函数调用时候，函数参数如何传递，函数栈由谁完成平衡，以及函数返回值如何返回的。
 在Go语言中，函数的参数和返回值的存储空间是由其caller的栈帧提供。这也为Go语言为啥支持多返回值以及总是值传递的原因。从Go汇编层面看，在callee中访问其参数和返回值，是通过FP寄存器来操作的（在实现层面是通过SP寄存器访问的）。Go语言中函数参数入栈顺序是从右到左入栈的。
 函数调用时候，会为其分配栈空间用来存放临时变量，返回值等信息，当完成调用后，这些栈空间应该进行回收，以恢复调用以前的状态。这个过程就是栈平衡。栈平衡工作可以由被调用者本身(callee)完成，也可以由其调用者(caller)完成。在Go语言中是由callee来完成栈平衡的。
 函数栈 # 当前函数作为caller，其本身拥有的栈帧以及其所有callee的栈帧，可以称为该函数的函数栈，也称函数调用栈。C语言中函数栈大小是固定的，如果超出栈空间，就会栈溢出异常。比如递归求斐波拉契，这时候可以使用尾调用来优化。由于Go 语言栈可以自动进行分裂扩容，栈空间不够时候，可以自动进行扩容。当用火焰图分析性能时候，火焰越高，说明栈越深。
 Go 语言中函数栈全景图如下：
-.. image:: https://static.cyub.vip/images/202105/go-func-stack.png :alt: Go语言函数调用栈 :width: 400px :align: center 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
+Go语言函数调用栈 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
 实例分析 # 我们将分析如下代码。
 package main func sum(a, b int) int { sum := 0 sum = a &#43; b return sum } func main() { a := 3 b := 5 print(sum(a, b)) } 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="Go函数调用栈" />
-<meta property="og:description" content="调用栈 # 这一章节延续前面《 准备篇-Go汇编》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编》查看了解。
+<meta property="og:description" content="调用栈 # 这一章节延续前面《 准备篇-Go汇编 》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编 》查看了解。
 在详细分析函数栈之前，我们先复习以下几个概念。
 caller 与 callee # 如果一个函数调用另外一个函数，那么该函数被称为调用者函数，也叫做caller，而被调用的函数称为被调用者函数，也叫做callee。比如函数main中调用sum函数，那么main就是caller，而sum函数就是callee。
 栈帧 # 栈帧（stack frame）指的是未完成函数所持有的，独立连续的栈区域，用来保存其局部变量，返回地址等信息。
-函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface)的组成部分，它描述了：
+函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface) 的组成部分，它描述了：
 如何将执行控制权交给callee，以及返还给caller 如何保存和恢复caller的状态 如何将参数传递个callee 如何从callee获取返回值 简而言之，一句话就是函数调用约定指的是约定了函数调用时候，函数参数如何传递，函数栈由谁完成平衡，以及函数返回值如何返回的。
 在Go语言中，函数的参数和返回值的存储空间是由其caller的栈帧提供。这也为Go语言为啥支持多返回值以及总是值传递的原因。从Go汇编层面看，在callee中访问其参数和返回值，是通过FP寄存器来操作的（在实现层面是通过SP寄存器访问的）。Go语言中函数参数入栈顺序是从右到左入栈的。
 函数调用时候，会为其分配栈空间用来存放临时变量，返回值等信息，当完成调用后，这些栈空间应该进行回收，以恢复调用以前的状态。这个过程就是栈平衡。栈平衡工作可以由被调用者本身(callee)完成，也可以由其调用者(caller)完成。在Go语言中是由callee来完成栈平衡的。
 函数栈 # 当前函数作为caller，其本身拥有的栈帧以及其所有callee的栈帧，可以称为该函数的函数栈，也称函数调用栈。C语言中函数栈大小是固定的，如果超出栈空间，就会栈溢出异常。比如递归求斐波拉契，这时候可以使用尾调用来优化。由于Go 语言栈可以自动进行分裂扩容，栈空间不够时候，可以自动进行扩容。当用火焰图分析性能时候，火焰越高，说明栈越深。
 Go 语言中函数栈全景图如下：
-.. image:: https://static.cyub.vip/images/202105/go-func-stack.png :alt: Go语言函数调用栈 :width: 400px :align: center 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
+Go语言函数调用栈 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
 实例分析 # 我们将分析如下代码。
 package main func sum(a, b int) int { sum := 0 sum = a &#43; b return sum } func main() { a := 3 b := 5 print(sum(a, b)) } 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：" />
 <meta property="og:type" content="article" />
@@ -41,7 +41,7 @@ package main func sum(a, b int) int { sum := 0 sum = a &#43; b return sum } func
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -299,9 +299,9 @@ https://github.com/alex-shpak/hugo-book
   调用栈
   <a class="anchor" href="#%e8%b0%83%e7%94%a8%e6%a0%88">#</a>
 </h1>
-<p>这一章节延续前面《
-  <a href="/go-assembly/">准备篇-Go汇编</a>》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《
-  <a href="/go-assembly/">准备篇-Go汇编</a>》查看了解。</p>
+<p>这一章节延续前面《<strong>
+  <a href="/go-assembly/">准备篇-Go汇编</a></strong> 》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《<strong>
+  <a href="/go-assembly/">准备篇-Go汇编</a></strong> 》查看了解。</p>
 <p>在详细分析函数栈之前，我们先复习以下几个概念。</p>
 <h2 id="caller-与-callee">
   caller 与 callee
@@ -317,8 +317,8 @@ https://github.com/alex-shpak/hugo-book
   函数调用约定
   <a class="anchor" href="#%e5%87%bd%e6%95%b0%e8%b0%83%e7%94%a8%e7%ba%a6%e5%ae%9a">#</a>
 </h2>
-<p>函数调用约定(Calling Conventions)是
-  <a href="https://en.wikipedia.org/wiki/Application_binary_interface">ABI</a>(Application Binary Interface)的组成部分，它描述了：</p>
+<p>函数调用约定(Calling Conventions)是 <strong>
+  <a href="https://en.wikipedia.org/wiki/Application_binary_interface">ABI</a></strong>(Application Binary Interface) 的组成部分，它描述了：</p>
 <ul>
 <li>如何将执行控制权交给callee，以及返还给caller</li>
 <li>如何保存和恢复caller的状态</li>
@@ -334,11 +334,12 @@ https://github.com/alex-shpak/hugo-book
 </h2>
 <p>当前函数作为caller，其本身拥有的栈帧以及其所有callee的栈帧，可以称为该函数的函数栈，也称函数调用栈。C语言中函数栈大小是固定的，如果超出栈空间，就会栈溢出异常。比如递归求斐波拉契，这时候可以使用尾调用来优化。由于Go 语言栈可以自动进行分裂扩容，栈空间不够时候，可以自动进行扩容。当用火焰图分析性能时候，火焰越高，说明栈越深。</p>
 <p>Go 语言中函数栈全景图如下：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202105/go-func-stack.png
-    :alt: Go语言函数调用栈
-    :width: 400px
-    :align: center
-</code></pre><p>接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-func-stack.png" width="400px"/><figcaption>
+            <h4>Go语言函数调用栈</h4>
+        </figcaption>
+</figure>
+
+<p>接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。</p>
 <h2 id="实例分析">
   实例分析
   <a class="anchor" href="#%e5%ae%9e%e4%be%8b%e5%88%86%e6%9e%90">#</a>
@@ -358,11 +359,12 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	print(<span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span>))
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202105/go-stack-sum.png
-    :alt: main函数调用栈
-    :width: 400px
-    :align: center
-</code></pre><p>从栈底往栈顶，我们依次可以看到：</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-stack-sum.png" width="400px"/><figcaption>
+            <h4>main函数调用栈</h4>
+        </figcaption>
+</figure>
+
+<p>从栈底往栈顶，我们依次可以看到：</p>
 <ul>
 <li>main函数的caller的基址（Base Pointer)。这部分是黄色区域。</li>
 <li>main函数局部变量a,b。我们看到a,b变量按照他们出现的顺序依次入栈，在实际指令中可能出现指令重排，a,b变量入栈顺序可能相反，但这个不影响最终结果。这部分是蓝色区域。</li>
@@ -381,12 +383,12 @@ https://github.com/alex-shpak/hugo-book
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-as" data-lang="as"><span style="display:flex;"><span><span style="color:#a6e22e">TEXT</span>	<span style="color:#e6db74">&#34;&#34;</span>.<span style="color:#a6e22e">main</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">ABIInternal</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">$56</span><span style="color:#f92672">-</span><span style="color:#ae81ff">0</span> <span style="color:#75715e">// main函数定义
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">TEXT</span>	<span style="color:#e6db74">&#34;&#34;</span>.<span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">SB</span>)<span style="color:#f92672">,</span> <span style="color:#a6e22e">NOSPLIT</span><span style="color:#f92672">|</span><span style="color:#a6e22e">ABIInternal</span><span style="color:#f92672">,</span> <span style="color:#a6e22e">$16</span><span style="color:#f92672">-</span><span style="color:#ae81ff">24</span> <span style="color:#75715e">// sum函数定义
 </span></span></span></code></pre></div><p>从上面函数定义可以看出来给main函数分配的栈帧空间大小是56字节大小（这里面的56字节大小，是不包括返回地址空间的，实际上main函数的栈帧大小是56+8(返回地址占用8字节空间大小) = 64字节大小），由于main函数没有参数和返回值，所以参数和返回值这部分大小是0。给sum函数分配的栈帧空间大小是16字节大小，sum函数参数有2个，且都是int类型，返回值是int类型，所以参数和返回值大小是24字节。</p>
-<p>关于函数声明时每个字段的含义可以去《
-  <a href="/go-assembly/#id18">准备篇-Go汇编-函数声明</a>》</p>
+<p>关于函数声明时每个字段的含义可以去《<strong>
+  <a href="/go-assembly/#函数声明">准备篇-Go汇编-函数声明</a></strong> 》 查看：</p>
 <p>需要注意的有两点：</p>
 <ol>
 <li>函数分配的栈空间足以放下所有被调用者信息，如果一个函数会调用很多其他函数，那么它的栈空间是按照其调用函数中最大空间要求来分配的。</li>
-<li>函数栈空间是可以split。当栈空间不足时候，会进行split，重新找一块2倍当前栈空间的内存空间，将当前栈帧信息拷贝过去，这个叫栈分裂。Go语言在栈分裂基础上实现了抢占式调度，这个我们会在后续篇章详细探讨。我们可以使用<code>//go:nosplit</code>这个编译指示，强制函数不进行栈分裂。从sum函数定义可以看出来，其没有进行栈分裂处理。</li>
+<li>函数栈空间是可以split。当栈空间不足时候，会进行split，重新找一块2倍当前栈空间的内存空间，将当前栈帧信息拷贝过去，这个叫栈分裂。Go语言在栈分裂基础上实现了抢占式调度，这个我们会在后续篇章详细探讨。我们可以使用 <code>//go:nosplit</code> 这个编译指示，强制函数不进行栈分裂。从sum函数定义可以看出来，其没有进行栈分裂处理。</li>
 </ol>
 <p>接下来我们分析main函数的汇编代码：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>0x0000 <span style="color:#ae81ff">00000</span> <span style="color:#f92672">(</span>main.go:9<span style="color:#f92672">)</span>	TEXT	<span style="color:#e6db74">&#34;&#34;</span>.main<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>, ABIInternal, $56-0 <span style="color:#75715e"># main函数定义</span>
@@ -427,12 +429,13 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>0x0072 <span style="color:#ae81ff">00114</span> <span style="color:#f92672">(</span>main.go:9<span style="color:#f92672">)</span>	CALL	runtime.morestack_noctxt<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span> <span style="color:#75715e"># 调用栈分裂处理函数</span>
 </span></span><span style="display:flex;"><span>0x0077 <span style="color:#ae81ff">00119</span> <span style="color:#f92672">(</span>main.go:9<span style="color:#f92672">)</span>	PCDATA	$0, $-<span style="color:#ae81ff">1</span>
 </span></span><span style="display:flex;"><span>0x0077 <span style="color:#ae81ff">00119</span> <span style="color:#f92672">(</span>main.go:9<span style="color:#f92672">)</span>	JMP	<span style="color:#ae81ff">0</span>
-</span></span></code></pre></div><p>结合汇编，我们最终画出main函数调用栈图：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202105/go-stack-sum2.png
-    :alt: main函数调用栈
-    :width: 450px
-    :align: center
-</code></pre></article>
+</span></span></code></pre></div><p>结合汇编，我们最终画出 <code>main</code> 函数调用栈图：</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-stack-sum2.png" width="450px"/><figcaption>
+            <h4>main函数调用栈</h4>
+        </figcaption>
+</figure>
+
+</article>
  
       
 

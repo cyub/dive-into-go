@@ -43,7 +43,7 @@ $ gdb (gdb) attach 1785 当执行attach命令的时候，GDB首先会在当前�
       <guid>https://go.cyub.vip/analysis-tools/go-buildin-tools/</guid>
       <description>Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。
 go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：
-go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：
+go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以查看编译器，连接器如何工作的：
 # # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &amp;gt;$WORK/b001/importcfg &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &amp;#34;$WORK/b001=&amp;gt;&amp;#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &amp;gt;$WORK/b001/importcfg.link &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.</description>
     </item>
     

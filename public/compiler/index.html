@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="编译流程 # Go语言是一门编译型语言，程序运行时需要先编译成相应平台的可执行文件。在介绍Go语言编译流程之前，我们来了解下编译器编译整个流程。
-编译六阶段 # 编译器工作目的是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两大部分，每个部分可以细分为3个阶段。两大部分别是分析部分（Analysis part）以及合成部分（Synthesis part），这两大部分也称为编译前端和编译后端。编译六阶段如下：
-词法分析（Lexical analysis） 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a&#43;b*5为例:
+编译六阶段 # 编译器工作目标是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两部分，每个部分又可以细分为三个阶段，也就是说整个编译流程分为六个阶段。编译流程的两部分别是分析部分（Analysis part）以及合成部分（Synthesis part），也称为编译前端和编译后端。编译六阶段如下：
+词法分析（Lexical analysis) 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a&#43;b*5为例:
 Lexemes Tokens c identifier = assignment symbol a identifier &#43; &#43; (addition symbol) b identifier * * (multiplication symbol) 5 5 (number) 语法分析 # 词法分析阶段接收上一阶段生成的Tokens序列，基于特定编程语言的规则生成抽象语法树（Abstract Syntax Tree）。
 抽象语法树 # 抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。
 以(a&#43;b)*c为例，最终生成的抽象语法树如下：
@@ -16,8 +16,8 @@ Lexemes Tokens c identifier = assignment symbol a identifier &#43; &#43; (additi
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="Go编译流程" />
 <meta property="og:description" content="编译流程 # Go语言是一门编译型语言，程序运行时需要先编译成相应平台的可执行文件。在介绍Go语言编译流程之前，我们来了解下编译器编译整个流程。
-编译六阶段 # 编译器工作目的是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两大部分，每个部分可以细分为3个阶段。两大部分别是分析部分（Analysis part）以及合成部分（Synthesis part），这两大部分也称为编译前端和编译后端。编译六阶段如下：
-词法分析（Lexical analysis） 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a&#43;b*5为例:
+编译六阶段 # 编译器工作目标是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两部分，每个部分又可以细分为三个阶段，也就是说整个编译流程分为六个阶段。编译流程的两部分别是分析部分（Analysis part）以及合成部分（Synthesis part），也称为编译前端和编译后端。编译六阶段如下：
+词法分析（Lexical analysis) 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a&#43;b*5为例:
 Lexemes Tokens c identifier = assignment symbol a identifier &#43; &#43; (addition symbol) b identifier * * (multiplication symbol) 5 5 (number) 语法分析 # 词法分析阶段接收上一阶段生成的Tokens序列，基于特定编程语言的规则生成抽象语法树（Abstract Syntax Tree）。
 抽象语法树 # 抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。
 以(a&#43;b)*c为例，最终生成的抽象语法树如下：
@@ -33,7 +33,7 @@ Lexemes Tokens c identifier = assignment symbol a identifier &#43; &#43; (additi
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -296,9 +296,9 @@ https://github.com/alex-shpak/hugo-book
   编译六阶段
   <a class="anchor" href="#%e7%bc%96%e8%af%91%e5%85%ad%e9%98%b6%e6%ae%b5">#</a>
 </h2>
-<p>编译器工作目的是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两大部分，每个部分可以细分为3个阶段。两大部分别是分析部分（Analysis part）以及合成部分（Synthesis part），这两大部分也称为编译前端和编译后端。编译六阶段如下：</p>
+<p>编译器工作目标是<strong>完成从高级语言（high-level langue）到机器码（machine code）的输出</strong>。整个编译流程可分为两部分，每个部分又可以细分为三个阶段，也就是说整个编译流程分为六个阶段。编译流程的两部分别是分析部分（Analysis part）以及合成部分（Synthesis part），也称为编译前端和编译后端。编译六阶段如下：</p>
 <ul>
-<li>词法分析（Lexical analysis）</li>
+<li>词法分析（Lexical analysis)</li>
 <li>语法分析（Syntax analysis）</li>
 <li>语义分析（Semantic analysis）</li>
 <li>中间码生成（Intermediate code generator）</li>
@@ -386,48 +386,78 @@ https://github.com/alex-shpak/hugo-book
   <a class="anchor" href="#go%e8%af%ad%e8%a8%80%e7%bc%96%e8%af%91%e6%b5%81%e7%a8%8b">#</a>
 </h2>
 <p>上面介绍了编译器工作整个流程，Go语言编译器编译也符合上面流程：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/go-compile.png
-    :alt: Go语言编译流程
-    :width: 500px
-    :align: center
-</code></pre><p>我们执行<code>go build</code>命令时候，带上<code>-n</code>选项可以观察编译流程所执行所有的命令：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. code-block::
-   :emphasize-lines: 11,24
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/go-compile.png" width="500px"/><figcaption>
+            <h4>Go语言编译流程</h4>
+        </figcaption>
+</figure>
 
-    #
-    # command-line-arguments
-    #
-
-    mkdir -p $WORK/b001/
-    cat &gt;$WORK/b001/importcfg &lt;&lt; &#39;EOF&#39; # internal
-    # import config
-    packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
-    EOF
-    cd /home/vagrant/dive-into-go
-    /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &#34;$WORK/b001=&gt;&#34; -p main -complete -buildid aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go
-    /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal
-    cat &gt;$WORK/b001/importcfg.link &lt;&lt; &#39;EOF&#39; # internal
-    packagefile command-line-arguments=$WORK/b001/_pkg_.a
-    packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
-    packagefile internal/bytealg=/usr/lib/go/pkg/linux_amd64/internal/bytealg.a
-    packagefile internal/cpu=/usr/lib/go/pkg/linux_amd64/internal/cpu.a
-    packagefile runtime/internal/atomic=/usr/lib/go/pkg/linux_amd64/runtime/internal/atomic.a
-    packagefile runtime/internal/math=/usr/lib/go/pkg/linux_amd64/runtime/internal/math.a
-    packagefile runtime/internal/sys=/usr/lib/go/pkg/linux_amd64/runtime/internal/sys.a
-    EOF
-    mkdir -p $WORK/b001/exe/
-    cd .
-    /usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode=exe -buildid=FoylCipvV-SPkhyi2PJs/aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5/FoylCipvV-SPkhyi2PJs -extld=gcc $WORK/b001/_pkg_.a
-    /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out # internal
-    mv $WORK/b001/exe/a.out empty_string
-</code></pre><p>从上面命令输出的内容可以看到：</p>
+<p>我们执行<code>go build</code>命令时候，带上<code>-n</code>选项可以观察编译流程所执行所有的命令：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="background-color:#3c3d38"><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span></span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="background-color:#3c3d38"><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span></span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="background-color:#3c3d38"><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span></span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># command-line-arguments</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>mkdir -p $WORK/b001/
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b001/importcfg <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># import config
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>cd /home/vagrant/dive-into-go
+</span></span><span style="display:flex; background-color:#3c3d38"><span>/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b001=&gt;&#34;</span> -p main -complete -buildid aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b001/importcfg.link <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile command-line-arguments=$WORK/b001/_pkg_.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/bytealg=/usr/lib/go/pkg/linux_amd64/internal/bytealg.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/cpu=/usr/lib/go/pkg/linux_amd64/internal/cpu.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime/internal/atomic=/usr/lib/go/pkg/linux_amd64/runtime/internal/atomic.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime/internal/math=/usr/lib/go/pkg/linux_amd64/runtime/internal/math.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime/internal/sys=/usr/lib/go/pkg/linux_amd64/runtime/internal/sys.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>mkdir -p $WORK/b001/exe/
+</span></span><span style="display:flex;"><span>cd .
+</span></span><span style="display:flex; background-color:#3c3d38"><span>/usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode<span style="color:#f92672">=</span>exe -buildid<span style="color:#f92672">=</span>FoylCipvV-SPkhyi2PJs/aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5/FoylCipvV-SPkhyi2PJs -extld<span style="color:#f92672">=</span>gcc $WORK/b001/_pkg_.a
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>mv $WORK/b001/exe/a.out empty_string</span></span></code></pre></td></tr></table>
+</div>
+</div>
+<p>从上面命令输出的内容可以看到：</p>
 <ol>
 <li>
-<p>Go编译器首先会创建一个任务输出临时目录（mkdir -p $WORK/b001/）。每次构建都是由一系列task完成，它们构成
-  <a href="https://github.com/golang/go/blob/master/src/cmd/go/internal/work/action.go">action graph</a>，b001是root task的工作目录。</p>
+<p>Go编译器首先会创建一个任务输出临时目录（mkdir -p $WORK/b001/）。b001是root task的工作目录，每次构建都是由一系列task完成，它们构成 <strong>
+  <a href="https://github.com/golang/go/blob/master/src/cmd/go/internal/work/action.go">action graph</a></strong></p>
 </li>
 <li>
-<p>接着将empty_string.go中依赖的包（packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a）写入到importcfg中</p>
+<p>接着将empty_string.go中依赖的包: /usr/lib/go/pkg/linux_amd64/runtime.a 写入到importcfg中</p>
 </li>
 <li>
 <p>接着会使用compile命令，并指定importcfg文件，将主程序empty_string.go编译成_pkg.a文件（/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/<em>pkg</em>.a -trimpath &ldquo;$WORK/b001=&gt;&rdquo; -p main -complete -buildid aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go）。</p>

@@ -3,23 +3,25 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="字符串 # C语言中字符串是使用字符数组char[]表示，数组的最后一位是\0用来作为字符串的定界符。Go语言中字符串最底层也是字符数组， 但是Go语言使用长度来记录字符串边界，字符串的长度就是数组大小。
-数据结构 # Go语言字符串底层数据结构是reflect.StringHeader( reflect/value.go)，其中包含了指向字节数组的指针，以及数组大小：
-type StringHeader struct { Data uintptr Len int } 当一个字符串变量赋值给另外一个变量时候，他们StringHeader.Data都指向同一个内存地址：
-a := &#34;hello&#34; b := a .. image:: https://static.cyub.vip/images/202104/go_string.png :alt: go字符底层表示 :width: 400px :align: center 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
-接来下我们借助 (GDB)来验证Go语言中字符串数据结构是不是按照上面说的那样。
-package main import ( &#34;fmt&#34; ) func main() { a := &#34;hello&#34; b := a fmt.Printf(&#34;a变量地址：%p\n&#34;, &amp;a) fmt.Printf(&#34;b变量地址：%p\n&#34;, &amp;b) print(&#34;断点打在这里&#34;) } 将上面代码构建二进制应用(go build -o string string.go)， 然后使用 GDB调试一下(gdb ./string)：
-len(str) == 0 和 str == &ldquo;&ldquo;有区别吗？ # 判断一个字符串是否是空字符串，我们既可以使用len判断其长度是0，也可以判断其是否等于空字符&quot;&quot;。那么它们有什么区别吗？答案是没有区别。因为他们底层实现是一样的。我们来探究一下。">
+<meta name="description" content="字符串 # 我们知道C语言中的字符串是使用字符数组 char[] 表示，字符数组的最后一位元素是 \0，用来标记字符串的结束。C语言中字符串的结构简单，但获取字符串长度时候，需要遍历字符数组才能完成。
+Go语言中字符串的底层结构中也包含了字符数组，该字符数组是完整的字符串内容，它不同于C语言，字符数组中没有标记字符串结束的标记。为了记录底层字符数组的大小，Go语言使用了额外的一个长度字段来记录该字符数组的大小，字符数组的大小也就是字符串的长度。
+数据结构 # Go语言字符串的底层数据结构是 reflect.StringHeader( reflect/value.go)，它包含了指向字节数组的指针，以及该指针指向的字符数组的大小：
+type StringHeader struct { Data uintptr Len int } 字符串复制 # 当将一个字符串变量赋值给另外一个变量时候，他们 StringHeader.Data 都指向同一个内存地址，不会发生字符串拷贝：
+a := &#34;hello&#34; b := a 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
+接来下我们借助 GDB 工具来验证Go语言中字符串数据结构是不是按照上面说的那样。
+package main import ( &#34;fmt&#34; ) func main() { a := &#34;hello&#34; b := a fmt.Printf(&#34;a变量地址：%p\n&#34;, &amp;a) fmt.Printf(&#34;b变量地址：%p\n&#34;, &amp;b) print(&#34;断点打在这里&#34;) } 将上面代码构建二进制应用， 然后使用 GDB 调试一下：
+go build -o string string.go # 构建二进制应用 gdb .">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="字符串" />
-<meta property="og:description" content="字符串 # C语言中字符串是使用字符数组char[]表示，数组的最后一位是\0用来作为字符串的定界符。Go语言中字符串最底层也是字符数组， 但是Go语言使用长度来记录字符串边界，字符串的长度就是数组大小。
-数据结构 # Go语言字符串底层数据结构是reflect.StringHeader( reflect/value.go)，其中包含了指向字节数组的指针，以及数组大小：
-type StringHeader struct { Data uintptr Len int } 当一个字符串变量赋值给另外一个变量时候，他们StringHeader.Data都指向同一个内存地址：
-a := &#34;hello&#34; b := a .. image:: https://static.cyub.vip/images/202104/go_string.png :alt: go字符底层表示 :width: 400px :align: center 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
-接来下我们借助 (GDB)来验证Go语言中字符串数据结构是不是按照上面说的那样。
-package main import ( &#34;fmt&#34; ) func main() { a := &#34;hello&#34; b := a fmt.Printf(&#34;a变量地址：%p\n&#34;, &amp;a) fmt.Printf(&#34;b变量地址：%p\n&#34;, &amp;b) print(&#34;断点打在这里&#34;) } 将上面代码构建二进制应用(go build -o string string.go)， 然后使用 GDB调试一下(gdb ./string)：
-len(str) == 0 和 str == &ldquo;&ldquo;有区别吗？ # 判断一个字符串是否是空字符串，我们既可以使用len判断其长度是0，也可以判断其是否等于空字符&quot;&quot;。那么它们有什么区别吗？答案是没有区别。因为他们底层实现是一样的。我们来探究一下。" />
+<meta property="og:description" content="字符串 # 我们知道C语言中的字符串是使用字符数组 char[] 表示，字符数组的最后一位元素是 \0，用来标记字符串的结束。C语言中字符串的结构简单，但获取字符串长度时候，需要遍历字符数组才能完成。
+Go语言中字符串的底层结构中也包含了字符数组，该字符数组是完整的字符串内容，它不同于C语言，字符数组中没有标记字符串结束的标记。为了记录底层字符数组的大小，Go语言使用了额外的一个长度字段来记录该字符数组的大小，字符数组的大小也就是字符串的长度。
+数据结构 # Go语言字符串的底层数据结构是 reflect.StringHeader( reflect/value.go)，它包含了指向字节数组的指针，以及该指针指向的字符数组的大小：
+type StringHeader struct { Data uintptr Len int } 字符串复制 # 当将一个字符串变量赋值给另外一个变量时候，他们 StringHeader.Data 都指向同一个内存地址，不会发生字符串拷贝：
+a := &#34;hello&#34; b := a 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
+接来下我们借助 GDB 工具来验证Go语言中字符串数据结构是不是按照上面说的那样。
+package main import ( &#34;fmt&#34; ) func main() { a := &#34;hello&#34; b := a fmt.Printf(&#34;a变量地址：%p\n&#34;, &amp;a) fmt.Printf(&#34;b变量地址：%p\n&#34;, &amp;b) print(&#34;断点打在这里&#34;) } 将上面代码构建二进制应用， 然后使用 GDB 调试一下：
+go build -o string string.go # 构建二进制应用 gdb ." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://go.cyub.vip/type/string/" /><meta property="article:section" content="type" />
 
@@ -29,7 +31,7 @@ len(str) == 0 和 str == &ldquo;&ldquo;有区别吗？ # 判断一个字符串�
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -287,28 +289,31 @@ https://github.com/alex-shpak/hugo-book
   字符串
   <a class="anchor" href="#%e5%ad%97%e7%ac%a6%e4%b8%b2">#</a>
 </h1>
-<p>C语言中字符串是使用字符数组char[]表示，数组的最后一位是<code>\0</code>用来作为字符串的定界符。Go语言中字符串最底层也是字符数组，
-但是Go语言使用长度来记录字符串边界，字符串的长度就是数组大小。</p>
+<p>我们知道C语言中的字符串是使用字符数组 <code>char[]</code> 表示，字符数组的最后一位元素是 <code>\0</code>，用来标记字符串的结束。C语言中字符串的结构简单，但获取字符串长度时候，需要遍历字符数组才能完成。</p>
+<p>Go语言中字符串的底层结构中也包含了字符数组，该字符数组是完整的字符串内容，它不同于C语言，字符数组中没有标记字符串结束的标记。为了记录底层字符数组的大小，Go语言使用了额外的一个长度字段来记录该字符数组的大小，字符数组的大小也就是字符串的长度。</p>
 <h2 id="数据结构">
   数据结构
   <a class="anchor" href="#%e6%95%b0%e6%8d%ae%e7%bb%93%e6%9e%84">#</a>
 </h2>
-<p>Go语言字符串底层数据结构是<code>reflect.StringHeader</code>(
-  <a href="https://github.com/golang/go/blob/go1.14.13/src/reflect/value.go#L1954-L1957">reflect/value.go</a>)，其中包含了指向字节数组的指针，以及数组大小：</p>
+<p>Go语言字符串的底层数据结构是 <code>reflect.StringHeader</code>(<strong>
+  <a href="https://github.com/golang/go/blob/go1.14.13/src/reflect/value.go#L1954-L1957">reflect/value.go</a></strong>)，它包含了指向字节数组的指针，以及该指针指向的字符数组的大小：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">StringHeader</span> <span style="color:#66d9ef">struct</span> {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Data</span> <span style="color:#66d9ef">uintptr</span>
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Len</span>  <span style="color:#66d9ef">int</span>
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>当一个字符串变量赋值给另外一个变量时候，他们<code>StringHeader.Data</code>都指向同一个内存地址：</p>
+</span></span></code></pre></div><h2 id="字符串复制">
+  字符串复制
+  <a class="anchor" href="#%e5%ad%97%e7%ac%a6%e4%b8%b2%e5%a4%8d%e5%88%b6">#</a>
+</h2>
+<p>当将一个字符串变量赋值给另外一个变量时候，他们 <code>StringHeader.Data</code> 都指向同一个内存地址，不会发生字符串拷贝：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;hello&#34;</span>
 </span></span><span style="display:flex;"><span><span style="color:#a6e22e">b</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>
-</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/go_string.png
-    :alt: go字符底层表示
-    :width: 400px
-    :align: center
-</code></pre><p>从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。</p>
-<p>接来下我们借助
-  <a href="/analysis-tools/gdb/">(<em>GDB</em>)</a>来验证Go语言中字符串数据结构是不是按照上面说的那样。</p>
+</span></span></code></pre></div><figure class="text-center"><img src="https://static.cyub.vip/images/202104/go_string.png" width="400px"/>
+</figure>
+
+<p>从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。</p>
+<p>接来下我们借助 <strong>
+  <a href="/analysis-tools/gdb/">GDB</a></strong> 工具来验证Go语言中字符串数据结构是不是按照上面说的那样。</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
@@ -322,15 +327,19 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;b变量地址：%p\n&#34;</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>)
 </span></span><span style="display:flex;"><span>	print(<span style="color:#e6db74">&#34;断点打在这里&#34;</span>)
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>将上面代码构建二进制应用(<code>go build -o string string.go</code>)， 然后使用
-  <a href="/analysis-tools/gdb/">GDB</a>调试一下(<code>gdb ./string</code>)：</p>
+</span></span></code></pre></div><p>将上面代码构建二进制应用， 然后使用 <strong>
+  <a href="/analysis-tools/gdb/">GDB</a></strong> 调试一下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>go build -o string string.go <span style="color:#75715e"># 构建二进制应用</span>
+</span></span><span style="display:flex;"><span>gdb ./string <span style="color:#75715e"># GDB调试</span>
+</span></span></code></pre></div><p>调试流程如下：</p>
 <p>
   <img src="https://static.cyub.vip/images/202104/go_string_examine.jpg" alt="" /></p>
 <h2 id="lenstr--0-和-str--有区别吗">
-  len(str) == 0 和 str == &ldquo;&ldquo;有区别吗？
+  len(str) == 0 和 str == &quot;&quot;有区别吗？
   <a class="anchor" href="#lenstr--0-%e5%92%8c-str--%e6%9c%89%e5%8c%ba%e5%88%ab%e5%90%97">#</a>
 </h2>
-<p>判断一个字符串是否是空字符串，我们既可以使用len判断其长度是0，也可以判断其是否等于空字符<code>&quot;&quot;</code>。那么它们有什么区别吗？答案是没有区别。因为他们底层实现是一样的。我们来探究一下。</p>
+<p>判断一个字符串是否是空字符串，我们既可以使用len判断其长度是0，也可以判断其是否等于空字符串 <code>&quot;&quot;</code>。那么它们有什么区别吗？这个问题的答案是二者没有区别。因为他们底层实现是一样的。</p>
+<p>让我们来探究一下。源代码如下：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">isEmptyStr</span>(<span style="color:#a6e22e">str</span> <span style="color:#66d9ef">string</span>) <span style="color:#66d9ef">bool</span> {
@@ -342,18 +351,24 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>}
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
-</span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>我们查看上面代码底层汇编实现(<code>go tool compile  -S empty_string.go</code>)，可以发现它们实现是一样的：</p>
+</span></span></code></pre></div><p>接下来我们来查看下上面代码的底层汇编：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>go tool compile -S empty_string.go <span style="color:#75715e"># 查看底层汇编代码 </span>
+</span></span></code></pre></div><p>从下图中，我们可以发现两种方式的实现是一样的：</p>
 <p>
   <img src="https://static.cyub.vip/images/202104/go_empty_string.jpg" alt="" /></p>
+<blockquote class="book-hint warning">
+  <strong>注意：</strong><br>
+当我们编译时候开启了禁止内联，禁止优化时候，可以发现 <code>len(str) == 0</code> 和 <code>str == &quot;&quot;</code> 的实现是不同的，前者的执行效率是不如后者的。在默认情况下，Go编译器是开启了优化选项的，<code>len(str) == 0</code> 会优化成跟 <code>str == &quot;&quot;</code> 的实现一样。
+</blockquote>
+
 <h2 id="3string类型的变量占用多大空间">
   [3]string类型的变量占用多大空间？
   <a class="anchor" href="#3string%e7%b1%bb%e5%9e%8b%e7%9a%84%e5%8f%98%e9%87%8f%e5%8d%a0%e7%94%a8%e5%a4%9a%e5%a4%a7%e7%a9%ba%e9%97%b4">#</a>
 </h2>
 <p>对于这个问题，直觉上觉得[3]string类型变量，由3个字符串组成，而字符串长度是不确定的，所以对于类似[n]string类型变量占用多大的空间是不确定。</p>
-<p>首先明确的是Go语言中提供了<code>unsafe.Sizeof</code>函数来确定一个类型变量占用空间大小，这个大小是不含它引用的内存大小。比如某结构体中一个字段是个指针类型，这个字段指向的内存是不计算进去的，只会计算该字段本身的大小。</p>
-<p>字符串底层结构是<code>reflect.StringHeader</code>，一共占用16个字节空间，所以我们对于[n]string的大小，计算伪代码如下：</p>
+<p>首先明确的是Go语言中提供了 <code>unsafe.Sizeof</code> 函数来确定一个类型变量占用空间大小，这个大小是不含它引用的内存大小。比如某结构体中一个字段是个指针类型，这个字段指向的内存是不计算进去的，只会计算该字段本身的大小。</p>
+<p>字符串底层结构是 <code>reflect.StringHeader</code> ，一共占用16个字节空间，所以我们对于[n]string的大小，计算伪代码如下：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Sizeof</span>([<span style="color:#a6e22e">n</span>]<span style="color:#66d9ef">string</span>) <span style="color:#f92672">==</span> <span style="color:#a6e22e">n</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">16</span>
 </span></span></code></pre></div><p>那么问题[3]string类型的变量占用多大空间？的答案是48。</p>
 <h2 id="如何高效的进行字符串拼接">
@@ -363,29 +378,29 @@ https://github.com/alex-shpak/hugo-book
 <p>字符串进行拼接有多种方法：</p>
 <ul>
 <li>
-<p>使用拼接字符<code>+</code>拼接字符串</p>
+<p>使用拼接字符 <code>+</code> 拼接字符串</p>
 <p>效率低，每次拼接会产生临时字符串，适合少量字符串拼接。使用起来最简单。</p>
 </li>
 <li>
-<p>使用<code>fmt.Printf()</code>来拼接字符</p>
+<p>使用 <code>fmt.Printf()</code> 来拼接字符</p>
 <p>由于需要将字符串转换成空接口类型，效率差，这里面不再讨论</p>
 </li>
 <li>
-<p>使用<code>strings.Join()</code>来拼接字符串</p>
-<p>其底层其实使用的是<code>strings.Builder</code>，效率高，适合字符串数组。</p>
+<p>使用 <code>strings.Join()</code> 来拼接字符串</p>
+<p>其底层其实使用的是 <code>strings.Builder</code> ，效率高，适合字符串数组。</p>
 </li>
 <li>
-<p>使用<code>bytes.Buffer</code>来拼接字符串</p>
+<p>使用 <code>bytes.Buffer</code> 来拼接字符串</p>
 <p>效率高，可以复用</p>
 </li>
 <li>
-<p>使用<code>strings.Builder</code>来拼接字符串</p>
+<p>使用 <code>strings.Builder</code> 来拼接字符串</p>
 <p>效率高，每次Reset()之后，其底层缓冲会被清除，不适合复用。</p>
 </li>
 </ul>
-<h3 id="使用拼接符进行拼接">
-  使用拼接符<code>+</code>进行拼接
-  <a class="anchor" href="#%e4%bd%bf%e7%94%a8%e6%8b%bc%e6%8e%a5%e7%ac%a6%e8%bf%9b%e8%a1%8c%e6%8b%bc%e6%8e%a5">#</a>
+<h3 id="使用拼接符--进行拼接">
+  使用拼接符 + 进行拼接
+  <a class="anchor" href="#%e4%bd%bf%e7%94%a8%e6%8b%bc%e6%8e%a5%e7%ac%a6--%e8%bf%9b%e8%a1%8c%e6%8b%bc%e6%8e%a5">#</a>
 </h3>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
 </span></span><span style="display:flex;"><span>
@@ -406,15 +421,15 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>上面代码输出一下内容：</p>
-<pre tabindex="0"><code>str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址=0x4bc8f7
-str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址=0xc000018048
-str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址=0xc000018068
-str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址=0xc000018078
-str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址=0xc000018088
-</code></pre><p>上面输出中可以发现str和all地址一直没有变，但是all底层字节数组地址一直变化这说明拼接符在拼接字符串时候，会创建许多临时字符串，这会造成浪费，并且也伴随着内存分配。</p>
-<h3 id="使用bytesbuffer拼接字符串">
-  使用<code>bytes.Buffer</code>拼接字符串
-  <a class="anchor" href="#%e4%bd%bf%e7%94%a8bytesbuffer%e6%8b%bc%e6%8e%a5%e5%ad%97%e7%ac%a6%e4%b8%b2">#</a>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址<span style="color:#f92672">=</span>0x4bc8f7
+</span></span><span style="display:flex;"><span>str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址<span style="color:#f92672">=</span>0xc000018048
+</span></span><span style="display:flex;"><span>str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址<span style="color:#f92672">=</span>0xc000018068
+</span></span><span style="display:flex;"><span>str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址<span style="color:#f92672">=</span>0xc000018078
+</span></span><span style="display:flex;"><span>str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地址<span style="color:#f92672">=</span>0xc000018088
+</span></span></code></pre></div><p>从上面输出中可以发现str和all地址一直没有变，但是all的底层字节数组地址一直在变化，这说明拼接符 <code>+</code> 在拼接字符串时候，会创建许多临时字符串，临时字符串意味着内存分配，指向效率不会太高。</p>
+<h3 id="使用-bytesbuffer-拼接字符串">
+  使用 bytes.Buffer 拼接字符串
+  <a class="anchor" href="#%e4%bd%bf%e7%94%a8-bytesbuffer-%e6%8b%bc%e6%8e%a5%e5%ad%97%e7%ac%a6%e4%b8%b2">#</a>
 </h3>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
 </span></span><span style="display:flex;"><span>
@@ -429,7 +444,7 @@ str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地�
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>	print(<span style="color:#a6e22e">bf</span>.<span style="color:#a6e22e">String</span>())
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p><code>bytes.Buffer</code>底层结构包含内存缓冲，最少缓冲大小是64个字节，当进行字符串拼接时候，由于利用到了缓冲，拼接效率相比拼接符大大提升：</p>
+</span></span></code></pre></div><p><code>bytes.Buffer</code> 底层结构包含内存缓冲，最少缓冲大小是64个字节，当进行字符串拼接时候，由于利用到了缓冲，拼接效率相比拼接符 <code>+</code> 大大提升：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Buffer</span> <span style="color:#66d9ef">struct</span> {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">buf</span>      []<span style="color:#66d9ef">byte</span> <span style="color:#75715e">// 内存缓冲是字节切片类型
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">off</span>      <span style="color:#66d9ef">int</span> <span style="color:#75715e">// buf已读索引，下次读取从buf[off]开始
@@ -443,10 +458,15 @@ str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地�
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> string(<span style="color:#a6e22e">b</span>.<span style="color:#a6e22e">buf</span>[<span style="color:#a6e22e">b</span>.<span style="color:#a6e22e">off</span>:])
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. hint:: bytes.Buffer是可以复用的。当进行reset时候，并不会销毁内存缓冲。
-</code></pre><h3 id="使用stringsbuilder拼接字符串">
-  使用<code>strings.Builder</code>拼接字符串
-  <a class="anchor" href="#%e4%bd%bf%e7%94%a8stringsbuilder%e6%8b%bc%e6%8e%a5%e5%ad%97%e7%ac%a6%e4%b8%b2">#</a>
+</span></span></code></pre></div><blockquote class="book-hint info">
+  <p><strong>注意：</strong></p>
+<p>bytes.Buffer是可以复用的。当进行reset时候，并不会销毁内存缓冲。</p>
+
+</blockquote>
+
+<h3 id="使用-stringsbuilder-拼接字符串">
+  使用 strings.Builder 拼接字符串
+  <a class="anchor" href="#%e4%bd%bf%e7%94%a8-stringsbuilder-%e6%8b%bc%e6%8e%a5%e5%ad%97%e7%ac%a6%e4%b8%b2">#</a>
 </h3>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
 </span></span><span style="display:flex;"><span>
@@ -461,7 +481,7 @@ str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地�
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>	print(<span style="color:#a6e22e">strb</span>.<span style="color:#a6e22e">String</span>())
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p><code>strings.Builder</code>同<code>bytes.Buffer</code>一样都是用内存缓冲，最大限度地减少了内存复制：</p>
+</span></span></code></pre></div><p><code>strings.Builder</code> 同 <code>bytes.Buffer</code> 一样都是用内存缓冲，最大限度地减少了内存复制：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Builder</span> <span style="color:#66d9ef">struct</span> {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">addr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Builder</span> <span style="color:#75715e">// 用来运行时检测是否违背nocopy机制
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">buf</span>  []<span style="color:#66d9ef">byte</span> <span style="color:#75715e">// 内存缓冲，类型是字节数组
@@ -470,8 +490,13 @@ str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地�
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">b</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Builder</span>) <span style="color:#a6e22e">String</span>() <span style="color:#66d9ef">string</span> {
 </span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>)(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">b</span>.<span style="color:#a6e22e">buf</span>))
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>从上面可以看到<code>string.Builder</code>的String方法使用unsafe.Pointer将字节数组转换成字符串。而<code>bytes.Buffer</code>的String方法使用的string([]byte)将字节数组转换成字符串，后者由于涉及内存分配和拷贝，相比执行效率低，具体可以参见
-  <a href="/type/slice/#byte-string-string-byte">[]byte(string) 和 string([]byte)为什么需要进行内存拷贝？</a>。</p>
+</span></span></code></pre></div><p>从上面可以看到 <code>string.Builder</code> 的 <code>String</code> 方法使用 <code>unsafe.Pointer</code> 将字节数组转换成字符串。而<code>bytes.Buffer</code>的 <code>String</code> 方法使用的 <code>string([]byte)</code>将字节数组转换成字符串，后者由于涉及内存分配和拷贝，相比之下它的执行效率低。</p>
+<p>为什么<code>bytes.Buffer</code>的 <code>String</code> 方法的效率比较低，可以查看《<strong>
+  <a href="/type/slice/#string类型与byte类型如何实现zero-copy互相转换">基础篇 - 切片 - string类型与[]byte类型如何实现zero-copy互相转换？</a></strong>》。</p>
+<h3 id="字符串拼接基准测试">
+  字符串拼接基准测试
+  <a class="anchor" href="#%e5%ad%97%e7%ac%a6%e4%b8%b2%e6%8b%bc%e6%8e%a5%e5%9f%ba%e5%87%86%e6%b5%8b%e8%af%95">#</a>
+</h3>
 <p>下面我们进行基准测试下：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// 使用拼接符拼接字符串
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">BenchmarkJoinStringUsePlus</span>(<span style="color:#a6e22e">b</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">B</span>) {
@@ -539,13 +564,17 @@ str地址：0xc000010250，all地址：0xc000010240，all底层字节数组地�
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>基准测试结果如下：</p>
-<pre tabindex="0"><code>BenchmarkJoinStringUsePlus                 	     703	   1633439 ns/op	  160000 B/op	   40000 allocs/op
-BenchmarkJoinStringUseBytesBufWithReuse    	    2130	    471368 ns/op	       0 B/op	       0 allocs/op
-BenchmarkJoinStringUseBytesBufWithoutReuse 	    1209	    883053 ns/op	  640000 B/op	   10000 allocs/op
-BenchmarkJoinStringUseStringBuilder        	    1830	    548350 ns/op	   80000 B/op	   10000 allocs/op
-</code></pre><p>从上面结果可以分析得到字符串拼接效率，<code>strings.Builder</code>的效率最高，拼接字符<code>+</code>效率最低：</p>
-<pre tabindex="0"><code>strings.Builder &gt; bytes.Buffer &gt; 拼接字符+
-</code></pre><p>但是由于<code>bytes.Buffer</code>可以复用，若在需要多此执行字符串拼接的场景下，推荐使用它。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>BenchmarkJoinStringUsePlus                 	     703	   <span style="color:#ae81ff">1633439</span> ns/op	  <span style="color:#ae81ff">160000</span> B/op	   <span style="color:#ae81ff">40000</span> allocs/op
+</span></span><span style="display:flex;"><span>BenchmarkJoinStringUseBytesBufWithReuse    	    2130	    <span style="color:#ae81ff">471368</span> ns/op	       <span style="color:#ae81ff">0</span> B/op	       <span style="color:#ae81ff">0</span> allocs/op
+</span></span><span style="display:flex;"><span>BenchmarkJoinStringUseBytesBufWithoutReuse 	    1209	    <span style="color:#ae81ff">883053</span> ns/op	  <span style="color:#ae81ff">640000</span> B/op	   <span style="color:#ae81ff">10000</span> allocs/op
+</span></span><span style="display:flex;"><span>BenchmarkJoinStringUseStringBuilder        	    1830	    <span style="color:#ae81ff">548350</span> ns/op	   <span style="color:#ae81ff">80000</span> B/op	   <span style="color:#ae81ff">10000</span> allocs/op
+</span></span></code></pre></div><h3 id="字符串拼接效率总结">
+  字符串拼接效率总结
+  <a class="anchor" href="#%e5%ad%97%e7%ac%a6%e4%b8%b2%e6%8b%bc%e6%8e%a5%e6%95%88%e7%8e%87%e6%80%bb%e7%bb%93">#</a>
+</h3>
+<p>从上面结果可以分析得到字符串拼接效率，其中<code>strings.Builder</code>的效率最高，拼接字符<code>+</code>效率最低：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>strings.Builder &gt; bytes.Buffer &gt; 拼接字符+
+</span></span></code></pre></div><p>但是由于<code>bytes.Buffer</code>可以复用，若在需要多此执行字符串拼接的场景下，推荐使用它。</p>
 </article>
  
       

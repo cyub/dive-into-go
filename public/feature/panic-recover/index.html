@@ -3,25 +3,23 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="恐慌与恢复 - panic/recover # 我们知道Go中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发panic异常暴露出来。这种由Go自动的触发的panic异常属于 运行时panic(Run-time panics)。当发生panic时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了panic函数，可以用于用户手动触发panic。
-Go内置的recover函数可以用来捕获panic异常，但recover函数只能放在延迟函数调用中，才能起作用。我们从之前的章节 语言特性-defer函数了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了recover函数调用，若调用了则panic异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该panic没有被捕获，进程异常终止，这个过程叫做panicking。我们需要知道的是即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出。
+<meta name="description" content="恐慌与恢复 - panic/recover # 我们知道Go语言中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发 panic 异常暴露出来。这种由Go语言自动的触发的 panic 异常属于运行时panic(Run-time panics)1。当发生 panic 时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了 panic 函数，可以用于用户手动触发panic。
+Go语言中内置的 recover 函数可以用来捕获 panic异常，但 recover 函数只能放在延迟函数调用中，才能起作用。我们从之前的章节《 基础篇-语言特性-defer函数 》了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了 recover 函数调用，若调用了则 panic 异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该 panic 没有被捕获，进程异常终止，这个过程叫做panicking。我们需要知道的是即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出。
 接下来我们来将深入了解下panic和recover底层的实现机制。在开始之前，我们来看下下面的测试题。
 测试题：下面哪些panic异常将会捕获？ # case 1:
 func main() { recover() panic(&#34;it is panic&#34;) // not recover } case 2:
 func main() { defer func() { recover() }() panic(&#34;it is panic&#34;) // recover } case 3:
-func main() { defer recover() panic(&#34;it is panic&#34;) // not recover } case 4:
-func main() { defer func() { defer recover() }() panic(&#34;it is panic&#34;) // recover } case 5:">
+func main() { defer recover() panic(&#34;it is panic&#34;) // not recover } case 4:">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="panic与recover机制" />
-<meta property="og:description" content="恐慌与恢复 - panic/recover # 我们知道Go中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发panic异常暴露出来。这种由Go自动的触发的panic异常属于 运行时panic(Run-time panics)。当发生panic时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了panic函数，可以用于用户手动触发panic。
-Go内置的recover函数可以用来捕获panic异常，但recover函数只能放在延迟函数调用中，才能起作用。我们从之前的章节 语言特性-defer函数了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了recover函数调用，若调用了则panic异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该panic没有被捕获，进程异常终止，这个过程叫做panicking。我们需要知道的是即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出。
+<meta property="og:description" content="恐慌与恢复 - panic/recover # 我们知道Go语言中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发 panic 异常暴露出来。这种由Go语言自动的触发的 panic 异常属于运行时panic(Run-time panics)1。当发生 panic 时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了 panic 函数，可以用于用户手动触发panic。
+Go语言中内置的 recover 函数可以用来捕获 panic异常，但 recover 函数只能放在延迟函数调用中，才能起作用。我们从之前的章节《 基础篇-语言特性-defer函数 》了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了 recover 函数调用，若调用了则 panic 异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该 panic 没有被捕获，进程异常终止，这个过程叫做panicking。我们需要知道的是即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出。
 接下来我们来将深入了解下panic和recover底层的实现机制。在开始之前，我们来看下下面的测试题。
 测试题：下面哪些panic异常将会捕获？ # case 1:
 func main() { recover() panic(&#34;it is panic&#34;) // not recover } case 2:
 func main() { defer func() { recover() }() panic(&#34;it is panic&#34;) // recover } case 3:
-func main() { defer recover() panic(&#34;it is panic&#34;) // not recover } case 4:
-func main() { defer func() { defer recover() }() panic(&#34;it is panic&#34;) // recover } case 5:" />
+func main() { defer recover() panic(&#34;it is panic&#34;) // not recover } case 4:" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://go.cyub.vip/feature/panic-recover/" /><meta property="article:section" content="feature" />
 
@@ -31,7 +29,7 @@ func main() { defer func() { defer recover() }() panic(&#34;it is panic&#34;) //
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -289,10 +287,9 @@ https://github.com/alex-shpak/hugo-book
   恐慌与恢复 - panic/recover
   <a class="anchor" href="#%e6%81%90%e6%85%8c%e4%b8%8e%e6%81%a2%e5%a4%8d---panicrecover">#</a>
 </h1>
-<p>我们知道Go中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发panic异常暴露出来。这种由Go自动的触发的panic异常属于
-  <a href="https://go.dev/ref/spec#Run_time_panics">运行时panic(Run-time panics)</a>。当发生panic时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了panic函数，可以用于用户手动触发panic。</p>
-<p>Go内置的recover函数可以用来捕获panic异常，但recover函数只能放在延迟函数调用中，才能起作用。我们从之前的章节
-  <a href="/feature/defer/">语言特性-defer函数</a>了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了recover函数调用，若调用了则panic异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该panic没有被捕获，进程异常终止，这个过程叫做<strong>panicking</strong>。我们需要知道的是<strong>即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出</strong>。</p>
+<p>我们知道Go语言中许多错误会在编译时暴露出来，直接编译不通过，但对于空指针访问元素，切片/数组越界访问之类的运行时错误，只会在运行时引发 <code>panic</code> 异常暴露出来。这种由Go语言自动的触发的 <code>panic</code> 异常属于<strong>运行时panic(Run-time panics)</strong><sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>。当发生 <code>panic</code> 时候，Go会运行所有已经注册的延迟函数，若延迟函数中未进行panic异常捕获处理，那么最终Go进程会终止，并打印堆栈信息。此外Go中还内置了 <code>panic</code> 函数，可以用于用户手动触发<code>panic</code>。</p>
+<p>Go语言中内置的 <code>recover</code> 函数可以用来捕获 <code>panic</code>异常，但 <code>recover</code> 函数只能放在延迟函数调用中，才能起作用。我们从之前的章节《<strong>
+  <a href="/feature/defer/">基础篇-语言特性-defer函数</a></strong> 》了解到，多个延迟函数，会组成一个链表。Go在发生panic过程中，会依次遍历该链表，并检查链表中的延迟函数是否调用了 <code>recover</code> 函数调用，若调用了则 <code>panic</code> 异常会被捕获而不会继续向上抛出，否则会继续向上抛出异常和执行延迟函数，直到该 <code>panic</code> 没有被捕获，进程异常终止，这个过程叫做<strong>panicking</strong>。我们需要知道的是<strong>即使panic被延迟函数链表中某个延迟函数捕获处理了，但其他的延迟函数还是会继续执行的，只是panic异常不在继续抛出</strong>。</p>
 <p>接下来我们来将深入了解下panic和recover底层的实现机制。在开始之前，我们来看下下面的测试题。</p>
 <h2 id="测试题下面哪些panic异常将会捕获">
   测试题：下面哪些panic异常将会捕获？
@@ -368,62 +365,116 @@ https://github.com/alex-shpak/hugo-book
 </h2>
 <p>我们先分析<code>case 2</code>案例，我们可以通过<code>go tool compile -N -l -S case2.go</code>获取
   <a href="https://go.godbolt.org/z/713T1TvoG">汇编代码</a>，来查看panic和recover在底层真正的实现：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. code-block::
-   :emphasize-lines: 23,44
-
-    main_pc0:
-        TEXT    &#34;&#34;.main(SB), ABIInternal, $104-0
-        MOVQ    (TLS), CX
-        CMPQ    SP, 16(CX)
-        JLS     main_pc113
-        SUBQ    $104, SP
-        MOVQ    BP, 96(SP)
-        LEAQ    96(SP), BP
-        MOVL    $0, &#34;&#34;..autotmp_1+16(SP)
-        LEAQ    &#34;&#34;.main.func1·f(SB), AX
-        MOVQ    AX, &#34;&#34;..autotmp_1+40(SP)
-        LEAQ    &#34;&#34;..autotmp_1+16(SP), AX
-        MOVQ    AX, (SP)
-        CALL    runtime.deferprocStack(SB)
-        TESTL   AX, AX
-        JNE     main_pc97
-        JMP     main_pc69
-    main_pc69:
-        LEAQ    type.string(SB), AX
-        MOVQ    AX, (SP)
-        LEAQ    &#34;&#34;..stmp_0(SB), AX
-        MOVQ    AX, 8(SP)
-        CALL    runtime.gopanic(SB)
-    main_pc97:
-        XCHGL   AX, AX
-        CALL    runtime.deferreturn(SB)
-        MOVQ    96(SP), BP
-        ADDQ    $104, SP
-        RET
-    main_pc113:
-        NOP
-        CALL    runtime.morestack_noctxt(SB)
-        JMP     main_pc0
-    main_func1_pc0:
-        TEXT    &#34;&#34;.main.func1(SB), ABIInternal, $32-0
-        MOVQ    (TLS), CX
-        CMPQ    SP, 16(CX)
-        JLS     main_func1_pc53
-        SUBQ    $32, SP
-        MOVQ    BP, 24(SP)
-        LEAQ    24(SP), BP
-        LEAQ    &#34;&#34;..fp+40(SP), AX
-        MOVQ    AX, (SP)
-        CALL    runtime.gorecover(SB)
-        MOVQ    24(SP), BP
-        ADDQ    $32, SP
-        RET
-    main_func1_pc53:
-        NOP
-        CALL    runtime.morestack_noctxt(SB)
-        JMP     main_func1_pc0
-</code></pre><p>从上面汇编代码中，可以看出panic函数底层实现<code>runtime.gopanic</code>，recover函数底层实现是<code>runtime.gorecover</code>。</p>
-<p>panic函数底层实现<code>runtime.gopanic</code>源码如下：</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="background-color:#3c3d38"><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span></span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="background-color:#3c3d38"><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span></span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>main_pc0:
+</span></span><span style="display:flex;"><span>	TEXT    <span style="color:#e6db74">&#34;&#34;</span>.main<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>, ABIInternal, $104-0
+</span></span><span style="display:flex;"><span>	MOVQ    <span style="color:#f92672">(</span>TLS<span style="color:#f92672">)</span>, CX
+</span></span><span style="display:flex;"><span>	CMPQ    SP, 16<span style="color:#f92672">(</span>CX<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	JLS     main_pc113
+</span></span><span style="display:flex;"><span>	SUBQ    $104, SP
+</span></span><span style="display:flex;"><span>	MOVQ    BP, 96<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	LEAQ    96<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, BP
+</span></span><span style="display:flex;"><span>	MOVL    $0, <span style="color:#e6db74">&#34;&#34;</span>..autotmp_1+16<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	LEAQ    <span style="color:#e6db74">&#34;&#34;</span>.main.func1·f<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>, AX
+</span></span><span style="display:flex;"><span>	MOVQ    AX, <span style="color:#e6db74">&#34;&#34;</span>..autotmp_1+40<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	LEAQ    <span style="color:#e6db74">&#34;&#34;</span>..autotmp_1+16<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, AX
+</span></span><span style="display:flex;"><span>	MOVQ    AX, <span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	CALL    runtime.deferprocStack<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	TESTL   AX, AX
+</span></span><span style="display:flex;"><span>	JNE     main_pc97
+</span></span><span style="display:flex;"><span>	JMP     main_pc69
+</span></span><span style="display:flex;"><span>main_pc69:
+</span></span><span style="display:flex;"><span>	LEAQ    type.string<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>, AX
+</span></span><span style="display:flex;"><span>	MOVQ    AX, <span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	LEAQ    <span style="color:#e6db74">&#34;&#34;</span>..stmp_0<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>, AX
+</span></span><span style="display:flex;"><span>	MOVQ    AX, 8<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>	CALL    runtime.gopanic<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>main_pc97:
+</span></span><span style="display:flex;"><span>	XCHGL   AX, AX
+</span></span><span style="display:flex;"><span>	CALL    runtime.deferreturn<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	MOVQ    96<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, BP
+</span></span><span style="display:flex;"><span>	ADDQ    $104, SP
+</span></span><span style="display:flex;"><span>	RET
+</span></span><span style="display:flex;"><span>main_pc113:
+</span></span><span style="display:flex;"><span>	NOP
+</span></span><span style="display:flex;"><span>	CALL    runtime.morestack_noctxt<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	JMP     main_pc0
+</span></span><span style="display:flex;"><span>main_func1_pc0:
+</span></span><span style="display:flex;"><span>	TEXT    <span style="color:#e6db74">&#34;&#34;</span>.main.func1<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>, ABIInternal, $32-0
+</span></span><span style="display:flex;"><span>	MOVQ    <span style="color:#f92672">(</span>TLS<span style="color:#f92672">)</span>, CX
+</span></span><span style="display:flex;"><span>	CMPQ    SP, 16<span style="color:#f92672">(</span>CX<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	JLS     main_func1_pc53
+</span></span><span style="display:flex;"><span>	SUBQ    $32, SP
+</span></span><span style="display:flex;"><span>	MOVQ    BP, 24<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	LEAQ    24<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, BP
+</span></span><span style="display:flex;"><span>	LEAQ    <span style="color:#e6db74">&#34;&#34;</span>..fp+40<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, AX
+</span></span><span style="display:flex;"><span>	MOVQ    AX, <span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>
+</span></span><span style="display:flex; background-color:#3c3d38"><span>	CALL    runtime.gorecover<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	MOVQ    24<span style="color:#f92672">(</span>SP<span style="color:#f92672">)</span>, BP
+</span></span><span style="display:flex;"><span>	ADDQ    $32, SP
+</span></span><span style="display:flex;"><span>	RET
+</span></span><span style="display:flex;"><span>main_func1_pc53:
+</span></span><span style="display:flex;"><span>	NOP
+</span></span><span style="display:flex;"><span>	CALL    runtime.morestack_noctxt<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	JMP     main_func1_pc0</span></span></code></pre></td></tr></table>
+</div>
+</div>
+<p>从上面汇编代码中，可以看出 <code>panic</code> 函数底层实现 <code>runtime.gopanic</code>，<code>recover</code> 函数底层实现是 <code>runtime.gorecover</code>。</p>
+<p>panic函数底层实现的 <code>runtime.gopanic</code> 源码如下：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">gopanic</span>(<span style="color:#a6e22e">e</span> <span style="color:#66d9ef">interface</span>{}) {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">gp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">getg</span>()
 </span></span><span style="display:flex;"><span>	
@@ -577,7 +628,16 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div></article>
+</span></span></code></pre></div><div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>
+  <a href="https://go.dev/ref/spec#Run_time_panics">Go官方语法指南：运行时恐慌</a>&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+</article>
  
       
 

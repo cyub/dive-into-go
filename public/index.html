@@ -4,9 +4,9 @@
 	<meta name="generator" content="Hugo 0.119.0">
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content=" 欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析了Goroutine调度流程，通道、上下文等并发模式的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言设计与实现机制。 本书分析的源码基于 go1.14.13 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。 未经本人同意，严禁复制、转载！
+<meta name="description" content=" 欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析Goroutine调度流程，通道、上下文等的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言的设计与实现机制。 本书分析的源码基于 go1.14.13 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。
 欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：深入Go语言之旅。群主会拉你进群。
-如果觉得作者写的不错，对你有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。
+如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。
 感谢打赏 # 十分感谢以下读者的打赏❤️
 姓名 金额 留言 铁头班*友 10 *w 50 写的很好，加油 *油 33 *谭 10 林*壕 20 张*冲 20 参考资料 # Go语言调度器源代码情景分析 cch123/golang-notes Go语言设计与实现 深度探索Go语言：对象模型与runtime的原理、特性及应用 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
@@ -20,7 +20,7 @@
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -278,17 +278,14 @@ https://github.com/alex-shpak/hugo-book
   <article class="markdown"><figure class="text-center"><img src="https://static.cyub.vip/images/202104/dive_info_go_feature.png" width="420px"/>
 </figure>
 
-<p>欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析了Goroutine调度流程，通道、上下文等并发模式的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言设计与实现机制。
+<p>欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析Goroutine调度流程，通道、上下文等的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言的设计与实现机制。
 本书分析的源码基于 
-  <a href="https://github.com/golang/go/tree/go1.14.13">go1.14.13</a> 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。
-未经本人同意，严禁复制、转载！</p>
+  <a href="https://github.com/golang/go/tree/go1.14.13">go1.14.13</a> 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。</p>
 <p>欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：<strong>深入Go语言之旅</strong>。群主会拉你进群。</p>
 <figure class="text-center"><img src="https://static.cyub.vip/images/202112/wx_qrc.jpeg" width="185px"/>
 </figure>
 
-<!-- raw HTML omitted -->
-<!-- raw HTML omitted -->
-<p>如果觉得作者写的不错，对你有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。</p>
+<p>如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。</p>
 <figure class="text-center"><img src="https://static.cyub.vip/images/202201/wepay.jpeg" width="160px"/>
 </figure>
 

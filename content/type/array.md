@@ -8,7 +8,7 @@ title: "数组"
 
 ## 初始化
 
-Go语言数组有两个声明初始化方式，一个需要显示指明数组大小，另一个使用`...`由编译器在编译阶段推断出来：
+Go语言数组有两个声明初始化方式，一种需要显示指明数组大小，另一种使用 `...`保留字， 数组的长度将由编译器在编译阶段推断出来：
 
 ```go
 arr1 := [3]int{1, 2, 3} // 使用[n]T方式
@@ -17,9 +17,12 @@ arr3 := [3]int{2: 3} // 使用[n]T方式
 arr4 := [...]int{2: 3} // 使用[...]T方式
 ```
 
-```eval_rst
-.. hint:: 上面代码中arr3和arr4的初始化方式，是指定数组索引对应的值。这种方式并不常见。
-```
+{{< hint info >}}
+**注意**
+
+上面代码中arr3和arr4的初始化方式是指定数组索引对应的值。这种方式并不常见。
+{{< /hint >}}
+
 ## 可比较性
 
 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
@@ -37,7 +40,7 @@ func main() {
 
 ## 值类型
 
-Go语言中数组是一个值类型，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：
+Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：
 
 ```go
 func passArr(arr [3]int) {
@@ -53,7 +56,7 @@ func main() {
 
 ## 空间局部性与时间局部性
 
-CPU访问数据时候，趋于访问同一片内存区域的数据，这个称为局部性原理（principle of locality）。局部性原理可以为分为空间局部性（Spatial Locality）和时间局部性（Temporal Locality）。
+CPU访问数据时候，趋于访问同一片内存区域的数据，这个称为 **局部性原理（principle of locality）**。局部性原理可以为细分为 **空间局部性（Spatial Locality）** 和 **时间局部性（Temporal Locality）**。
 
 - 空间局部性
 
@@ -65,22 +68,22 @@ CPU访问数据时候，趋于访问同一片内存区域的数据，这个称�
 
 我们知道数组内存空间是连续分配的，比如对于[3][5]int类型数组其内存空间分配使用如下图所示：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202104/array_memory_alloc.png
-    :alt: 二位数组访问
-    :width: 400px
-    :align: center
+{{< figure src="https://static.cyub.vip/images/202104/array_memory_alloc.png" width="400px" class="text-center" title="二维数组内存布局">}}
+
+观察上面的二维数组的内存布局，我们可以得出对于 `[m][n]T` 类型的数组中任一个元素内存地址的计算公式是：
+
+```
+数组元素的内存地址 = 第一个数组元素的内存地址 + 该元素跨过了多少行 * 元素类型大小 + 该元素在当前行的位置 * 元素类型大小
 ```
 
-推而广之，对于[m][n]T类型的数组中某一个元素内存地址的计算公式是：
+转换成伪码的实现如下：
 
 ```go
-// 数组元素的内存地址 = 第一个数组元素的内存地址 + 该元素跨过了多少行 * 元素类型大小 + 该元素在当前行的位置 * 元素类型大小
 address(arr[x][y]) = address(arr[0][0]) + x * n * sizeof(T) + y * sizeof(T)
- = address(arr[0][0]) + (x * n + y) * sizeof(T)
+				   = address(arr[0][0]) + (x * n + y) * sizeof(T)
 ```
 
-下面我们根据上面公式来访问一个数组，下面代码中使用到了`uintptr`和`unsafe.Pointer`，如果不太了解的话可以看本书的[指针](pointer.md)那一章节：
+下面我们根据上面公式来访问数组中元素，下面代码中使用到了 `uintptr` 和 `unsafe.Pointer`，如果不太了解的话可以看本书的 《**[基础篇-指针]({{< relref "type/pointer" >}})**》 那一章节：
 
 ```go
 package main
@@ -103,7 +106,7 @@ func main() {
 
 上面代码运行结果如下：
 
-```
+```shell
 arr[0][0]: 地址 = 0xc000068ef0，值 = 1
 arr[0][1]: 地址 = 0xc000068ef8，值 = 2
 arr[0][2]: 地址 = 0xc000068f00，值 = 3
@@ -116,12 +119,7 @@ arr[1][2]: 地址 = 0xc000068f18，值 = 6
 
 对于数组的访问，我们可以一行行访问，也可以一列列访问，根据上面分析我们可以得出**一行行访问可以有很好的空间局部性，有更好的执行效率**的结论。因为一行行访问时，下一次访问的就是当前元素挨着的元素，而一列列访问则是需要跨过数组列数个元素：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202104/multi_dimen_array.png
-    :alt: 二位数组访问
-    :width: 400px
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202104/multi_dimen_array.png" width="400px" class="text-center" title="二位数组的访问">}}
 
 最后我们来进行下基准测试验证一下：
 
@@ -155,7 +153,7 @@ func BenchmarkAccessArrayByCol(b *testing.B) {
 
 本人电脑中基准测试结果如下：
 
-```
+```shell
 goos: linux
 goarch: amd64
 BenchmarkAccessArrayByRow 	121336255	        10.3 ns/op	       0 B/op	       0 allocs/op
@@ -163,13 +161,13 @@ BenchmarkAccessArrayByCol 	82772149	        13.2 ns/op	       0 B/op	       0 al
 PASS
 ```
 
-从上面结果可以看出来，我们可以发现按行访问（10.3 ns/op）快于按列访问（13.2 ns/op）验证我们的结论。
+从上面结果可以看出来，我们可以发现按行访问（10.3 ns/op）快于按列访问（13.2 ns/op），符合我们预测的结论。
 
 ## 如何实现随机访问数组的全部元素？
 
 这里将介绍两种实现方法。这两种实现方法都是Go语言底层使用到的算法。
 
-第一种方法用在Go调度器部分。GMP调度模型中，当M关联的P的本地队列中没有可以执行的G时候，M会从其他P的本地可运行G队列中偷取G，所有P存储一个全局切片中，为了随机性选择P来偷取，这就需要随机的访问数组。该算法具体叫什么，未找到相关文档。由于该算法实现上使用到素数和取模运算，姑且称之素数取模随机法。
+第一种方法用在Go调度器部分。G-M-P调度模型中，当M关联的P的本地队列中没有可以执行的G时候，M会从其他P的本地可运行G队列中偷取G，所有P存储一个全局切片中，为了随机性选择P来偷取，这就需要随机的访问数组。该算法具体叫什么，未找到相关文档。由于该算法实现上使用到素数和取模运算，姑且称之素数取模随机法。
 
 第二种方法使用算法`Fisher–Yates shuffle`，Go语言用它来随机性处理通道选择器select中case语句。
 
@@ -190,7 +188,7 @@ PASS
 
 从上面例子可以看出来访问8次即可遍历完所有数组元素，由于素数和开始位置是随机的，那么访问也能做到随机性。
 
-该算法实现如下，代码来自Go源码[runtime/proc.go](https://github.com/golang/go/blob/go1.14.13/src/runtime/proc.go#L5403-L5451)：
+该算法实现如下，代码来自Go源码 **[runtime/proc.go](https://github.com/golang/go/blob/go1.14.13/src/runtime/proc.go#L5403-L5451)**：
 
 ```go
 package main

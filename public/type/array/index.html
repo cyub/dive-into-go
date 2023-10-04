@@ -4,16 +4,20 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="数组 # 数组是Go语言中常见的数据结构，相比切片，数组我们使用的比较少。
-初始化 # Go语言数组有两个声明初始化方式，一个需要显示指明数组大小，另一个使用...由编译器在编译阶段推断出来：
-arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 .. hint:: 上面代码中arr3和arr4的初始化方式，是指定数组索引对应的值。这种方式并不常见。 可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
-func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：">
+初始化 # Go语言数组有两个声明初始化方式，一种需要显示指明数组大小，另一种使用 ...保留字， 数组的长度将由编译器在编译阶段推断出来：
+arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 注意
+上面代码中arr3和arr4的初始化方式是指定数组索引对应的值。这种方式并不常见。
+可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
+func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="数组" />
 <meta property="og:description" content="数组 # 数组是Go语言中常见的数据结构，相比切片，数组我们使用的比较少。
-初始化 # Go语言数组有两个声明初始化方式，一个需要显示指明数组大小，另一个使用...由编译器在编译阶段推断出来：
-arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 .. hint:: 上面代码中arr3和arr4的初始化方式，是指定数组索引对应的值。这种方式并不常见。 可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
-func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：" />
+初始化 # Go语言数组有两个声明初始化方式，一种需要显示指明数组大小，另一种使用 ...保留字， 数组的长度将由编译器在编译阶段推断出来：
+arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 注意
+上面代码中arr3和arr4的初始化方式是指定数组索引对应的值。这种方式并不常见。
+可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
+func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://go.cyub.vip/type/array/" /><meta property="article:section" content="type" />
 
@@ -23,7 +27,7 @@ func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) //
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -286,13 +290,18 @@ https://github.com/alex-shpak/hugo-book
   初始化
   <a class="anchor" href="#%e5%88%9d%e5%a7%8b%e5%8c%96">#</a>
 </h2>
-<p>Go语言数组有两个声明初始化方式，一个需要显示指明数组大小，另一个使用<code>...</code>由编译器在编译阶段推断出来：</p>
+<p>Go语言数组有两个声明初始化方式，一种需要显示指明数组大小，另一种使用 <code>...</code>保留字， 数组的长度将由编译器在编译阶段推断出来：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">arr1</span> <span style="color:#f92672">:=</span> [<span style="color:#ae81ff">3</span>]<span style="color:#66d9ef">int</span>{<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>} <span style="color:#75715e">// 使用[n]T方式
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">arr2</span> <span style="color:#f92672">:=</span> [<span style="color:#f92672">...</span>]<span style="color:#66d9ef">int</span>{<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>} <span style="color:#75715e">// 使用[...]T方式
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">arr3</span> <span style="color:#f92672">:=</span> [<span style="color:#ae81ff">3</span>]<span style="color:#66d9ef">int</span>{<span style="color:#ae81ff">2</span>: <span style="color:#ae81ff">3</span>} <span style="color:#75715e">// 使用[n]T方式
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">arr4</span> <span style="color:#f92672">:=</span> [<span style="color:#f92672">...</span>]<span style="color:#66d9ef">int</span>{<span style="color:#ae81ff">2</span>: <span style="color:#ae81ff">3</span>} <span style="color:#75715e">// 使用[...]T方式
-</span></span></span></code></pre></div><pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. hint:: 上面代码中arr3和arr4的初始化方式，是指定数组索引对应的值。这种方式并不常见。
-</code></pre><h2 id="可比较性">
+</span></span></span></code></pre></div><blockquote class="book-hint info">
+  <p><strong>注意</strong></p>
+<p>上面代码中arr3和arr4的初始化方式是指定数组索引对应的值。这种方式并不常见。</p>
+
+</blockquote>
+
+<h2 id="可比较性">
   可比较性
   <a class="anchor" href="#%e5%8f%af%e6%af%94%e8%be%83%e6%80%a7">#</a>
 </h2>
@@ -309,7 +318,7 @@ https://github.com/alex-shpak/hugo-book
   值类型
   <a class="anchor" href="#%e5%80%bc%e7%b1%bb%e5%9e%8b">#</a>
 </h2>
-<p>Go语言中数组是一个值类型，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：</p>
+<p>Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">passArr</span>(<span style="color:#a6e22e">arr</span> [<span style="color:#ae81ff">3</span>]<span style="color:#66d9ef">int</span>) {
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>] = <span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">*</span> <span style="color:#ae81ff">100</span>
 </span></span><span style="display:flex;"><span>}
@@ -323,7 +332,7 @@ https://github.com/alex-shpak/hugo-book
   空间局部性与时间局部性
   <a class="anchor" href="#%e7%a9%ba%e9%97%b4%e5%b1%80%e9%83%a8%e6%80%a7%e4%b8%8e%e6%97%b6%e9%97%b4%e5%b1%80%e9%83%a8%e6%80%a7">#</a>
 </h2>
-<p>CPU访问数据时候，趋于访问同一片内存区域的数据，这个称为局部性原理（principle of locality）。局部性原理可以为分为空间局部性（Spatial Locality）和时间局部性（Temporal Locality）。</p>
+<p>CPU访问数据时候，趋于访问同一片内存区域的数据，这个称为 <strong>局部性原理（principle of locality）</strong>。局部性原理可以为细分为 <strong>空间局部性（Spatial Locality）</strong> 和 <strong>时间局部性（Temporal Locality）</strong>。</p>
 <ul>
 <li>
 <p>空间局部性</p>
@@ -335,16 +344,18 @@ https://github.com/alex-shpak/hugo-book
 </li>
 </ul>
 <p>我们知道数组内存空间是连续分配的，比如对于[3][5]int类型数组其内存空间分配使用如下图所示：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/array_memory_alloc.png
-    :alt: 二位数组访问
-    :width: 400px
-    :align: center
-</code></pre><p>推而广之，对于[m][n]T类型的数组中某一个元素内存地址的计算公式是：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// 数组元素的内存地址 = 第一个数组元素的内存地址 + 该元素跨过了多少行 * 元素类型大小 + 该元素在当前行的位置 * 元素类型大小
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">address</span>(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">x</span>][<span style="color:#a6e22e">y</span>]) = <span style="color:#a6e22e">address</span>(<span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>][<span style="color:#ae81ff">0</span>]) <span style="color:#f92672">+</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">n</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">sizeof</span>(<span style="color:#a6e22e">T</span>) <span style="color:#f92672">+</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">sizeof</span>(<span style="color:#a6e22e">T</span>)
-</span></span><span style="display:flex;"><span> = <span style="color:#a6e22e">address</span>(<span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>][<span style="color:#ae81ff">0</span>]) <span style="color:#f92672">+</span> (<span style="color:#a6e22e">x</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">n</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">y</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">sizeof</span>(<span style="color:#a6e22e">T</span>)
-</span></span></code></pre></div><p>下面我们根据上面公式来访问一个数组，下面代码中使用到了<code>uintptr</code>和<code>unsafe.Pointer</code>，如果不太了解的话可以看本书的
-  <a href="/type/pointer/">指针</a>那一章节：</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/array_memory_alloc.png" width="400px"/><figcaption>
+            <h4>二维数组内存布局</h4>
+        </figcaption>
+</figure>
+
+<p>观察上面的二维数组的内存布局，我们可以得出对于 <code>[m][n]T</code> 类型的数组中任一个元素内存地址的计算公式是：</p>
+<pre tabindex="0"><code>数组元素的内存地址 = 第一个数组元素的内存地址 + 该元素跨过了多少行 * 元素类型大小 + 该元素在当前行的位置 * 元素类型大小
+</code></pre><p>转换成伪码的实现如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">address</span>(<span style="color:#a6e22e">arr</span>[<span style="color:#a6e22e">x</span>][<span style="color:#a6e22e">y</span>]) = <span style="color:#a6e22e">address</span>(<span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>][<span style="color:#ae81ff">0</span>]) <span style="color:#f92672">+</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">n</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">sizeof</span>(<span style="color:#a6e22e">T</span>) <span style="color:#f92672">+</span> <span style="color:#a6e22e">y</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">sizeof</span>(<span style="color:#a6e22e">T</span>)
+</span></span><span style="display:flex;"><span>				   = <span style="color:#a6e22e">address</span>(<span style="color:#a6e22e">arr</span>[<span style="color:#ae81ff">0</span>][<span style="color:#ae81ff">0</span>]) <span style="color:#f92672">+</span> (<span style="color:#a6e22e">x</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">n</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">y</span>) <span style="color:#f92672">*</span> <span style="color:#a6e22e">sizeof</span>(<span style="color:#a6e22e">T</span>)
+</span></span></code></pre></div><p>下面我们根据上面公式来访问数组中元素，下面代码中使用到了 <code>uintptr</code> 和 <code>unsafe.Pointer</code>，如果不太了解的话可以看本书的 《<strong>
+  <a href="/type/pointer/">基础篇-指针</a></strong>》 那一章节：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
@@ -362,22 +373,23 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>上面代码运行结果如下：</p>
-<pre tabindex="0"><code>arr[0][0]: 地址 = 0xc000068ef0，值 = 1
-arr[0][1]: 地址 = 0xc000068ef8，值 = 2
-arr[0][2]: 地址 = 0xc000068f00，值 = 3
-arr[1][0]: 地址 = 0xc000068f08，值 = 4
-arr[1][1]: 地址 = 0xc000068f10，值 = 5
-arr[1][2]: 地址 = 0xc000068f18，值 = 6
-</code></pre><h3 id="空间局部性示例">
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>arr<span style="color:#f92672">[</span>0<span style="color:#f92672">][</span>0<span style="color:#f92672">]</span>: 地址 <span style="color:#f92672">=</span> 0xc000068ef0，值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>arr<span style="color:#f92672">[</span>0<span style="color:#f92672">][</span>1<span style="color:#f92672">]</span>: 地址 <span style="color:#f92672">=</span> 0xc000068ef8，值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>arr<span style="color:#f92672">[</span>0<span style="color:#f92672">][</span>2<span style="color:#f92672">]</span>: 地址 <span style="color:#f92672">=</span> 0xc000068f00，值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span>arr<span style="color:#f92672">[</span>1<span style="color:#f92672">][</span>0<span style="color:#f92672">]</span>: 地址 <span style="color:#f92672">=</span> 0xc000068f08，值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>
+</span></span><span style="display:flex;"><span>arr<span style="color:#f92672">[</span>1<span style="color:#f92672">][</span>1<span style="color:#f92672">]</span>: 地址 <span style="color:#f92672">=</span> 0xc000068f10，值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span>arr<span style="color:#f92672">[</span>1<span style="color:#f92672">][</span>2<span style="color:#f92672">]</span>: 地址 <span style="color:#f92672">=</span> 0xc000068f18，值 <span style="color:#f92672">=</span> <span style="color:#ae81ff">6</span>
+</span></span></code></pre></div><h3 id="空间局部性示例">
   空间局部性示例
   <a class="anchor" href="#%e7%a9%ba%e9%97%b4%e5%b1%80%e9%83%a8%e6%80%a7%e7%a4%ba%e4%be%8b">#</a>
 </h3>
 <p>对于数组的访问，我们可以一行行访问，也可以一列列访问，根据上面分析我们可以得出<strong>一行行访问可以有很好的空间局部性，有更好的执行效率</strong>的结论。因为一行行访问时，下一次访问的就是当前元素挨着的元素，而一列列访问则是需要跨过数组列数个元素：</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/multi_dimen_array.png
-    :alt: 二位数组访问
-    :width: 400px
-    :align: center
-</code></pre><p>最后我们来进行下基准测试验证一下：</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/multi_dimen_array.png" width="400px"/><figcaption>
+            <h4>二位数组的访问</h4>
+        </figcaption>
+</figure>
+
+<p>最后我们来进行下基准测试验证一下：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">BenchmarkAccessArrayByRow</span>(<span style="color:#a6e22e">b</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">B</span>) {
 </span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">myArr</span> [<span style="color:#ae81ff">3</span>][<span style="color:#ae81ff">5</span>]<span style="color:#66d9ef">int</span>
 </span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">b</span>.<span style="color:#a6e22e">ReportAllocs</span>()
@@ -404,18 +416,18 @@ arr[1][2]: 地址 = 0xc000068f18，值 = 6
 </span></span><span style="display:flex;"><span>	}
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>本人电脑中基准测试结果如下：</p>
-<pre tabindex="0"><code>goos: linux
-goarch: amd64
-BenchmarkAccessArrayByRow 	121336255	        10.3 ns/op	       0 B/op	       0 allocs/op
-BenchmarkAccessArrayByCol 	82772149	        13.2 ns/op	       0 B/op	       0 allocs/op
-PASS
-</code></pre><p>从上面结果可以看出来，我们可以发现按行访问（10.3 ns/op）快于按列访问（13.2 ns/op）验证我们的结论。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>goos: linux
+</span></span><span style="display:flex;"><span>goarch: amd64
+</span></span><span style="display:flex;"><span>BenchmarkAccessArrayByRow 	121336255	        10.3 ns/op	       <span style="color:#ae81ff">0</span> B/op	       <span style="color:#ae81ff">0</span> allocs/op
+</span></span><span style="display:flex;"><span>BenchmarkAccessArrayByCol 	82772149	        13.2 ns/op	       <span style="color:#ae81ff">0</span> B/op	       <span style="color:#ae81ff">0</span> allocs/op
+</span></span><span style="display:flex;"><span>PASS
+</span></span></code></pre></div><p>从上面结果可以看出来，我们可以发现按行访问（10.3 ns/op）快于按列访问（13.2 ns/op），符合我们预测的结论。</p>
 <h2 id="如何实现随机访问数组的全部元素">
   如何实现随机访问数组的全部元素？
   <a class="anchor" href="#%e5%a6%82%e4%bd%95%e5%ae%9e%e7%8e%b0%e9%9a%8f%e6%9c%ba%e8%ae%bf%e9%97%ae%e6%95%b0%e7%bb%84%e7%9a%84%e5%85%a8%e9%83%a8%e5%85%83%e7%b4%a0">#</a>
 </h2>
 <p>这里将介绍两种实现方法。这两种实现方法都是Go语言底层使用到的算法。</p>
-<p>第一种方法用在Go调度器部分。GMP调度模型中，当M关联的P的本地队列中没有可以执行的G时候，M会从其他P的本地可运行G队列中偷取G，所有P存储一个全局切片中，为了随机性选择P来偷取，这就需要随机的访问数组。该算法具体叫什么，未找到相关文档。由于该算法实现上使用到素数和取模运算，姑且称之素数取模随机法。</p>
+<p>第一种方法用在Go调度器部分。G-M-P调度模型中，当M关联的P的本地队列中没有可以执行的G时候，M会从其他P的本地可运行G队列中偷取G，所有P存储一个全局切片中，为了随机性选择P来偷取，这就需要随机的访问数组。该算法具体叫什么，未找到相关文档。由于该算法实现上使用到素数和取模运算，姑且称之素数取模随机法。</p>
 <p>第二种方法使用算法<code>Fisher–Yates shuffle</code>，Go语言用它来随机性处理通道选择器select中case语句。</p>
 <h3 id="素数取模随机法">
   素数取模随机法
@@ -434,8 +446,8 @@ PASS
 <li>第八次访问元素是 (4 + 5)%8 = 1处元素，即a[1]</li>
 </ul>
 <p>从上面例子可以看出来访问8次即可遍历完所有数组元素，由于素数和开始位置是随机的，那么访问也能做到随机性。</p>
-<p>该算法实现如下，代码来自Go源码
-  <a href="https://github.com/golang/go/blob/go1.14.13/src/runtime/proc.go#L5403-L5451">runtime/proc.go</a>：</p>
+<p>该算法实现如下，代码来自Go源码 <strong>
+  <a href="https://github.com/golang/go/blob/go1.14.13/src/runtime/proc.go#L5403-L5451">runtime/proc.go</a></strong>：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (

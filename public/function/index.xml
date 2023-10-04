@@ -22,17 +22,17 @@
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/function/call-stack/</guid>
-      <description>调用栈 # 这一章节延续前面《 准备篇-Go汇编》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编》查看了解。
+      <description>调用栈 # 这一章节延续前面《 准备篇-Go汇编 》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编 》查看了解。
 在详细分析函数栈之前，我们先复习以下几个概念。
 caller 与 callee # 如果一个函数调用另外一个函数，那么该函数被称为调用者函数，也叫做caller，而被调用的函数称为被调用者函数，也叫做callee。比如函数main中调用sum函数，那么main就是caller，而sum函数就是callee。
 栈帧 # 栈帧（stack frame）指的是未完成函数所持有的，独立连续的栈区域，用来保存其局部变量，返回地址等信息。
-函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface)的组成部分，它描述了：
+函数调用约定 # 函数调用约定(Calling Conventions)是 ABI(Application Binary Interface) 的组成部分，它描述了：
 如何将执行控制权交给callee，以及返还给caller 如何保存和恢复caller的状态 如何将参数传递个callee 如何从callee获取返回值 简而言之，一句话就是函数调用约定指的是约定了函数调用时候，函数参数如何传递，函数栈由谁完成平衡，以及函数返回值如何返回的。
 在Go语言中，函数的参数和返回值的存储空间是由其caller的栈帧提供。这也为Go语言为啥支持多返回值以及总是值传递的原因。从Go汇编层面看，在callee中访问其参数和返回值，是通过FP寄存器来操作的（在实现层面是通过SP寄存器访问的）。Go语言中函数参数入栈顺序是从右到左入栈的。
 函数调用时候，会为其分配栈空间用来存放临时变量，返回值等信息，当完成调用后，这些栈空间应该进行回收，以恢复调用以前的状态。这个过程就是栈平衡。栈平衡工作可以由被调用者本身(callee)完成，也可以由其调用者(caller)完成。在Go语言中是由callee来完成栈平衡的。
 函数栈 # 当前函数作为caller，其本身拥有的栈帧以及其所有callee的栈帧，可以称为该函数的函数栈，也称函数调用栈。C语言中函数栈大小是固定的，如果超出栈空间，就会栈溢出异常。比如递归求斐波拉契，这时候可以使用尾调用来优化。由于Go 语言栈可以自动进行分裂扩容，栈空间不够时候，可以自动进行扩容。当用火焰图分析性能时候，火焰越高，说明栈越深。
 Go 语言中函数栈全景图如下：
-.. image:: https://static.cyub.vip/images/202105/go-func-stack.png :alt: Go语言函数调用栈 :width: 400px :align: center 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
+Go语言函数调用栈 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
 实例分析 # 我们将分析如下代码。
 package main func sum(a, b int) int { sum := 0 sum = a + b return sum } func main() { a := 3 b := 5 print(sum(a, b)) } 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：</description>
     </item>
@@ -68,14 +68,15 @@ LEAQ go.</description>
       
       <guid>https://go.cyub.vip/function/closure/</guid>
       <description>闭包 # C语言中函数名称就是函数的首地址。Go语言中函数名称跟C语言一样，函数名指向函数的首地址，即函数的入口地址。从前面《 基础篇-函数-一等公民》那一章节我们知道Go 语言中函数是一等公民，它可以绑定变量，作函数参数，做函数返回值，那么它底层是怎么实现的呢？
-我们先来了解下Function Value这个概念。
+我们先来了解下 Function Value 这个概念。
 Function Value # Go 语言中函数是一等公民，函数可以绑定到变量，也可以做参数传递以及做函数返回值。Golang把这样的参数、返回值、变量称为Function value。
 Go 语言中Function value本质上是一个指针，但是其并不直接指向函数的入口地址，而是指向的runtime.funcval( runtime/runtime2.go)这个结构体。该结构体中的fn字段存储的是函数的入口地址：
 type funcval struct { fn uintptr // variable-size, fn-specific data here } 我们以下面这段代码为例来看下Function value是如何使用的:
 func A(i int) { i++ fmt.Println(i) } func B() { f1 := A f1(1) } func C() { f2 := A f2(2) } 上面代码中，函数A被赋值给变量f1和f2，这种情况下编译器会做出优化，让f1和f2共用一个funcval结构体，该结构体是在编译阶段分配到数据段的只读区域(.rodata)。如下图所示那样，f1和f2都指向了该结构体的地址addr2，该结构体的fn字段存储了函数A的入口地址addr1：
-.. image:: https://static.cyub.vip/images/202105/fuc_var.png :alt: Go语言函数调用栈 :width: 400px :align: center 为什么f1和f2需要通过了一个二级指针来获取到真正的函数入口地址，而不是直接将f1，f2指向函数入口地址addr1。关于这个原因就涉及到Golang中闭包设计与实现了。
-闭包 # 闭包(Closure)通俗点讲就是能够访问外部函数内部变量的函数。像这样能被访问的变量通常被称为捕获变量。
-闭包函数指令在编译阶段生成，但因为每个闭包对象都要保存自己捕获的变量，所以要等到执行阶段才创建对应的闭包对象。我们来看下下面闭包的例子：</description>
+为什么f1和f2需要通过了一个二级指针来获取到真正的函数入口地址，而不是直接将f1，f2指向函数入口地址addr1。关于这个原因就涉及到Golang中闭包设计与实现了。
+闭包 # 闭包(Closure) 通俗点讲就是能够访问外部函数内部变量的函数。像这样能被访问的变量通常被称为捕获变量。
+闭包函数指令在编译阶段生成，但因为每个闭包对象都要保存自己捕获的变量，所以要等到执行阶段才创建对应的闭包对象。我们来看下下面闭包的例子：
+package main func A() func() int { i := 3 return func() int { return i } } func main() { f1 := A() f2 := A() print(f1()) pirnt(f2()) } 上面代码中当执行main函数时，会在其栈帧区间内为局部变量f1和f2分配栈空间，当执行第一个A函数时候，会在其栈帧空间分配栈空间来存放局部变量i，然后在堆上分配一个funcval结构体（其地址假定addr2)，该结构体的fn字段存储的是A函数内那个闭包函数的入口地址（其地址假定为addr1）。A函数除了分配一个funcval结构体外，还会挨着该结构体分配闭包函数的变量捕获列表，该捕获列表里面只有一个变量i。由于捕获列表的存在，所以说闭包函数是一个有状态函数。</description>
     </item>
     
   </channel>

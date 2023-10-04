@@ -12,10 +12,11 @@
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/type/nil/</guid>
-      <description>nil # 在探究nil之前，我们先看看零值的概念。
-零值 # 零值(zero value)指的是当声明变量且未显示初始化时，Go语言会自动给变量赋予一个默认初始值。对于值类型变量来说不同值类型，有不同的零值，比如整数型零值是0，字符串类型是&amp;quot;&amp;quot;，布尔类型是false。对于引用类型变量其零值都是nil。
-类型 零值 数值类型 0 字符串 &amp;quot;&amp;quot; 布尔类型 false 指针类型 nil 通道 nil 函数 nil 接口 nil 映射 nil 切片 nil 结构体 每个结构体字段对应类型的零值 nil # nil是Go语言中的一个变量，是预先声明的标识符，用来作为引用类型变量的零值。
-// nil is a predeclared identifier representing the zero value for a // pointer, channel, func, interface, map, or slice type. var nil Type // Type must be a pointer, channel, func, interface, map, or slice type nil不能通过:=方式赋值给一个变量，下面代码是编译不通过的：</description>
+      <description>nil # 在探究 nil 之前，我们先看看零值的概念。
+零值 # 零值(zero value)1 指的是当声明变量且未显示初始化时，Go语言会自动给变量赋予一个默认初始值。对于值类型变量来说不同值类型，有不同的零值，比如整数型零值是 0，字符串类型是 &amp;quot;&amp;quot;，布尔类型是 false。对于引用类型变量其零值都是 nil。
+类型 零值 数值类型 0 字符串 &amp;quot;&amp;quot; 布尔类型 false 指针类型 nil 通道 nil 函数 nil 接口 nil 映射 nil 切片 nil 结构体 每个结构体字段对应类型的零值 自定义类型 其底层类型的对应的零值 从零值的定义，可以看出Go语言引入 nil 概念，是为了将其作为引用类型变量的零值而存在。
+nil # nil 是Go语言中的一个变量，是预先声明的标识符，用来作为引用类型变量的零值。
+// nil is a predeclared identifier representing the zero value for a // pointer, channel, func, interface, map, or slice type. var nil Type // Type must be a pointer, channel, func, interface, map, or slice type nil 不能通过:=方式赋值给一个变量，下面代码是编译不通过的：</description>
     </item>
     
     <item>
@@ -24,8 +25,9 @@
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/type/slice/</guid>
-      <description>切片 # 切片是Go语言中常用的数据类型，相比数组它更加灵活。不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），所以如果切片使用不当，会产生意想不到的副作用。
-初始化 # 切片初始化方式可以分为三种：
+      <description>切片 # 切片是Go语言中最常用的数据类型之一，它类似数组，但相比数组它更加灵活，高效，由于它本身的特性，往往也更容易用错。
+不同于数组是值类型，而切片是引用类型。虽然两者作为函数参数传递时候都是值传递（pass by value），但是切片传递的包含数据指针（可以细分为pass by pointer），如果切片使用不当，会产生意想不到的副作用。
+初始化 # 切片的初始化方式可以分为三种：
 使用make函数创建切片
 make函数语法格式为：make([]T, length, capacity)，capacity可以省略，默认等于length
 使用字面量创建切片
@@ -42,13 +44,14 @@ func main() { slice1 := make([]int, 0) slice2 := make([]int, 1, 3) slice3 := []i
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://go.cyub.vip/type/string/</guid>
-      <description>字符串 # C语言中字符串是使用字符数组char[]表示，数组的最后一位是\0用来作为字符串的定界符。Go语言中字符串最底层也是字符数组， 但是Go语言使用长度来记录字符串边界，字符串的长度就是数组大小。
-数据结构 # Go语言字符串底层数据结构是reflect.StringHeader( reflect/value.go)，其中包含了指向字节数组的指针，以及数组大小：
-type StringHeader struct { Data uintptr Len int } 当一个字符串变量赋值给另外一个变量时候，他们StringHeader.Data都指向同一个内存地址：
-a := &amp;#34;hello&amp;#34; b := a .. image:: https://static.cyub.vip/images/202104/go_string.png :alt: go字符底层表示 :width: 400px :align: center 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
-接来下我们借助 (GDB)来验证Go语言中字符串数据结构是不是按照上面说的那样。
-package main import ( &amp;#34;fmt&amp;#34; ) func main() { a := &amp;#34;hello&amp;#34; b := a fmt.Printf(&amp;#34;a变量地址：%p\n&amp;#34;, &amp;amp;a) fmt.Printf(&amp;#34;b变量地址：%p\n&amp;#34;, &amp;amp;b) print(&amp;#34;断点打在这里&amp;#34;) } 将上面代码构建二进制应用(go build -o string string.go)， 然后使用 GDB调试一下(gdb ./string)：
-len(str) == 0 和 str == &amp;ldquo;&amp;ldquo;有区别吗？ # 判断一个字符串是否是空字符串，我们既可以使用len判断其长度是0，也可以判断其是否等于空字符&amp;quot;&amp;quot;。那么它们有什么区别吗？答案是没有区别。因为他们底层实现是一样的。我们来探究一下。</description>
+      <description>字符串 # 我们知道C语言中的字符串是使用字符数组 char[] 表示，字符数组的最后一位元素是 \0，用来标记字符串的结束。C语言中字符串的结构简单，但获取字符串长度时候，需要遍历字符数组才能完成。
+Go语言中字符串的底层结构中也包含了字符数组，该字符数组是完整的字符串内容，它不同于C语言，字符数组中没有标记字符串结束的标记。为了记录底层字符数组的大小，Go语言使用了额外的一个长度字段来记录该字符数组的大小，字符数组的大小也就是字符串的长度。
+数据结构 # Go语言字符串的底层数据结构是 reflect.StringHeader( reflect/value.go)，它包含了指向字节数组的指针，以及该指针指向的字符数组的大小：
+type StringHeader struct { Data uintptr Len int } 字符串复制 # 当将一个字符串变量赋值给另外一个变量时候，他们 StringHeader.Data 都指向同一个内存地址，不会发生字符串拷贝：
+a := &amp;#34;hello&amp;#34; b := a 从上图中我们可以看到a变量和b变量的Data字段存储的都是0x1234，而0x1234是字符数组的起始地址。
+接来下我们借助 GDB 工具来验证Go语言中字符串数据结构是不是按照上面说的那样。
+package main import ( &amp;#34;fmt&amp;#34; ) func main() { a := &amp;#34;hello&amp;#34; b := a fmt.Printf(&amp;#34;a变量地址：%p\n&amp;#34;, &amp;amp;a) fmt.Printf(&amp;#34;b变量地址：%p\n&amp;#34;, &amp;amp;b) print(&amp;#34;断点打在这里&amp;#34;) } 将上面代码构建二进制应用， 然后使用 GDB 调试一下：
+go build -o string string.go # 构建二进制应用 gdb .</description>
     </item>
     
     <item>
@@ -71,9 +74,11 @@ func main() { var A int = 100 var B *int = &amp;amp;A fmt.Println(A == *B) } 转
       
       <guid>https://go.cyub.vip/type/array/</guid>
       <description>数组 # 数组是Go语言中常见的数据结构，相比切片，数组我们使用的比较少。
-初始化 # Go语言数组有两个声明初始化方式，一个需要显示指明数组大小，另一个使用...由编译器在编译阶段推断出来：
-arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 .. hint:: 上面代码中arr3和arr4的初始化方式，是指定数组索引对应的值。这种方式并不常见。 可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
-func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：</description>
+初始化 # Go语言数组有两个声明初始化方式，一种需要显示指明数组大小，另一种使用 ...保留字， 数组的长度将由编译器在编译阶段推断出来：
+arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 注意
+上面代码中arr3和arr4的初始化方式是指定数组索引对应的值。这种方式并不常见。
+可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
+func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：</description>
     </item>
     
     <item>
@@ -85,8 +90,8 @@ func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) //
       <description>映射 # 映射也被称为哈希表(hash table)、字典。它是一种由key-value组成的抽象数据结构。大多数情况下，它都能在O(1)的时间复杂度下实现增删改查功能。若在极端情况下出现所有key都发生哈希碰撞时则退回成链表形式，此时复杂度为O(N)。
 映射底层一般都是由数组组成，该数组每个元素称为桶，它使用hash函数将key分配到不同桶中，若出现碰撞冲突时候，则采用链地址法（也称为拉链法）或者开放寻址法解决冲突。下图就是一个由姓名-号码构成的哈希表的结构图：
 Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决，Go语言中映射具有以下特点：
-引用类型变量 读写并发不安全 遍历结果是随机的 数据结构 # .. image:: https://static.cyub.vip/images/202106/map_struct.png :alt: 映射底层结构 :width: 80% :align: center Go语言中映射的数据结构是runtime.hmap( runtime/map.go):
-// A header for a Go map. type hmap struct { count int // 元素个数，用于len函数返回map元素数量 flags uint8 // 标志位，标志当前map正在写等状态 B uint8 // buckets个数的对数，即桶数量 = 2 ^ B noverflow uint16 // overflow桶数量的近似值，overflow桶即溢出桶，即链表法中存在链表上的桶的个数 hash0 uint32 // 随机数种子，用于计算key的哈希值 buckets unsafe.Pointer // 指向buckets数组，如果元素个数为0时，该值为nil oldbuckets unsafe.Pointer // 扩容时指向旧的buckets nevacuate uintptr // 用于指示迁移进度，小于此值的桶已经迁移完成 extra *mapextra // 额外记录overflow桶信息 } 映射中每一个桶的结构是runtime.</description>
+引用类型变量 读写并发不安全 遍历结果是随机的 数据结构 # Go语言映射的数据结构 Go语言中映射的数据结构是 runtime.hmap( runtime/map.go):
+// A header for a Go map. type hmap struct { count int // 元素个数，用于len函数返回map元素数量 flags uint8 // 标志位，标志当前map正在写等状态 B uint8 // buckets个数的对数，即桶数量 = 2 ^ B noverflow uint16 // overflow桶数量的近似值，overflow桶即溢出桶，即链表法中存在链表上的桶的个数 hash0 uint32 // 随机数种子，用于计算key的哈希值 buckets unsafe.Pointer // 指向buckets数组，如果元素个数为0时，该值为nil oldbuckets unsafe.Pointer // 扩容时指向旧的buckets nevacuate uintptr // 用于指示迁移进度，小于此值的桶已经迁移完成 extra *mapextra // 额外记录overflow桶信息 } 映射中每一个桶的结构是 runtime.bmap( runtime/map.</description>
     </item>
     
     <item>
@@ -96,7 +101,7 @@ Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决
       
       <guid>https://go.cyub.vip/type/empty_struct/</guid>
       <description>空结构体 # 空结构体指的是没有任何字段的结构体。
-大小与内存地址 # 空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向runtime.zerobase。
+大小与内存地址 # 空结构体占用的内存空间大小为零字节，并且它们的地址可能相等也可能不等。当发生内存逃逸时候，它们的地址是相等的，都指向了 runtime.zerobase。
 // empty_struct.go type Empty struct{} //go:linkname zerobase runtime.zerobase var zerobase uintptr // 使用go:linkname编译指令，将zerobase变量指向runtime.zerobase func main() { a := Empty{} b := struct{}{} fmt.Println(unsafe.Sizeof(a) == 0) // true fmt.Println(unsafe.Sizeof(b) == 0) // true fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;a) // 0x590d00 fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;b) // 0x590d00 fmt.Printf(&amp;#34;%p\n&amp;#34;, &amp;amp;zerobase) // 0x590d00 c := new(Empty) d := new(Empty) fmt.Sprint(c, d) // 目的是让变量c和d发生逃逸 println(c) // 0x590d00 println(d) // 0x590d00 fmt.Println(c == d) // true e := new(Empty) f := new(Empty) println(e) // 0xc00008ef47 println(f) // 0xc00008ef47 fmt.</description>
     </item>
     

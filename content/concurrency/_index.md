@@ -4,6 +4,8 @@ title: "并发编程"
 
 # 并发编程
 
+学然后知不足，教然后知困。
+
 - [内存模型]({{< relref "concurrency/memory-model" >}})
 - [上下文 - context]({{< relref "concurrency/context" >}})
 - [通道 - channel]({{< relref "concurrency/channel" >}})

@@ -35,7 +35,7 @@ ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.7e9d53d4a20eea8c87bf76a4502bd21aa041c1ef2adc7e37ffc5339c57accccd.js" integrity="sha256-fp1T1KIO6oyHv3akUCvSGqBBwe8q3H43/8UznFeszM0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.4d480ffb1fc27e9eb3d64c014f36084d3d38d9b9995ebf9d325acc1a8268f67f.js" integrity="sha256-TUgP&#43;x/Cfp6z1kwBTzYITT042bmZXr&#43;dMlrMGoJo9n8=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -718,13 +718,13 @@ https://github.com/alex-shpak/hugo-book
 <p><code>TEXT</code>指令声明了<code>pagname.add</code>是在<code>.text</code>段</p>
 </li>
 <li>
-<p><code>pkgname·add</code>中的<code>·</code>，是一个 unicode 的中点。在程序被链接之后，所有的中点<code>·</code>都会被替换为点号<code>.</code>，所以通过
-  <a href="/analysis-tools/gdb/">GDB</a>调试打断点时候，应该是<code>b pagname.add</code>。</p>
+<p><code>pkgname·add</code>中的<code>·</code>，是一个 <code>unicode</code> 的中点。在程序被链接之后，所有的中点<code>·</code>都会被替换为点号<code>.</code>，所以通过 <strong>
+  <a href="/analysis-tools/gdb/">GDB</a></strong> 调试打断点时候，应该是 <code>b pagname.add</code></p>
 </li>
 <li>
-<p><code>(SB)</code>: SB 是一个虚拟寄存器，保存了静态基地址(static-base) 指针，即我们程序地址空间的开始地址。 &ldquo;&quot;.add(SB) 表明我们的符号add位于某个固定的相对地址空间起始处的偏移位置</p>
-<pre tabindex="0"><code>objdump -j .text -t test | grep &#39;main.add&#39; # 可获得main.add的绝对地址
-</code></pre></li>
+<p><code>(SB)</code>: <code>SB</code> 是一个虚拟寄存器，保存了静态基地址(static-base) 指针，即我们程序地址空间的开始地址。 <code>&quot;&quot;.add(SB)</code> 表明我们的符号add位于某个固定的相对地址空间起始处的偏移位置</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>objdump -j .text -t test | grep <span style="color:#e6db74">&#39;main.add&#39;</span> <span style="color:#75715e"># 可获得main.add的绝对地址</span>
+</span></span></code></pre></div></li>
 <li>
 <p><code>NOSPLIT</code>: 表明该函数内部不进行栈分裂逻辑处理，可以避免CPU资源浪费。关于栈分裂会在调度器章节介绍</p>
 </li>

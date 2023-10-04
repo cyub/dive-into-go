@@ -4,6 +4,8 @@ title: "数据类型与数据结构"
 
 # 数据类型与数据结构
 
+绳锯木断，水滴石穿。
+
 - [字符串]({{< relref "type/string" >}})
 - [数组]({{< relref "type/array" >}})
 - [切片]({{< relref "type/slice" >}})

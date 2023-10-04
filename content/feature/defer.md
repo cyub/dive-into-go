@@ -4,7 +4,7 @@ title: "延迟执行 - defer语法"
 
 # 延迟执行 - defer语法
 
-`defer`语法支持是Go 语言中一大特性，通过`defer`关键字，我们可以声明一个延迟执行函数，当调用者返回之前开始执行该函数，一般用来完成资源、锁、连接等释放工作，或者recover可能发生的panic。
+`defer` 语法支持是Go 语言中一大特性，通过 `defer` 关键字，我们可以声明一个延迟执行函数，当调用者返回之前开始执行该函数，一般用来完成资源、锁、连接等释放工作，或者 `recover` 可能发生的`panic`。
 
 ## 三大特性
 
@@ -57,12 +57,7 @@ func test() (i int) {
 
 defer函数底层数据结构是_defer结构体，多个defer函数会构建成一个_defer链表，后面加入的defer函数会插入链表的头部，该链表链表头部会链接到G上。当函数执行完成返回的时候，会从_defer链表头部开始依次执行defer函数。这也就是defer函数执行时会LIFO的原因。_defer链接结构示意图如下：
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202105/defer_profile.png
-    :alt: defer结构示意图
-    :width: 450px
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202105/defer_profile.png" width="450px" class="text-center" title="defer原理示意图">}}
 
 创建_defer结构体是需要进行内存分配的，为了减少分配_defer结构体时资源消耗，Go底层使用了defer缓冲池（defer pool），用来缓存上次使用完的_defer结构体，这样下次可以直接使用，不必再重新分配内存了。defer缓冲池一共有两级：per-P级defer缓冲池和全局defer缓冲池。当创建_defer结构体时候，优先从当前M关联的P的缓冲池中取得_defer结构体，即从per-P缓冲池中获取，这个过程是无锁操作。如果per-P缓冲池中没有，则在尝试从全局defer缓冲池获取，若也没有获取到，则重新分配一个新的_defer结构体。
 
@@ -210,7 +205,6 @@ func deferproc(siz int32, fn *funcval) {
 `getcallerpc()`返回调用者PC，此时PC指向的`CALL  runtime.deferproc(SB)`指令的下一条指令，即`TESTL   AX, AX`。
 
 结合汇编和`deferproc`代码，我们画出defer注册时状态图：
-
 
 
 接下来，我们来看下newdefer函数是如何分配defer结构体的。
@@ -437,13 +431,7 @@ function deferreturn() {
 
 画出deferreturn调用内存和栈的状态图，帮助理解：
 
-
-```eval_rst
-.. image:: https://static.cyub.vip/images/202106/jmpdefer.png
-    :alt: defer结构示意图
-    :width: 65%
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202106/jmpdefer.png" width="500px" class="text-center">}}
 
 最后我们来探究一下deferreturn第二个终止条件，考虑下面的场景：
 
@@ -507,71 +495,69 @@ func greet() {
 
 [go1.12版本](https://go.godbolt.org/z/341cvP)：
 
-```eval_rst
-.. code-block::
-   :emphasize-lines: 4,9
+{{< highlight shell "linenos=table,hl_lines=4 9" >}}
+leaq    "".greet·f(SB), AX
+pcdata  $2, $0
+movq    AX, 8(SP)
+call    runtime.deferproc(SB)
+testl   AX, AX
+jne     main_pc73
+.loc 1 5 0
+xchgl   AX, AX
+call    runtime.deferreturn(SB)
+{{< / highlight >}}
 
-    leaq    "".greet·f(SB), AX
-    pcdata  $2, $0
-    movq    AX, 8(SP)
-    call    runtime.deferproc(SB)
-    testl   AX, AX
-    jne     main_pc73
-    .loc 1 5 0
-    xchgl   AX, AX
-    call    runtime.deferreturn(SB)
-```
 
-go1.12版本中通过调用`runtime.deferproc`函数，将defer函数包装成`_defer`结构并注册到defer链表中，该`_defer`结构体是分配在堆内存中，需要进行垃圾回收的。
+go1.12版本中通过调用 `runtime.deferproc` 函数，将defer函数包装成 `_defer` 结构并注册到defer链表中，该 `_defer` 结构体是分配在堆内存中，需要进行垃圾回收的。
 
 [go1.13版本](https://go.godbolt.org/z/z95336)：
 
-```eval_rst
-.. code-block::
-   :emphasize-lines: 8,13
+{{< highlight shell "linenos=table,hl_lines=8 13" >}}
+leaq    "".greet·f(SB), AX
+pcdata  $0, $0
+movq    AX, ""..autotmp_0+32(SP)
+pcdata  $0, $1
+leaq    ""..autotmp_0+8(SP), AX
+pcdata  $0, $0
+movq    AX, (SP)
+call    runtime.deferprocStack(SB)
+testl   AX, AX
+jne     main_pc83
+.loc 1 5 0
+xchgl   AX, AX
+call    runtime.deferreturn(SB)
+{{< / highlight >}}
 
-    leaq    "".greet·f(SB), AX
-    pcdata  $0, $0
-    movq    AX, ""..autotmp_0+32(SP)
-    pcdata  $0, $1
-    leaq    ""..autotmp_0+8(SP), AX
-    pcdata  $0, $0
-    movq    AX, (SP)
-    call    runtime.deferprocStack(SB)
-    testl   AX, AX
-    jne     main_pc83
-    .loc 1 5 0
-    xchgl   AX, AX
-    call    runtime.deferreturn(SB)
-```
-
-go1.13版本中通过调用`runtime.deferprocStack`函数，将defer函数包装成`_defer`结构并注册到defer链表中，该`_defer`结构体是分配在栈上，不需要进行垃圾回收处理，这个地方就是go1.13相比go1.12所做的优化点。
+go1.13版本中通过调用 `runtime.deferprocStack` 函数，将defer函数包装成 `_defer` 结构并注册到defer链表中，该 `_defer` 结构体是分配在栈上，不需要进行垃圾回收处理，这个地方就是go1.13相比go1.12所做的优化点。
 
 [go1.14版本](https://go.godbolt.org/z/rGsc91)：
 
-```eval_rst
-.. code-block::
-   :emphasize-lines: 7
+{{< highlight shell "linenos=table,hl_lines=7" >}}
+leaq    "".greet·f(SB), AX
+pcdata  $0, $0
+pcdata  $1, $1
+movq    AX, ""..autotmp_1+8(SP)
+.loc 1 5 0
+movb    $0, ""..autotmp_0+7(SP)
+call    "".greet(SB)
+movq    16(SP), BP
+addq    $24, SP
+ret
+call    runtime.deferreturn(SB)
+{{< / highlight >}}
 
-    leaq    "".greet·f(SB), AX
-    pcdata  $0, $0
-    pcdata  $1, $1
-    movq    AX, ""..autotmp_1+8(SP)
-    .loc 1 5 0
-    movb    $0, ""..autotmp_0+7(SP)
-    call    "".greet(SB)
-    movq    16(SP), BP
-    addq    $24, SP
-    ret
-    call    runtime.deferreturn(SB)
+
+go1.14版本不再调用`deferproc/deferprocStack` 函数来处理，而是在 `return` 返回之前直接调用该 `defer`函数（即inline方式），性能相比go1.13又得到进一步提升，go官方把这种处理方式称为`open-coded defer`。实际上go1.14中禁止优化和内联之后，defer函数其底层实现方式就和go1.13一样了。
+
+需要注意的是 `open-coded defer` 使用是有限制的，它不能用于for循环中的defer函数，还有就是defer的数量也是有限制的，[最多支持8个defer函数](https://github.com/golang/go/blob/go1.14.13/src/cmd/compile/internal/gc/walk.go#L218-L223)，对于for循环或者数量过的defer，将使用deferproc/deferprocStack方式实现。关于 `open-coded defer` 设计细节可以参见官方设计文档：[Proposal: Low-cost defers through inline code, and extra funcdata to manage the panic case](https://github.com/golang/proposal/blob/master/design/34481-opencoded-defers.md)
+
+此外 `open-coded defer` 虽大大提高了 `defer` 函数执行的性能，但 `panic` 的 `recover` 的执行性能会大大变慢，这是因为 `panic` 处理过程中会扫描 `open-coded defer` 的栈帧。具体参见`open-coded defer`的[代码提交记录](https://go-review.googlesource.com/c/go/+/190098)。`open-coded defer`带来的好处的是明显，毕竟panic是比较少发生的。
+
+go1.14也增加了 `-d defer` 编译选项，可以查看`defer`实现时候使用哪一种方式: 
+
+```shell
+go build -gcflags="-d defer" main.go
 ```
-go1.14版本不再调用deferproc/deferprocStack函数来处理，而是在return返回之前直接调用该defer函数（即inline方式），性能相比go1.13又得到进一步提升，go官方把这种处理方式称为`open-coded defer`。实际上go1.14中禁止优化和内联之后，defer函数其底层实现方式就和go1.13一样了。
-
-需要注意的是`open-coded defer`使用是有限制的，它不能用于for循环中的defer函数，还有就是defer的数量也是有限制的，[最多支持8个defer函数](https://github.com/golang/go/blob/go1.14.13/src/cmd/compile/internal/gc/walk.go#L218-L223)，对于for循环或者数量过的defer，将使用deferproc/deferprocStack方式实现。关于`open-coded defer`设计细节可以参见官方设计文档：[Proposal: Low-cost defers through inline code, and extra funcdata to manage the panic case](https://github.com/golang/proposal/blob/master/design/34481-opencoded-defers.md)
-
-此外`open-coded defer`虽大大提高了defer函数执行的性能，但panic的recover的执行性能会大大变慢，这是因为panic处理过程中会扫描`open-coded defer`的栈帧。具体参见`open-coded defer`的[代码提交记录](https://go-review.googlesource.com/c/go/+/190098)。`open-coded defer`带来的好处的是明显，毕竟panic是比较少发生的。
-
-go1.14也增加了`-d defer`编译选项，可以查看defer实现时候使用哪一种方式，用法示例：` go build -gcflags="-d defer" main.go`
 
 总结一下defer优化历程：
 
@@ -586,7 +572,3 @@ G01.14 | 支持开放式编码defer，不再使用defer结构，直接在函数�
 ## 进一步阅读
 
 - [What is a defer? And how many can you run?](https://tpaschalis.github.io/defer-internals/)
-
-```eval_rst
-.. disqus::
-```

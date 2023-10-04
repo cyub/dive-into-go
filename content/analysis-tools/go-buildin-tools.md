@@ -11,9 +11,9 @@ title: "Go语言内置分析工具"
 `go build`命令用来编译Go 程序。`go build`重要的命令行选项有以下几个：
 
 ### go build -n
-`-n`选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以观察到编译器，连接器工作：
+`-n`选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以查看编译器，连接器如何工作的：
 
-```
+```shell
 #
 # _/home/vagrant/dive-into-go
 #
@@ -68,7 +68,7 @@ mv $WORK/b001/exe/a.out dive-into-go
 
 ### go build -race
 
-`-race`用来检查代码中是否存在数据竞态问题。`-race`可以用在多个命令中：
+`-race`选项用来检查代码中是否存在竞态问题。`-race`可以用在多个子命令中：
 
 ```
 go test -race mypkg
@@ -77,7 +77,7 @@ go build -race mycmd
 go install -race mypkg
 ```
 
-我们使用`-race`检查下面代码是否存在数据竞态问题，示例来自go官方博客：
+下面是来自Go语言官方博客的一个示例[^1]，在该示例中演示了使用`-race`选项检查代码中的竞态问题：
 
 ```go
 func main() {
@@ -96,11 +96,11 @@ func randomDuration() time.Duration {
 }
 ```
 
-上面代码功能是通过`time.AfterFunc`创建`timer`，定时的间隔从`randomDuration`函数获得，定时函数打印消息，然后通过`timer`的`Reset`方法重置定时器，重复利用。
+上面代码完成的功能是通过`time.AfterFunc`创建定时器，该定时器会在`randomDuration()`时候打印消息，此外还会通过`Rest()`方法重置该定时器，以达到重复利用该定时器目的。
 
-我们`-race`选项运行检查可以发现，上面代码是存在竞态问题的：
+当我们使用`-race`选项执行检查时候，可以发现上面代码是存在竞态问题的：
 
-```
+```shell
 $ go run -race main.go
 ==================
 WARNING: DATA RACE
@@ -145,7 +145,7 @@ go build -gcflags="log=-N -l" main.go // 只对log包进行禁止优化，禁止
 - -S选项指示打印出汇编代码
 - -m选项指示打印出变量内存逃逸信息
 
-```bash
+```shell
 go tool compile -N -l -S main.go # 打印出main.go对应的汇编代码
 GOOS=linux GOARCH=amd64 go tool compile -N -l -S main.go # 打印出针对特定系统和CPU架构的汇编代码
 ```
@@ -154,7 +154,7 @@ GOOS=linux GOARCH=amd64 go tool compile -N -l -S main.go # 打印出针对特定
 
 `go tool nm`命令用来查看Go 二进制文件中符号表信息。
 
-```
+```shell
 go tool nm ./main | grep "runtime.zerobase"
 ```
 
@@ -218,13 +218,13 @@ func main() {
 
 执行以下代码获取GMP调度信息：
 
-```
+```shell
 GODEBUG=schedtrace=1000 go run ./test.go
 ```
 
 笔者本人电脑输出以下内容：
 
-```
+```shell
 SCHED 0ms: gomaxprocs=8 idleprocs=6 threads=4 spinningthreads=1 idlethreads=0 runqueue=0 [0 0 0 0 0 0 0 0]
 SCHED 0ms: gomaxprocs=8 idleprocs=5 threads=3 spinningthreads=1 idlethreads=0 runqueue=0 [1 0 0 0 0 0 0 0]
 SCHED 0ms: gomaxprocs=8 idleprocs=5 threads=5 spinningthreads=1 idlethreads=0 runqueue=0 [0 0 0 0 0 0 0 0]
@@ -249,7 +249,7 @@ SCHED 2018ms: gomaxprocs=8 idleprocs=8 threads=16 spinningthreads=0 idlethreads=
 
 与GC相关的参数是gctrace，当设置为1时候，会输出gc信息到标准err输出中。使用方式示例如下：
 
-```
+```shell
 GODEBUG=gctrace=1 godoc -http=:8080
 ```
 
@@ -303,6 +303,8 @@ export GOGC=100
 
 ## 进一步阅读
 
-- [Introducing the Go Race Detector](https://blog.golang.org/race-detector)
+<!-- - [Introducing the Go Race Detector](https://blog.golang.org/race-detector) -->
 - [Go 大杀器之跟踪剖析 trace](https://eddycjy.gitbook.io/golang/di-9-ke-gong-ju/go-tool-trace)
 - [go runtime Environment Variables](https://pkg.go.dev/runtime#hdr-Environment_Variables)
+
+[^1]: [Introducing the Go Race Detector](https://blog.golang.org/race-detector)
