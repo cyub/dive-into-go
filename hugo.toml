@@ -61,3 +61,23 @@ BookDateFormat = 'January 2, 2006'
 # Portable links meant to work with text editors and let you write markdown without {{< relref >}} shortcode
 # Theme will print warning if page referenced in markdown does not exists.
 BookPortableLinks = true
+
+# 评论
+# @see https://zhauniarovich.com/post/2021/2021-06-giscus/
+[params.comments]
+# Comment provider:
+provider = "giscus"
+
+# Which page types are commentable?
+# commentable = {page = true, post = true, docs = false, project = false, publication = true, talk = false}
+
+# Configuration of giscus
+[params.comments.giscus]
+repo = "cyub/go-1.14.13"                     # Repo where the comments will live
+repo_id = "MDEwOlJlcG9zaXRvcnkzMzc2ODUyMzQ=" # Repo where the comments will live
+category = "Announcements"                   # Repo where the comments will live
+category_id = "DIC_kwDOFCCq8s4CZ3BC"         # Repo where the comments will live
+mapping = "pathname"                         # How Utterances will match comment to page
+label = "comment"                            # Label applied to issue by utteranc.es bot
+theme = "preferred_color_scheme"             # What theme to use
+reactions_enabled = 0
