@@ -31,7 +31,7 @@ go build -o string string.go # 构建二进制应用 gdb ." />
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.9749981f5a5252740b10f807556d022e7ea806edbe559c9ba2c2a1a86afdbf64.js" integrity="sha256-l0mYH1pSUnQLEPgHVW0CLn6oBu2&#43;VZybosKhqGr9v2Q=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.3d1195962e1207ac62fb79bead4581c42faf33a74b0256c39d11bda86fbacd95.js" integrity="sha256-PRGVli4SB6xi&#43;3m&#43;rUWBxC&#43;vM6dLAlbDnRG9qG&#43;6zZU=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -496,7 +496,7 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>从上面可以看到 <code>string.Builder</code> 的 <code>String</code> 方法使用 <code>unsafe.Pointer</code> 将字节数组转换成字符串。而<code>bytes.Buffer</code>的 <code>String</code> 方法使用的 <code>string([]byte)</code>将字节数组转换成字符串，后者由于涉及内存分配和拷贝，相比之下它的执行效率低。</p>
 <p>为什么<code>bytes.Buffer</code>的 <code>String</code> 方法的效率比较低，可以查看《<strong>
-  <a href="/type/slice/#string类型与byte类型如何实现zero-copy互相转换">基础篇 - 切片 - string类型与[]byte类型如何实现zero-copy互相转换？</a></strong>》。</p>
+  <a href="/type/slice/#string类型与byte类型如何实现zero-copy互相转换">基础篇-切片-string类型与[]byte类型如何实现zero-copy互相转换？</a></strong>》。</p>
 <h3 id="字符串拼接基准测试">
   字符串拼接基准测试
   <a class="anchor" href="#%e5%ad%97%e7%ac%a6%e4%b8%b2%e6%8b%bc%e6%8e%a5%e5%9f%ba%e5%87%86%e6%b5%8b%e8%af%95">#</a>

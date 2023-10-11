@@ -240,7 +240,7 @@ func (b *Builder) String() string {
 
 从上面可以看到 `string.Builder` 的 `String` 方法使用 `unsafe.Pointer` 将字节数组转换成字符串。而`bytes.Buffer`的 `String` 方法使用的 `string([]byte)`将字节数组转换成字符串，后者由于涉及内存分配和拷贝，相比之下它的执行效率低。
 
-为什么`bytes.Buffer`的 `String` 方法的效率比较低，可以查看《**[基础篇 - 切片 - string类型与[]byte类型如何实现zero-copy互相转换？]({{< relref "type/slice#string类型与byte类型如何实现zero-copy互相转换" >}})**》。
+为什么`bytes.Buffer`的 `String` 方法的效率比较低，可以查看《**[基础篇-切片-string类型与[]byte类型如何实现zero-copy互相转换？]({{< relref "type/slice#string类型与byte类型如何实现zero-copy互相转换" >}})**》。
 
 ### 字符串拼接基准测试
 

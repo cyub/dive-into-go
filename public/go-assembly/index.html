@@ -35,7 +35,7 @@ ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.9749981f5a5252740b10f807556d022e7ea806edbe559c9ba2c2a1a86afdbf64.js" integrity="sha256-l0mYH1pSUnQLEPgHVW0CLn6oBu2&#43;VZybosKhqGr9v2Q=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.3d1195962e1207ac62fb79bead4581c42faf33a74b0256c39d11bda86fbacd95.js" integrity="sha256-PRGVli4SB6xi&#43;3m&#43;rUWBxC&#43;vM6dLAlbDnRG9qG&#43;6zZU=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -483,8 +483,8 @@ https://github.com/alex-shpak/hugo-book
   <a class="anchor" href="#att-%e6%b1%87%e7%bc%96%e8%af%ad%e6%b3%95">#</a>
 </h3>
 <p>AT＆T汇编语法是类Unix的系统上的标准汇编语法，比如gcc、gdb中默认都是使用AT&amp;T汇编语法。AT&amp;T汇编的指令格式如下：</p>
-<pre tabindex="0"><code>instruction src dst
-</code></pre><p>其中<code>instruction</code>是指令助记符，也叫操作码，比如<code>mov</code>就是一个指令助记符，<code>src</code>是源操作数，<code>dst</code>是目的操作。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>instruction src dst
+</span></span></code></pre></div><p>其中<code>instruction</code>是指令助记符，也叫操作码，比如<code>mov</code>就是一个指令助记符，<code>src</code>是源操作数，<code>dst</code>是目的操作。</p>
 <p>当引用寄存器时候，应在寄存器名称加前缀<code>%</code>，对于常数，则应加前缀 <strong>$</strong>。</p>
 <h4 id="指令分类">
   指令分类
@@ -668,8 +668,13 @@ https://github.com/alex-shpak/hugo-book
 </tr>
 </tbody>
 </table>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. hint:: 以上指令分类并不规范和完整，比如`call`,`ret`都可以算作无条件跳转指令，这里面是按照功能放在函数调用这一分类了。
-</code></pre><h2 id="go-汇编">
+<blockquote class="book-hint info">
+  <p><strong>注意：</strong></p>
+<p>以上指令分类并不规范和完整，比如 <code>call</code> , <code>ret</code> 都可以算作无条件跳转指令，这里面是按照功能放在函数调用这一分类了。</p>
+
+</blockquote>
+
+<h2 id="go-汇编">
   Go 汇编
   <a class="anchor" href="#go-%e6%b1%87%e7%bc%96">#</a>
 </h2>
@@ -713,12 +718,12 @@ https://github.com/alex-shpak/hugo-book
   函数声明
   <a class="anchor" href="#%e5%87%bd%e6%95%b0%e5%a3%b0%e6%98%8e">#</a>
 </h3>
-<pre tabindex="0"><code>                              参数大小+返回值大小
-                                  | 
- TEXT pkgname·add(SB),NOSPLIT,$32-16
-       |        |               |
-      包名     函数名         栈帧大小
-</code></pre><ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>                              参数大小+返回值大小
+</span></span><span style="display:flex;"><span>                                  | 
+</span></span><span style="display:flex;"><span> TEXT pkgname·add<span style="color:#f92672">(</span>SB<span style="color:#f92672">)</span>,NOSPLIT,$32-16
+</span></span><span style="display:flex;"><span>       |        |               |
+</span></span><span style="display:flex;"><span>      包名     函数名         栈帧大小
+</span></span></code></pre></div><ul>
 <li>
 <p><code>TEXT</code>指令声明了<code>pagname.add</code>是在<code>.text</code>段</p>
 </li>
@@ -742,53 +747,53 @@ https://github.com/alex-shpak/hugo-book
   <a class="anchor" href="#%e5%87%bd%e6%95%b0%e8%b0%83%e7%94%a8%e6%a0%88">#</a>
 </h4>
 <p>Go汇编中函数调用的参数以及返回值都是由栈传递和保存的，这部分空间由<code>caller</code>在其栈帧(stack frame)上提供。Go汇编中没有使用PUSH/POP指令进行栈的伸缩处理，所有栈的增长和收缩是通过在栈指针寄存器<code>SP</code>上分别执行加减指令来实现的。</p>
-<pre tabindex="0"><code>                                                                                             
-                                       caller                                                
-                                 +------------------+                                        
-                                 |                  |                                        
-       +----------------------&gt;  |------------------|                                        
-       |                         | caller parent BP |                                        
-       |                         |------------------|  &lt;--------- BP(pseudo SP)              
-       |                         |   local Var0     |                                        
-       |                         |------------------|                                        
-       |                         |   .........      |                                        
-       |                         |------------------|                                        
-       |                         |   local VarN     |                                        
-       |                         |------------------|                                        
-       |                         |   temporarily    |                                        
-                                 |   unused space   |                                        
-caller stack frame               |------------------|                                        
-                                 |   callee retN    |                                        
-       |                         |------------------|                                        
-       |                         |   .........      |                                        
-       |                         |------------------|                                        
-       |                         |   callee ret0    |                                        
-       |                         |------------------|                                        
-       |                         |   callee argN    |                                        
-       |                         |------------------|                                        
-       |                         |   .........      |                                        
-       |                         |------------------|                                        
-       |                         |   callee arg0    |                                        
-       |                         |------------------|  &lt;--------- FP(virtual register)       
-       |                         |   return addr    |                                        
-       +----------------------&gt;  |------------------|  &lt;----------------------+              
-                                 |   caller BP      |                         |              
-          BP(pseudo SP) ------&gt;  |------------------|                         |              
-                                 |   local Var0     |                         |              
-                                 |------------------|                         |              
-                                 |   local Var1     |                                        
-                                 |------------------|                   callee stack frame   
-                                 |   .........      |                                        
-                                 |------------------|                         |              
-                                 |   local VarN     |                         |              
-      SP(Real Register) ------&gt;  |------------------|                         |              
-                                 |                  |                         |              
-                                 |                  |                         |              
-                                 +------------------+  &lt;----------------------+              
-                                                                                             
-                                      callee                                                 
-</code></pre><p>关于Go汇编进一步知识，我们将在 
-  <a href="/function/call-stack/">函数：调用栈</a> 章节详细探讨说明，此处我们只需要大致了解下函数声明、调用栈概念即可。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>                                                                                             
+</span></span><span style="display:flex;"><span>                                       caller                                                
+</span></span><span style="display:flex;"><span>                                 +------------------+                                        
+</span></span><span style="display:flex;"><span>                                 |                  |                                        
+</span></span><span style="display:flex;"><span>       +----------------------&gt;  |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         | caller parent BP |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|  &lt;--------- BP<span style="color:#f92672">(</span>pseudo SP<span style="color:#f92672">)</span>              
+</span></span><span style="display:flex;"><span>       |                         |   local Var0     |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         |   .........      |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         |   local VarN     |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         |   temporarily    |                                        
+</span></span><span style="display:flex;"><span>                                 |   unused space   |                                        
+</span></span><span style="display:flex;"><span>caller stack frame               |------------------|                                        
+</span></span><span style="display:flex;"><span>                                 |   callee retN    |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         |   .........      |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         |   callee ret0    |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         |   callee argN    |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         |   .........      |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|                                        
+</span></span><span style="display:flex;"><span>       |                         |   callee arg0    |                                        
+</span></span><span style="display:flex;"><span>       |                         |------------------|  &lt;--------- FP<span style="color:#f92672">(</span>virtual register<span style="color:#f92672">)</span>       
+</span></span><span style="display:flex;"><span>       |                         |   <span style="color:#66d9ef">return</span> addr    |                                        
+</span></span><span style="display:flex;"><span>       +----------------------&gt;  |------------------|  &lt;----------------------+              
+</span></span><span style="display:flex;"><span>                                 |   caller BP      |                         |              
+</span></span><span style="display:flex;"><span>          BP<span style="color:#f92672">(</span>pseudo SP<span style="color:#f92672">)</span> ------&gt;  |------------------|                         |              
+</span></span><span style="display:flex;"><span>                                 |   local Var0     |                         |              
+</span></span><span style="display:flex;"><span>                                 |------------------|                         |              
+</span></span><span style="display:flex;"><span>                                 |   local Var1     |                                        
+</span></span><span style="display:flex;"><span>                                 |------------------|                   callee stack frame   
+</span></span><span style="display:flex;"><span>                                 |   .........      |                                        
+</span></span><span style="display:flex;"><span>                                 |------------------|                         |              
+</span></span><span style="display:flex;"><span>                                 |   local VarN     |                         |              
+</span></span><span style="display:flex;"><span>      SP<span style="color:#f92672">(</span>Real Register<span style="color:#f92672">)</span> ------&gt;  |------------------|                         |              
+</span></span><span style="display:flex;"><span>                                 |                  |                         |              
+</span></span><span style="display:flex;"><span>                                 |                  |                         |              
+</span></span><span style="display:flex;"><span>                                 +------------------+  &lt;----------------------+              
+</span></span><span style="display:flex;"><span>                                                                                             
+</span></span><span style="display:flex;"><span>                                      callee                                                 
+</span></span></code></pre></div><p>关于Go汇编进一步知识，我们将在 《<strong>
+  <a href="/function/call-stack/">基础篇-函数-函数调用栈</a></strong> 》 章节详细探讨说明，此处我们只需要大致了解下函数声明、调用栈概念即可。</p>
 <h3 id="获取go汇编代码">
   获取Go汇编代码
   <a class="anchor" href="#%e8%8e%b7%e5%8f%96go%e6%b1%87%e7%bc%96%e4%bb%a3%e7%a0%81">#</a>
