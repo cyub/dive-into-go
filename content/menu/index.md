@@ -1,7 +1,7 @@
 ---
 headless: true
 ---
-
+- **[深入Go语言之旅]({{< relref "/" >}})**
 - **准备篇**
     - [编译流程]({{< relref "compiler" >}})
     - [分析工具]({{< relref "analysis-tools" >}})
