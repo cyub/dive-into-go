@@ -121,7 +121,7 @@ package main func sum(a, b int) int { sum := 0 sum = a + b return sum } func mai
 Intel 汇编 DOS(8086处理器), Windows Windows 派系 -&amp;gt; VC 编译器 AT&amp;amp;T 汇编 Linux, Unix, Mac OS, iOS(模拟器) Unix派系 -&amp;gt; GCC编译器 基于ARM 架构处理器的汇编语言
 ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
 位 bit 半字节 Nibble 字节 Byte 字 Word 相当于两个字节 双字 Double Word 相当于2个字，4个字节 四字 Quadword 相当于4个字，8个字节 寄存器 # 寄存器是CPU中存储数据的器件，起到数据缓存作用。内存按照内存层级(memory hierarchy)依次分为寄存器，L1 Cache, L2 Cache, L3 Cache，其读写延迟依次增加，实现成本依次降低。
-.. image:: https://static.</description>
+内存层级结构 寄存器分类 # 一个CPU中有多个寄存器。每一个寄存器都有自己的名称。寄存器按照种类分为通用寄存器和控制寄存器。其中通用寄存器有可细分为数据寄存器，指针寄存器，以及变址寄存器。</description>
     </item>
     
     <item>

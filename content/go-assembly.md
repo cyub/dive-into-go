@@ -47,12 +47,7 @@ title: "Go汇编语法"
 
 寄存器是CPU中存储数据的器件，起到数据缓存作用。内存按照内存层级(memory hierarchy)依次分为寄存器，L1 Cache, L2 Cache, L3 Cache，其读写延迟依次增加，实现成本依次降低。
 
-```eval_rst
-.. image:: https://static.cyub.vip/images/202104/mem_arch.jpg
-    :alt: 内存层级结构
-    :width: 500px
-    :align: center
-```
+{{< figure src="https://static.cyub.vip/images/202104/mem_arch.jpg" width="500px" class="text-center" title="内存层级结构">}}
 
 #### 寄存器分类
 

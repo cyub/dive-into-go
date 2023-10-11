@@ -12,7 +12,7 @@
 Intel 汇编 DOS(8086处理器), Windows Windows 派系 -&gt; VC 编译器 AT&amp;T 汇编 Linux, Unix, Mac OS, iOS(模拟器) Unix派系 -&gt; GCC编译器 基于ARM 架构处理器的汇编语言
 ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
 位 bit 半字节 Nibble 字节 Byte 字 Word 相当于两个字节 双字 Double Word 相当于2个字，4个字节 四字 Quadword 相当于4个字，8个字节 寄存器 # 寄存器是CPU中存储数据的器件，起到数据缓存作用。内存按照内存层级(memory hierarchy)依次分为寄存器，L1 Cache, L2 Cache, L3 Cache，其读写延迟依次增加，实现成本依次降低。
-.. image:: https://static.">
+内存层级结构 寄存器分类 # 一个CPU中有多个寄存器。每一个寄存器都有自己的名称。寄存器按照种类分为通用寄存器和控制寄存器。其中通用寄存器有可细分为数据寄存器，指针寄存器，以及变址寄存器。">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="Go汇编语法" />
@@ -25,7 +25,7 @@ ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
 Intel 汇编 DOS(8086处理器), Windows Windows 派系 -&gt; VC 编译器 AT&amp;T 汇编 Linux, Unix, Mac OS, iOS(模拟器) Unix派系 -&gt; GCC编译器 基于ARM 架构处理器的汇编语言
 ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
 位 bit 半字节 Nibble 字节 Byte 字 Word 相当于两个字节 双字 Double Word 相当于2个字，4个字节 四字 Quadword 相当于4个字，8个字节 寄存器 # 寄存器是CPU中存储数据的器件，起到数据缓存作用。内存按照内存层级(memory hierarchy)依次分为寄存器，L1 Cache, L2 Cache, L3 Cache，其读写延迟依次增加，实现成本依次降低。
-.. image:: https://static." />
+内存层级结构 寄存器分类 # 一个CPU中有多个寄存器。每一个寄存器都有自己的名称。寄存器按照种类分为通用寄存器和控制寄存器。其中通用寄存器有可细分为数据寄存器，指针寄存器，以及变址寄存器。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://go.cyub.vip/go-assembly/" /><meta property="article:section" content="" />
 
@@ -35,7 +35,7 @@ ARM 汇编 数据单元大小 # 汇编中数据单元大小可分为：
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.c37a17770509ec4e40a795c46af7594f926eb0a9f05263a8b2960e823c91dc07.js" integrity="sha256-w3oXdwUJ7E5Ap5XEavdZT5JusKnwUmOospYOgjyR3Ac=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.9749981f5a5252740b10f807556d022e7ea806edbe559c9ba2c2a1a86afdbf64.js" integrity="sha256-l0mYH1pSUnQLEPgHVW0CLn6oBu2&#43;VZybosKhqGr9v2Q=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -357,11 +357,12 @@ https://github.com/alex-shpak/hugo-book
   <a class="anchor" href="#%e5%af%84%e5%ad%98%e5%99%a8">#</a>
 </h3>
 <p>寄存器是CPU中存储数据的器件，起到数据缓存作用。内存按照内存层级(memory hierarchy)依次分为寄存器，L1 Cache, L2 Cache, L3 Cache，其读写延迟依次增加，实现成本依次降低。</p>
-<pre tabindex="0"><code class="language-eval_rst" data-lang="eval_rst">.. image:: https://static.cyub.vip/images/202104/mem_arch.jpg
-    :alt: 内存层级结构
-    :width: 500px
-    :align: center
-</code></pre><h4 id="寄存器分类">
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/mem_arch.jpg" width="500px"/><figcaption>
+            <h4>内存层级结构</h4>
+        </figcaption>
+</figure>
+
+<h4 id="寄存器分类">
   寄存器分类
   <a class="anchor" href="#%e5%af%84%e5%ad%98%e5%99%a8%e5%88%86%e7%b1%bb">#</a>
 </h4>
