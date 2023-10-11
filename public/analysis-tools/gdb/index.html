@@ -23,7 +23,7 @@ go build -gcflags=&#34;-N -l&#34; -o test main.go 启动调试 # gdb ./test # �
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.1e93d7829cc9749f522da36045f6f9a38b841d84742c5bcf428f1839d18319ec.js" integrity="sha256-HpPXgpzJdJ9SLaNgRfb5o4uEHYR0LFvPQo8YOdGDGew=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.fcd75f15d1dde9aaf934a11880d3702b4030498cd0306e92fb39dd5e3a2a8953.js" integrity="sha256-/NdfFdHd6ar5NKEYgNNwK0AwSYzQMG6S&#43;zndXjoqiVM=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -334,15 +334,18 @@ https://github.com/alex-shpak/hugo-book
   运行程序
   <a class="anchor" href="#%e8%bf%90%e8%a1%8c%e7%a8%8b%e5%ba%8f">#</a>
 </h2>
-<p>通过 <code>run</code> 命令运行程序：</p>
+<p>通过 <code>run</code> 命令运行程序， <code>run</code> 命令可以简写成 <code>r</code>：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> run
-</span></span></code></pre></div><p>指定命令行参数运行：</p>
+</span></span></code></pre></div><p>除了启动GDB时候，设置程序的命令行参数外，我们也可以在启动GDB后，再指定程序的命令行参数：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> run arg1 arg2
 </span></span></code></pre></div><p>或者通过 <code>set</code> 命令设置命令行参数：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> set args arg1 arg2
 </span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> run
-</span></span></code></pre></div><p>除了 <code>run</code> 命令外，我们也可以使用 <code>start</code> 命令运行程序。<code>start</code> 命令会在在main函数的第一条语句前面停下来。</p>
+</span></span></code></pre></div><p>除了 <code>run</code> 命令外，我们也可以使用 <code>start</code> 命令运行程序。<code>start</code> 命令会在在 <code>main</code> 函数的第一条语句前面停下来。</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> start
+</span></span></code></pre></div><p><code>start</code> 命令相当于在Go程序的入口函数<code>main.main</code> (<code>main.main</code> 代表 <code>main</code> 包的 <code>main</code> 函数)处设置断点，然后运行 <code>run</code> 命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> b main.main
+</span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> run
 </span></span></code></pre></div><h2 id="断点的设置查看删除禁用">
   断点的设置、查看、删除、禁用
   <a class="anchor" href="#%e6%96%ad%e7%82%b9%e7%9a%84%e8%ae%be%e7%bd%ae%e6%9f%a5%e7%9c%8b%e5%88%a0%e9%99%a4%e7%a6%81%e7%94%a8">#</a>
@@ -832,7 +835,7 @@ https://github.com/alex-shpak/hugo-book
   为系统调用设置捕获点
   <a class="anchor" href="#%e4%b8%ba%e7%b3%bb%e7%bb%9f%e8%b0%83%e7%94%a8%e8%ae%be%e7%bd%ae%e6%8d%95%e8%8e%b7%e7%82%b9">#</a>
 </h2>
-<p>gdb支持为系统调用设置捕获点(catchpoint)，我们可以通过 <code>catch</code> 指令，后面加上 <strong>系统调用号(syscall numbers)</strong><sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> 或者<strong>系统调用助记符(syscall mnemonic names，也称为系统调用名称)</strong> 来设置捕获点。如果不指定系统调用的话，默认是捕获所有系统调用。</p>
+<p>GDB支持为系统调用设置捕获点(catchpoint)，我们可以通过 <code>catch</code> 指令，后面加上 <strong>系统调用号(syscall numbers)</strong><sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> 或者<strong>系统调用助记符(syscall mnemonic names，也称为系统调用名称)</strong> 来设置捕获点。如果不指定系统调用的话，默认是捕获所有系统调用。</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> catch syscall <span style="color:#ae81ff">231</span>
 </span></span><span style="display:flex;"><span>Catchpoint <span style="color:#ae81ff">1</span> <span style="color:#f92672">(</span>syscall <span style="color:#e6db74">&#39;exit_group&#39;</span> <span style="color:#f92672">[</span>231<span style="color:#f92672">])</span>
 </span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> catch syscall exit_group
@@ -851,7 +854,7 @@ https://github.com/alex-shpak/hugo-book
   批量执行命令
   <a class="anchor" href="#%e6%89%b9%e9%87%8f%e6%89%a7%e8%a1%8c%e5%91%bd%e4%bb%a4">#</a>
 </h2>
-<p>gdb支持以脚本形式运行命令，我们可以使用下面的选项：</p>
+<p>GDB支持以脚本形式运行命令，我们可以使用下面的选项：</p>
 <ul>
 <li><code>-ex</code>选项可以用来指定执行命令</li>
 <li><code>-iex</code>选来用来指定加载应用程序之前需执行的命令</li>

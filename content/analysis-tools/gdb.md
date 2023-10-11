@@ -79,13 +79,13 @@ Ctrl + X + 1 // 显示一个窗口
 
 ## 运行程序
 
-通过 `run` 命令运行程序：
+通过 `run` 命令运行程序， `run` 命令可以简写成 `r`：
 
 ```bash
 (gdb) run
 ```
 
-指定命令行参数运行：
+除了启动GDB时候，设置程序的命令行参数外，我们也可以在启动GDB后，再指定程序的命令行参数：
 
 ```bash
 (gdb) run arg1 arg2
@@ -98,10 +98,17 @@ Ctrl + X + 1 // 显示一个窗口
 (gdb) run
 ```
 
-除了 `run` 命令外，我们也可以使用 `start` 命令运行程序。`start` 命令会在在main函数的第一条语句前面停下来。
+除了 `run` 命令外，我们也可以使用 `start` 命令运行程序。`start` 命令会在在 `main` 函数的第一条语句前面停下来。
 
 ```bash
 (gdb) start
+```
+
+`start` 命令相当于在Go程序的入口函数`main.main` (`main.main` 代表 `main` 包的 `main` 函数)处设置断点，然后运行 `run` 命令：
+
+```bash
+(gdb) b main.main
+(gdb) run
 ```
 
 ## 断点的设置、查看、删除、禁用
@@ -633,7 +640,7 @@ examine /<n/f/u> <addr>
 
 ## 为系统调用设置捕获点
 
-gdb支持为系统调用设置捕获点(catchpoint)，我们可以通过 `catch` 指令，后面加上 **系统调用号(syscall numbers)**[^1] 或者**系统调用助记符(syscall mnemonic names，也称为系统调用名称)** 来设置捕获点。如果不指定系统调用的话，默认是捕获所有系统调用。
+GDB支持为系统调用设置捕获点(catchpoint)，我们可以通过 `catch` 指令，后面加上 **系统调用号(syscall numbers)**[^1] 或者**系统调用助记符(syscall mnemonic names，也称为系统调用名称)** 来设置捕获点。如果不指定系统调用的话，默认是捕获所有系统调用。
 
 ```shell
 (gdb) catch syscall 231
@@ -660,7 +667,7 @@ set substitute-path ~/www/go/src/github.com/go-delve/ ~/www/go/src/github.com/go
 
 ## 批量执行命令
 
-gdb支持以脚本形式运行命令，我们可以使用下面的选项：
+GDB支持以脚本形式运行命令，我们可以使用下面的选项：
 
 - `-ex`选项可以用来指定执行命令
 - `-iex`选来用来指定加载应用程序之前需执行的命令
