@@ -201,7 +201,7 @@ func (b *Buffer) String() string {
 }
 ```
 
-{{< hint info >}}
+{{< hint warning >}}
 **注意：**
 
 bytes.Buffer是可以复用的。当进行reset时候，并不会销毁内存缓冲。

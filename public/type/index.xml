@@ -76,7 +76,7 @@ func main() { var A int = 100 var B *int = &amp;amp;A fmt.Println(A == *B) } 转
       <description>数组 # 数组是Go语言中常见的数据结构，相比切片，数组我们使用的比较少。
 初始化 # Go语言数组有两个声明初始化方式，一种需要显示指明数组大小，另一种使用 ...保留字， 数组的长度将由编译器在编译阶段推断出来：
 arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 注意：
-上面代码中arr3和arr4的初始化方式是指定数组索引对应的值。这种方式并不常见。
+上面代码中 arr3 和 arr4 的初始化方式是指定数组索引对应的值。实际使用中这种方式并不常见。
 可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
 func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：</description>
     </item>
