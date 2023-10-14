@@ -23,7 +23,7 @@ go build -gcflags=&#34;-N -l&#34; -o test main.go 启动调试 # gdb ./test # �
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.fcd75f15d1dde9aaf934a11880d3702b4030498cd0306e92fb39dd5e3a2a8953.js" integrity="sha256-/NdfFdHd6ar5NKEYgNNwK0AwSYzQMG6S&#43;zndXjoqiVM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.b60b587eec74092fc10c110f802948ebe5dc902d7b8dfdc51f147ae4038eec1d.js" integrity="sha256-tgtYfux0CS/BDBEPgClI6&#43;XckC17jf3FHxR65AOO7B0=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -343,7 +343,7 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> run
 </span></span></code></pre></div><p>除了 <code>run</code> 命令外，我们也可以使用 <code>start</code> 命令运行程序。<code>start</code> 命令会在在 <code>main</code> 函数的第一条语句前面停下来。</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> start
-</span></span></code></pre></div><p><code>start</code> 命令相当于在Go程序的入口函数<code>main.main</code> (<code>main.main</code> 代表 <code>main</code> 包的 <code>main</code> 函数)处设置断点，然后运行 <code>run</code> 命令：</p>
+</span></span></code></pre></div><p><code>start</code> 命令相当于在Go程序的入口函数 <code>main.main</code> (<code>main.main</code> 代表 <code>main</code> 包的 <code>main</code> 函数)处设置断点，然后运行 <code>run</code> 命令：</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> b main.main
 </span></span><span style="display:flex;"><span><span style="color:#f92672">(</span>gdb<span style="color:#f92672">)</span> run
 </span></span></code></pre></div><h2 id="断点的设置查看删除禁用">
