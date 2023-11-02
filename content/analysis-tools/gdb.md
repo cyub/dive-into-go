@@ -104,7 +104,7 @@ Ctrl + X + 1 // 显示一个窗口
 (gdb) start
 ```
 
-`start` 命令相当于在Go程序的入口函数`main.main` (`main.main` 代表 `main` 包的 `main` 函数)处设置断点，然后运行 `run` 命令：
+`start` 命令相当于在Go程序的入口函数 `main.main` (`main.main` 代表 `main` 包的 `main` 函数)处设置断点，然后运行 `run` 命令：
 
 ```bash
 (gdb) b main.main
