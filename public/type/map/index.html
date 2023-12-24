@@ -25,7 +25,7 @@ Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.93e09a692e83129c8b0cc95c521eab7d4f5256b35651cf852c4ad4185bdc55a5.js" integrity="sha256-k&#43;CaaS6DEpyLDMlcUh6rfU9SVrNWUc&#43;FLErUGFvcVaU=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.666c9df3d45a4db71209519163521d56022f99f3cad80ea466015e954ff8bb0d.js" integrity="sha256-Zmyd89RaTbcSCVGRY1IdVgIvmfPK2A6kZgFelU/4uw0=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -419,7 +419,7 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>makemap函数的第一个参数是maptype类指针，它描述了创建的map中key和value元素的类型信息以及其他map信息，第二个参数hint，对应是<code>make([Type]Type, len)</code>中len参数，第三个参数h，如果不为nil，说明当前map的结构已经有编译器在栈上创建了，makemap只需要完成设置随机数种子等操作。</p>
 <p><code>overLoadFactor</code>函数用来判断当前映射的加载因子是否超过加载因子阈值。<code>makemap</code>使用<code>overLoadFactor</code>函数来调整B值。</p>
-<p><strong>加载因子</strong>描述了哈希表中元素填满程度，加载因子越大，表明哈希表中元素越多，空间利用率高，但是这也意味着冲突的机会就会加大。当哈希表中所有桶已写满情况下，加载因子就是1，此时再写入新key一定会产生冲突碰撞。为了提高哈希表写入效率就必须在加载因子超过一定值时（这个值称为加载因子阈值），进行rehash操作，将桶容量进行扩容，来尽量避免出现冲突情况。</p>
+<p><strong>加载因子</strong>，也称为扩容因子，或者负载因子，用来描述哈希表中元素填满程度，加载因子越大，表明哈希表中元素越多，空间利用率高，但是这也意味着冲突的机会就会加大。<strong>加载因子是通过写入元素个数除以桶个数得到，当哈希表中所有桶已写满情况下，此时加载因子是1</strong>，此时再写入新key一定会产生冲突碰撞。为了提高哈希表写入效率就必须在加载因子超过一定值时（这个值称为<strong>加载因子阈值</strong>），进行rehash操作，将桶容量进行扩容，来尽量避免出现冲突情况。</p>
 <p>Java中hashmap的默认加载因子阈值是0.75，Go语言中映射的加载因子阈值是6.5。为什么Go映射的加载因子阈值不是0.75，而且超过了1？这是因为Java中哈希表的桶存放的是一个key-value，其满载因子是1，Go映射中每个桶可以存8个key-value，满载因子是8，当加载因子阈值为6.5时候空间利用率和写入性能达到最佳平衡。</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">overLoadFactor</span>(<span style="color:#a6e22e">count</span> <span style="color:#66d9ef">int</span>, <span style="color:#a6e22e">B</span> <span style="color:#66d9ef">uint8</span>) <span style="color:#66d9ef">bool</span> {
 </span></span><span style="display:flex;"><span>	<span style="color:#75715e">// count &gt; bucketCnt，bucketCnt值是8，每一个桶可以存放8个key-value，如果map中元素个数count小于8那么一定不会超过加载因子
@@ -478,7 +478,7 @@ https://github.com/alex-shpak/hugo-book
         </figcaption>
 </figure>
 
-<p>通过上面分析整个映射创建过程，可以看到使用make创建map时候，返回都是hmap类型指针，这也就说明<strong>Go语言中映射时引用类型的</strong>。</p>
+<p>通过上面分析整个映射创建过程，可以看到使用make创建map时候，返回都是hmap类型指针，这也就说明<strong>Go语言中映射是引用类型</strong>。</p>
 <h2 id="访问映射操作">
   访问映射操作
   <a class="anchor" href="#%e8%ae%bf%e9%97%ae%e6%98%a0%e5%b0%84%e6%93%8d%e4%bd%9c">#</a>

@@ -61,7 +61,6 @@ type bmap struct{
 
 bmap结构示意图：
 
-
 {{< figure src="https://static.cyub.vip/images/202106/map_bmap.png" width="500px" class="text-center" title="bmap底层结构">}}
 
 每个桶bmap中可以装载8个key-value键值对。当一个key确定存储在哪个桶之后，还需要确定具体存储在桶的哪个位置（这个位置也称为桶单元，一个bmap装载8个key-value键值对，那么一个bmap共8个桶单元），bmap中tophash就是用于实现快速定位key的位置。在实现过程中会使用key的hash值的高八位作为tophash值，存放在bmap的tophash字段中。tophash计算公式如下：
@@ -165,7 +164,7 @@ makemap函数的第一个参数是maptype类指针，它描述了创建的map中
 
 `overLoadFactor`函数用来判断当前映射的加载因子是否超过加载因子阈值。`makemap`使用`overLoadFactor`函数来调整B值。
 
-**加载因子**描述了哈希表中元素填满程度，加载因子越大，表明哈希表中元素越多，空间利用率高，但是这也意味着冲突的机会就会加大。当哈希表中所有桶已写满情况下，加载因子就是1，此时再写入新key一定会产生冲突碰撞。为了提高哈希表写入效率就必须在加载因子超过一定值时（这个值称为加载因子阈值），进行rehash操作，将桶容量进行扩容，来尽量避免出现冲突情况。
+**加载因子**，也称为扩容因子，或者负载因子，用来描述哈希表中元素填满程度，加载因子越大，表明哈希表中元素越多，空间利用率高，但是这也意味着冲突的机会就会加大。**加载因子是通过写入元素个数除以桶个数得到，当哈希表中所有桶已写满情况下，此时加载因子是1**，此时再写入新key一定会产生冲突碰撞。为了提高哈希表写入效率就必须在加载因子超过一定值时（这个值称为**加载因子阈值**），进行rehash操作，将桶容量进行扩容，来尽量避免出现冲突情况。
 
 Java中hashmap的默认加载因子阈值是0.75，Go语言中映射的加载因子阈值是6.5。为什么Go映射的加载因子阈值不是0.75，而且超过了1？这是因为Java中哈希表的桶存放的是一个key-value，其满载因子是1，Go映射中每个桶可以存8个key-value，满载因子是8，当加载因子阈值为6.5时候空间利用率和写入性能达到最佳平衡。
 
@@ -233,7 +232,7 @@ func makeBucketArray(t *maptype, b uint8, dirtyalloc unsafe.Pointer) (buckets un
 {{< figure src="https://static.cyub.vip/images/202106/map_overflow_bucket.png" width="600px" class="text-center" title="映射中桶定位">}}
 
 
-通过上面分析整个映射创建过程，可以看到使用make创建map时候，返回都是hmap类型指针，这也就说明**Go语言中映射时引用类型的**。
+通过上面分析整个映射创建过程，可以看到使用make创建map时候，返回都是hmap类型指针，这也就说明**Go语言中映射是引用类型**。
 
 ## 访问映射操作
 
