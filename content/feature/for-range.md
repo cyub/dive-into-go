@@ -190,7 +190,7 @@ func main() {
 
 ## 遍历通道
 
-当遍历通道时，直到通道关闭才会终止，若通道是nil，则会永远阻塞。遍历通道源码分析请见[从通道中读取数据](../concurrency/channel.html#id4)。
+当遍历通道时，直到通道关闭才会终止，若通道是nil，则会永远阻塞。遍历通道源码分析请见《**[运行时篇-通道-从channel中读取数据]({{< relref "concurrency/channel#从channel中读取数据" >}})** 》。
 
 
 ## 进一步阅读
