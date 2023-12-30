@@ -4,12 +4,15 @@ title: "Delve is a debugger for the Go programming language"
 
 # Delve
 
-**Delve**[^1] 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 **[GDB]({{< relref "analysis-tools/gdb" >}})** 工具类似，相比 **[GDB]({{< relref "analysis-tools/gdb" >}})**，它简单易用，能更好的理解Go语言数据结构和语言特性。它支持打印 `goroutine` 以及 `defer` 函数等Go特有语法特性。**Delve** 简称 `dlv`，后文将以 `dlv` 代称 **Delve**.
+**Delve**[^1] 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 **[GDB]({{< relref "analysis-tools/gdb" >}})** 工具类似，相比 **[GDB]({{< relref "analysis-tools/gdb" >}})**，它简单易用，能够更好的理解和处理Go语言的数据结构和语言特性，比如它支持打印 `goroutine` 以及 `defer` 函数等Go特有的语法特性。**Delve** 简称 `dlv`，后文将以 `dlv` 代称 **Delve**.
 
 ## 安装
 
 ```bash
+# 安装最新版本
 go get -u github.com/go-delve/delve/cmd/dlv
+# 查看版本
+dlv version
 ```
 
 ## 使用
