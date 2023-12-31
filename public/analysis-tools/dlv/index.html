@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Delve # Delve1 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 GDB 工具类似，相比 GDB，它简单易用，能更好的理解Go语言数据结构和语言特性。它支持打印 goroutine 以及 defer 函数等Go特有语法特性。Delve 简称 dlv，后文将以 dlv 代称 Delve.
-安装 # go get -u github.com/go-delve/delve/cmd/dlv 使用 # 开始调试 # dlv 使用 debug 命令进入调试界面：
+<meta name="description" content="Delve # Delve1 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 GDB 工具类似，相比 GDB，它简单易用，能够更好的理解和处理Go语言的数据结构和语言特性，比如它支持打印 goroutine 以及 defer 函数等Go特有的语法特性。Delve 简称 dlv，后文将以 dlv 代称 Delve.
+安装 # # 安装最新版本 go get -u github.com/go-delve/delve/cmd/dlv # 查看版本 dlv version 使用 # 开始调试 # dlv 使用 debug 命令进入调试界面：
 dlv debug main.go 如果当前目录是 main 包所在目录时候，可以不用指定 main.go 文件这个参数的。假定项目结构如下：
-. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github.com/me/foo/cmd/foo 开始调试。">
+. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="Delve is a debugger for the Go programming language" />
-<meta property="og:description" content="Delve # Delve1 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 GDB 工具类似，相比 GDB，它简单易用，能更好的理解Go语言数据结构和语言特性。它支持打印 goroutine 以及 defer 函数等Go特有语法特性。Delve 简称 dlv，后文将以 dlv 代称 Delve.
-安装 # go get -u github.com/go-delve/delve/cmd/dlv 使用 # 开始调试 # dlv 使用 debug 命令进入调试界面：
+<meta property="og:description" content="Delve # Delve1 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 GDB 工具类似，相比 GDB，它简单易用，能够更好的理解和处理Go语言的数据结构和语言特性，比如它支持打印 goroutine 以及 defer 函数等Go特有的语法特性。Delve 简称 dlv，后文将以 dlv 代称 Delve.
+安装 # # 安装最新版本 go get -u github.com/go-delve/delve/cmd/dlv # 查看版本 dlv version 使用 # 开始调试 # dlv 使用 debug 命令进入调试界面：
 dlv debug main.go 如果当前目录是 main 包所在目录时候，可以不用指定 main.go 文件这个参数的。假定项目结构如下：
-. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github.com/me/foo/cmd/foo 开始调试。" />
+. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://go.cyub.vip/analysis-tools/dlv/" /><meta property="article:section" content="analysis-tools" />
 
@@ -23,7 +23,7 @@ dlv debug main.go 如果当前目录是 main 包所在目录时候，可以不�
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.666c9df3d45a4db71209519163521d56022f99f3cad80ea466015e954ff8bb0d.js" integrity="sha256-Zmyd89RaTbcSCVGRY1IdVgIvmfPK2A6kZgFelU/4uw0=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
 
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
 <script>
@@ -287,12 +287,15 @@ https://github.com/alex-shpak/hugo-book
 </h1>
 <p><strong>Delve</strong><sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 <strong>
   <a href="/analysis-tools/gdb/">GDB</a></strong> 工具类似，相比 <strong>
-  <a href="/analysis-tools/gdb/">GDB</a></strong>，它简单易用，能更好的理解Go语言数据结构和语言特性。它支持打印 <code>goroutine</code> 以及 <code>defer</code> 函数等Go特有语法特性。<strong>Delve</strong> 简称 <code>dlv</code>，后文将以 <code>dlv</code> 代称 <strong>Delve</strong>.</p>
+  <a href="/analysis-tools/gdb/">GDB</a></strong>，它简单易用，能够更好的理解和处理Go语言的数据结构和语言特性，比如它支持打印 <code>goroutine</code> 以及 <code>defer</code> 函数等Go特有的语法特性。<strong>Delve</strong> 简称 <code>dlv</code>，后文将以 <code>dlv</code> 代称 <strong>Delve</strong>.</p>
 <h2 id="安装">
   安装
   <a class="anchor" href="#%e5%ae%89%e8%a3%85">#</a>
 </h2>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go get -u github.com/go-delve/delve/cmd/dlv
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># 安装最新版本</span>
+</span></span><span style="display:flex;"><span>go get -u github.com/go-delve/delve/cmd/dlv
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 查看版本</span>
+</span></span><span style="display:flex;"><span>dlv version
 </span></span></code></pre></div><h2 id="使用">
   使用
   <a class="anchor" href="#%e4%bd%bf%e7%94%a8">#</a>
