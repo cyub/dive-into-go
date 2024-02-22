@@ -92,7 +92,7 @@ Goroutine = Golang + Coroutine。**Goroutine是golang实现的协程，是用户
 
 ## G-M-P模型概览
 
-![GMP模型概览图](https://cdn.learnku.com/uploads/images/202003/11/58489/Ugu3C2WSpM.jpeg!large)
+![GMP模型概览图](https://static.cyub.vip/images/202402/gmp.jpeg)
 
 G-M-P分别代表：
 
