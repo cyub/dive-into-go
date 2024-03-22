@@ -13,7 +13,7 @@ title: "简介"
 
 如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。
 
-{{< figure src="https://static.cyub.vip/images/202201/wepay.jpeg" width="160px" class="text-center">}}
+{{< figure src="https://static.cyub.vip/images/202201/wepay.jpeg" width="300" class="text-center">}}
 
 <!-- .. image:: https://static.cyub.vip/images/202201/wepay.jpeg
     :alt: 深入Go语言之旅赞助
