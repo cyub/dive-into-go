@@ -7,13 +7,9 @@ title: "简介"
 欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析Goroutine调度流程，通道、上下文等的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言的设计与实现机制。
 本书分析的源码基于 [go1.14.13](https://github.com/golang/go/tree/go1.14.13) 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。
 
-欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：**深入Go语言之旅**。群主会拉你进群。
+欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：**深入Go语言之旅**。群主会拉你进群。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。
 
-{{< figure src="https://static.cyub.vip/images/202112/wx_qrc.jpeg"  width="185px" class="text-center">}}
-
-如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。
-
-{{< figure src="https://static.cyub.vip/images/202201/wepay.jpeg" width="300" class="text-center">}}
+{{< figure src="https://static.cyub.vip/images/202112/wx_qrc.jpeg"  width="300px" class="text-center">}}
 
 <!-- .. image:: https://static.cyub.vip/images/202201/wepay.jpeg
     :alt: 深入Go语言之旅赞助
@@ -22,6 +18,12 @@ title: "简介"
     :target: https://go.cyub.vip -->
 
 ## 感谢打赏
+
+如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️，金额随意。
+微信打赏码 | 支付宝收款码 | 
+--- | --- 
+{{< figure src="https://static.cyub.vip/images/202201/wepay.jpeg" width="220" class="text-center">}} | {{< figure src="https://static.cyub.vip/images/202403/zhifubao.jpg" width="220" class="text-center">}} 
+
 
 十分感谢以下读者的打赏❤️
 
@@ -35,6 +37,7 @@ title: "简介"
  张*冲 | 20
  强* | 6.6
  w*g | 20 | excellent work
+ 田*伟 | 10 | 写的很好，加油
 
 ## 参考资料
 

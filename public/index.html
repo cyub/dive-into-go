@@ -5,10 +5,10 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content=" 欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析Goroutine调度流程，通道、上下文等的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言的设计与实现机制。 本书分析的源码基于 go1.14.13 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。
-欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：深入Go语言之旅。群主会拉你进群。
-如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。
-感谢打赏 # 十分感谢以下读者的打赏❤️
-姓名 金额 留言 铁头班*友 10 *w 50 写的很好，加油 *油 33 *谭 10 林*壕 20 张*冲 20 强* 6.6 w*g 20 excellent work 参考资料 # Go语言调度器源代码情景分析 cch123/golang-notes Go语言设计与实现 深度探索Go语言：对象模型与runtime的原理、特性及应用 ">
+欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：深入Go语言之旅。群主会拉你进群。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。
+感谢打赏 # 如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️，金额随意。
+微信打赏码 支付宝收款码 十分感谢以下读者的打赏❤️
+姓名 金额 留言 铁头班*友 10 *w 50 写的很好，加油 *油 33 *谭 10 林*壕 20 张*冲 20 强* 6.6 w*g 20 excellent work 田*伟 10 写的很好，加油 参考资料 # Go语言调度器源代码情景分析 cch123/golang-notes Go语言设计与实现 深度探索Go语言：对象模型与runtime的原理、特性及应用 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:title" content="简介" />
@@ -285,12 +285,8 @@ https://github.com/alex-shpak/hugo-book
 <p>欢迎阅读《深入Go语言之旅》。本书从Go语言源码出发，分析Goroutine调度流程，通道、上下文等的源码，以及defer，panic等语言特性，希望能够帮助阅读此书的人更好的理解Go语言的设计与实现机制。
 本书分析的源码基于 
   <a href="https://github.com/golang/go/tree/go1.14.13">go1.14.13</a> 版本，运行在ubuntu16 64位系统下，如无特殊说明，本书所有展示分析的源码，以及示例执行结果都是基于此环境。</p>
-<p>欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：<strong>深入Go语言之旅</strong>。群主会拉你进群。</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202112/wx_qrc.jpeg" width="185px"/>
-</figure>
-
-<p>如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202201/wepay.jpeg" width="300"/>
+<p>欢迎扫描下面二维码进微信群，探讨交流Go语言知识。申请加入时候请备注：<strong>深入Go语言之旅</strong>。群主会拉你进群。在阅读中有什么问题不懂，或者可以指正的都可以通过上面微信码联系作者，或者发邮件(qietingfy#gmail.com)交流沟通。</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202112/wx_qrc.jpeg" width="300px"/>
 </figure>
 
 <!-- raw HTML omitted -->
@@ -299,6 +295,25 @@ https://github.com/alex-shpak/hugo-book
   感谢打赏
   <a class="anchor" href="#%e6%84%9f%e8%b0%a2%e6%89%93%e8%b5%8f">#</a>
 </h2>
+<p>如果觉得作者写的不错，对您有些帮助，欢迎赞助作者一杯咖啡☕️，金额随意。</p>
+<table>
+<thead>
+<tr>
+<th>微信打赏码</th>
+<th>支付宝收款码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><figure class="text-center"><img src="https://static.cyub.vip/images/202201/wepay.jpeg" width="220"/>
+</figure>
+</td>
+<td><figure class="text-center"><img src="https://static.cyub.vip/images/202403/zhifubao.jpg" width="220"/>
+</figure>
+</td>
+</tr>
+</tbody>
+</table>
 <p>十分感谢以下读者的打赏❤️</p>
 <table>
 <thead>
@@ -348,6 +363,11 @@ https://github.com/alex-shpak/hugo-book
 <td>w*g</td>
 <td>20</td>
 <td>excellent work</td>
+</tr>
+<tr>
+<td>田*伟</td>
+<td>10</td>
+<td>写的很好，加油</td>
 </tr>
 </tbody>
 </table>
