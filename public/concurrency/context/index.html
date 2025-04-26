@@ -13,36 +13,40 @@ Context是由Golang官方开发的并发控制包，一方面可以用于当请�
   ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="上下文 - context" />
-<meta property="og:description" content="
-  上下文 - context
-  #
-
-Context是由Golang官方开发的并发控制包，一方面可以用于当请求超时或者取消时候，相关的goroutine马上退出释放资源，另一方面Context本身含义就是上下文，其可以在多个goroutine或者多个处理函数之间传递共享的信息。
-创建一个新的context，必须基于一个父context，新的context又可以作为其他context的父context。所有context在一起构造成一个context树。
-
-  " />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/concurrency/context/" /><meta property="article:section" content="concurrency" />
-
-
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/concurrency/context/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="上下文 - context">
+  <meta property="og:description" content=" 上下文 - context # Context是由Golang官方开发的并发控制包，一方面可以用于当请求超时或者取消时候，相关的goroutine马上退出释放资源，另一方面Context本身含义就是上下文，其可以在多个goroutine或者多个处理函数之间传递共享的信息。
+创建一个新的context，必须基于一个父context，新的context又可以作为其他context的父context。所有context在一起构造成一个context树。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="concurrency">
 <title>上下文 - context | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

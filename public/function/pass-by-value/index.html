@@ -8,31 +8,41 @@
 C&#43;&#43;中指针传递 # #include &lt;stdio.h&gt; void swap(int* a,int *b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, *a, &amp;a, *b, &amp;b); int temp = *a; *a = *b; *b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(&amp;a,&amp;b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } C&#43;&#43;中引用传递 # #include &lt;stdio.h&gt; void swap(int &amp;a, int &amp;b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); int temp = a; a = b; b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(a,b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } 进一步阅读 # When are function parameters passed by value?">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="值传递" />
-<meta property="og:description" content="值传递 # 函数传参有三种方式，分别是值传递（pass by value)、引用传递（pass by reference)，以及指针传递（pass by pointer)。指针传递也称为地址传递，本质上也属于值传递，它只不过传递的值是地址而已。所以按照广义的函数传递来分，分为值传递和引用传递。Go语言中函数传参值传递，不支持引用传递。但是由于切片，通道，映射等具有引用传递的某些特性，往往令人疑惑其应该是引用传递。这个章节我们就来探究下Go语言中函数传递的问题。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/function/pass-by-value/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="值传递">
+  <meta property="og:description" content="值传递 # 函数传参有三种方式，分别是值传递（pass by value)、引用传递（pass by reference)，以及指针传递（pass by pointer)。指针传递也称为地址传递，本质上也属于值传递，它只不过传递的值是地址而已。所以按照广义的函数传递来分，分为值传递和引用传递。Go语言中函数传参值传递，不支持引用传递。但是由于切片，通道，映射等具有引用传递的某些特性，往往令人疑惑其应该是引用传递。这个章节我们就来探究下Go语言中函数传递的问题。
 在探究Go语言中函数传递的问题，我们先研究C&#43;&#43;语言下的引用传递和指针传递是怎么回事。
-C&#43;&#43;中指针传递 # #include &lt;stdio.h&gt; void swap(int* a,int *b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, *a, &amp;a, *b, &amp;b); int temp = *a; *a = *b; *b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(&amp;a,&amp;b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } C&#43;&#43;中引用传递 # #include &lt;stdio.h&gt; void swap(int &amp;a, int &amp;b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); int temp = a; a = b; b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(a,b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } 进一步阅读 # When are function parameters passed by value?" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/function/pass-by-value/" /><meta property="article:section" content="function" />
-
-
+C&#43;&#43;中指针传递 # #include &lt;stdio.h&gt; void swap(int* a,int *b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, *a, &amp;a, *b, &amp;b); int temp = *a; *a = *b; *b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(&amp;a,&amp;b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } C&#43;&#43;中引用传递 # #include &lt;stdio.h&gt; void swap(int &amp;a, int &amp;b){ printf(&#34;交换中：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); int temp = a; a = b; b = temp; } int main() { int a = 1; int b = 2; printf(&#34;交换前：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); swap(a,b); printf(&#34;交换后：变量a值：%d， 地址：%p； 变量b值：%d，地址：%p\n&#34;, a, &amp;a, b, &amp;b); return 0; } 进一步阅读 # When are function parameters passed by value?">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="function">
 <title>值传递 | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

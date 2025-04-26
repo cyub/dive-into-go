@@ -9,32 +9,42 @@ type readOnly struct { m map[interface{}]*entry amended bool // 当amended为tru
 // expunged用来标记从dirty map删除掉了 var expunged = unsafe.Pointer(new(interface{})) type entry struct { // 如果p == nil 说明对应的entry已经被删除掉了， 且m.dirty == nil // 如果 p == expunged 说明对应的entry已经被删除了，但m.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="并发Map - sync.Map" />
-<meta property="og:description" content="并发Map - sync.Map # 源码分析 # sync.Map的结构：
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/concurrency/sync-map/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="并发Map - sync.Map">
+  <meta property="og:description" content="并发Map - sync.Map # 源码分析 # sync.Map的结构：
 type Map struct { mu Mutex // 排他锁，用于对dirty map操作时候加锁处理 read atomic.Value // read map // dirty map。新增key时候，只写入dirty map中，需要使用mu dirty map[interface{}]*entry // 用来记录从read map中读取key时miss的次数 misses int } sync.Map结构体中read字段是atomic.Value类型，底层是readOnly结构体：
 type readOnly struct { m map[interface{}]*entry amended bool // 当amended为true时候，表示sync.Map中的key也存在dirty map中 } read map和dirty map的value类型是*entry， entry结构体定义如下：
-// expunged用来标记从dirty map删除掉了 var expunged = unsafe.Pointer(new(interface{})) type entry struct { // 如果p == nil 说明对应的entry已经被删除掉了， 且m.dirty == nil // 如果 p == expunged 说明对应的entry已经被删除了，但m." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/concurrency/sync-map/" /><meta property="article:section" content="concurrency" />
-
-
+// expunged用来标记从dirty map删除掉了 var expunged = unsafe.Pointer(new(interface{})) type entry struct { // 如果p == nil 说明对应的entry已经被删除掉了， 且m.dirty == nil // 如果 p == expunged 说明对应的entry已经被删除了，但m.">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="concurrency">
 <title>并发Map - sync.Map | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

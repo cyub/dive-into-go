@@ -4,43 +4,29 @@
     <title>Go语言分析工具 on 深入Go语言之旅</title>
     <link>https://go.cyub.vip/analysis-tools/</link>
     <description>Recent content in Go语言分析工具 on 深入Go语言之旅</description>
-    <generator>Hugo -- gohugo.io</generator>
-    <language>zh-cn</language><atom:link href="https://go.cyub.vip/analysis-tools/index.xml" rel="self" type="application/rss+xml" />
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <atom:link href="https://go.cyub.vip/analysis-tools/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Delve is a debugger for the Go programming language</title>
       <link>https://go.cyub.vip/analysis-tools/dlv/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://go.cyub.vip/analysis-tools/dlv/</guid>
-      <description>Delve # Delve1 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 GDB 工具类似，相比 GDB，它简单易用，能够更好的理解和处理Go语言的数据结构和语言特性，比如它支持打印 goroutine 以及 defer 函数等Go特有的语法特性。Delve 简称 dlv，后文将以 dlv 代称 Delve.
-安装 # # 安装最新版本 go get -u github.com/go-delve/delve/cmd/dlv # 查看版本 dlv version 使用 # 开始调试 # dlv 使用 debug 命令进入调试界面：
-dlv debug main.go 如果当前目录是 main 包所在目录时候，可以不用指定 main.go 文件这个参数的。假定项目结构如下：
-. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github.</description>
+      <description>Delve # Delve1 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 GDB 工具类似，相比 GDB，它简单易用，能够更好的理解和处理Go语言的数据结构和语言特性，比如它支持打印 goroutine 以及 defer 函数等Go特有的语法特性。Delve 简称 dlv，后文将以 dlv 代称 Delve.&#xA;安装 # # 安装最新版本 go get -u github.com/go-delve/delve/cmd/dlv # 查看版本 dlv version 使用 # 开始调试 # dlv 使用 debug 命令进入调试界面：&#xA;dlv debug main.go 如果当前目录是 main 包所在目录时候，可以不用指定 main.go 文件这个参数的。假定项目结构如下：&#xA;. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github.</description>
     </item>
-    
     <item>
       <title>GDB</title>
       <link>https://go.cyub.vip/analysis-tools/gdb/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://go.cyub.vip/analysis-tools/gdb/</guid>
-      <description>GDB # GDB（GNU symbolic Debugger）是Linux系统下的强大的调试工具，可以用来调试ada, c, c++, asm, minimal, d, fortran, objective-c, go, java,pascal 等多种语言。
-我们以调试 go 代码为示例来介绍GDB的使用。源码内容如下：
-package main import &amp;#34;fmt&amp;#34; func add(a, b int) int { sum := 0 sum = a + b return sum } func main() { sum := add(10, 20) fmt.Println(sum) } 构建二进制应用：
-go build -gcflags=&amp;#34;-N -l&amp;#34; -o test main.go 启动调试 # gdb ./test # 启动调试 gdb --args ./test arg1 arg2 # 指定参数启动调试 进入gdb调试界面之后，执行 run 命令运行程序。若程序已经运行，我们可以 attach 该程序的进程id进行调试:</description>
+      <description>GDB # GDB（GNU symbolic Debugger）是Linux系统下的强大的调试工具，可以用来调试ada, c, c++, asm, minimal, d, fortran, objective-c, go, java,pascal 等多种语言。&#xA;我们以调试 go 代码为示例来介绍GDB的使用。源码内容如下：&#xA;package main import &amp;#34;fmt&amp;#34; func add(a, b int) int { sum := 0 sum = a + b return sum } func main() { sum := add(10, 20) fmt.Println(sum) } 构建二进制应用：&#xA;go build -gcflags=&amp;#34;-N -l&amp;#34; -o test main.go 启动调试 # gdb ./test # 启动调试 gdb --args ./test arg1 arg2 # 指定参数启动调试 进入gdb调试界面之后，执行 run 命令运行程序。若程序已经运行，我们可以 attach 该程序的进程id进行调试:</description>
     </item>
-    
     <item>
       <title>Go语言内置分析工具</title>
       <link>https://go.cyub.vip/analysis-tools/go-buildin-tools/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://go.cyub.vip/analysis-tools/go-buildin-tools/</guid>
-      <description>Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。
-go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：
-go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以查看编译器，连接器如何工作的：
-# # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &amp;gt;$WORK/b001/importcfg &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &amp;#34;$WORK/b001=&amp;gt;&amp;#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &amp;gt;$WORK/b001/importcfg.link &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.</description>
+      <description>Go 内置分析工具 # 这一章节将介绍Go 内置分析工具。通过这些工具我们可以分析、诊断、跟踪竞态，GMP调度，CPU耗用等问题。&#xA;go build # go build命令用来编译Go 程序。go build重要的命令行选项有以下几个：&#xA;go build -n # -n选项用来显示编译过程中所有执行的命令，不会真正执行。通过该选项我们可以查看编译器，连接器如何工作的：&#xA;# # _/home/vagrant/dive-into-go # mkdir -p $WORK/b001/ cat &amp;gt;$WORK/b001/importcfg &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal # import config packagefile fmt=/usr/lib/go/pkg/linux_amd64/fmt.a packagefile runtime=/usr/lib/go/pkg/linux_amd64/runtime.a EOF cd /home/vagrant/dive-into-go /usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &amp;#34;$WORK/b001=&amp;gt;&amp;#34; -p main -complete -buildid RcHLBQbXBa2gQVsMR6P0/RcHLBQbXBa2gQVsMR6P0 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go ./string.go /usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/_pkg_.a # internal cat &amp;gt;$WORK/b001/importcfg.link &amp;lt;&amp;lt; &amp;#39;EOF&amp;#39; # internal packagefile _/home/vagrant/dive-into-go=$WORK/b001/_pkg_.</description>
     </item>
-    
   </channel>
 </rss>

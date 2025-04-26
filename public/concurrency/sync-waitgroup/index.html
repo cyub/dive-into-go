@@ -6,29 +6,39 @@
 <meta name="description" content="等待组 - sync.WaitGroup # 源码分析 # type WaitGroup struct { noCopy noCopy // waitgroup是不能够拷贝复制的，是通过go vet来检测实现 /* waitgroup使用一个int64来计数：高32位，用来add计数，低32位用来记录waiter数量。 若要原子性更新int64就必须保证该int64对齐系数是8，即64位对齐。 对于64位系统，直接使用一个int64类型字段就能保证原子性要求，但对32位系统就不行了。 所以实现的时候并没有直接一个int64， 而是使用[3]int32数组，若[0]int32地址恰好是8对齐的，那就waitgroup int64 = [0]int32 &#43; [1]int32， 否则一定是4对齐的， 故[0]int32不用，恰好错开了4字节，此时[1]int32一定是8对齐的。此时waitgroup int64 = [1]int32 &#43; [2]int32 通过这个技巧恰好满足32位和64位系统下int64都能原子性操作 */ state1 [3]uint32 // waitgroup对齐系数是4 } func (wg *WaitGroup) state() (statep *uint64, semap *uint32) { // 当state1是8对齐的，则返回低8字节(statep)用来计数，即state1[0]是add计数，state1[1]是waiter计数 if uintptr(unsafe.Pointer(&amp;wg.state1))%8 == 0 { return (*uint64)(unsafe.Pointer(&amp;wg.state1)), &amp;wg.state1[2] } else { // 反之，则返回高8字节用来计数，即state1[1]是add计数，state1[2]是waiter计数 return (*uint64)(unsafe.Pointer(&amp;wg.state1[1])), &amp;wg.state1[0] } } // Add方法用来更新add计数器。即将原来计数值加上delta，delta可以为负值 // waitgroup的Done方法本质上就是Add(-1) // Add更新之后的计数器值不能小于0。当计数器值等于0时候，会释放信号，所有调用Wait方法而阻塞的Goroutine不再阻塞（释放的信号量=waiter计数） func (wg *WaitGroup) Add(delta int) { statep, semap := wg.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="等待组 - sync.WaitGroup" />
-<meta property="og:description" content="等待组 - sync.WaitGroup # 源码分析 # type WaitGroup struct { noCopy noCopy // waitgroup是不能够拷贝复制的，是通过go vet来检测实现 /* waitgroup使用一个int64来计数：高32位，用来add计数，低32位用来记录waiter数量。 若要原子性更新int64就必须保证该int64对齐系数是8，即64位对齐。 对于64位系统，直接使用一个int64类型字段就能保证原子性要求，但对32位系统就不行了。 所以实现的时候并没有直接一个int64， 而是使用[3]int32数组，若[0]int32地址恰好是8对齐的，那就waitgroup int64 = [0]int32 &#43; [1]int32， 否则一定是4对齐的， 故[0]int32不用，恰好错开了4字节，此时[1]int32一定是8对齐的。此时waitgroup int64 = [1]int32 &#43; [2]int32 通过这个技巧恰好满足32位和64位系统下int64都能原子性操作 */ state1 [3]uint32 // waitgroup对齐系数是4 } func (wg *WaitGroup) state() (statep *uint64, semap *uint32) { // 当state1是8对齐的，则返回低8字节(statep)用来计数，即state1[0]是add计数，state1[1]是waiter计数 if uintptr(unsafe.Pointer(&amp;wg.state1))%8 == 0 { return (*uint64)(unsafe.Pointer(&amp;wg.state1)), &amp;wg.state1[2] } else { // 反之，则返回高8字节用来计数，即state1[1]是add计数，state1[2]是waiter计数 return (*uint64)(unsafe.Pointer(&amp;wg.state1[1])), &amp;wg.state1[0] } } // Add方法用来更新add计数器。即将原来计数值加上delta，delta可以为负值 // waitgroup的Done方法本质上就是Add(-1) // Add更新之后的计数器值不能小于0。当计数器值等于0时候，会释放信号，所有调用Wait方法而阻塞的Goroutine不再阻塞（释放的信号量=waiter计数） func (wg *WaitGroup) Add(delta int) { statep, semap := wg." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/concurrency/sync-waitgroup/" /><meta property="article:section" content="concurrency" />
-
-
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/concurrency/sync-waitgroup/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="等待组 - sync.WaitGroup">
+  <meta property="og:description" content="等待组 - sync.WaitGroup # 源码分析 # type WaitGroup struct { noCopy noCopy // waitgroup是不能够拷贝复制的，是通过go vet来检测实现 /* waitgroup使用一个int64来计数：高32位，用来add计数，低32位用来记录waiter数量。 若要原子性更新int64就必须保证该int64对齐系数是8，即64位对齐。 对于64位系统，直接使用一个int64类型字段就能保证原子性要求，但对32位系统就不行了。 所以实现的时候并没有直接一个int64， 而是使用[3]int32数组，若[0]int32地址恰好是8对齐的，那就waitgroup int64 = [0]int32 &#43; [1]int32， 否则一定是4对齐的， 故[0]int32不用，恰好错开了4字节，此时[1]int32一定是8对齐的。此时waitgroup int64 = [1]int32 &#43; [2]int32 通过这个技巧恰好满足32位和64位系统下int64都能原子性操作 */ state1 [3]uint32 // waitgroup对齐系数是4 } func (wg *WaitGroup) state() (statep *uint64, semap *uint32) { // 当state1是8对齐的，则返回低8字节(statep)用来计数，即state1[0]是add计数，state1[1]是waiter计数 if uintptr(unsafe.Pointer(&amp;wg.state1))%8 == 0 { return (*uint64)(unsafe.Pointer(&amp;wg.state1)), &amp;wg.state1[2] } else { // 反之，则返回高8字节用来计数，即state1[1]是add计数，state1[2]是waiter计数 return (*uint64)(unsafe.Pointer(&amp;wg.state1[1])), &amp;wg.state1[0] } } // Add方法用来更新add计数器。即将原来计数值加上delta，delta可以为负值 // waitgroup的Done方法本质上就是Add(-1) // Add更新之后的计数器值不能小于0。当计数器值等于0时候，会释放信号，所有调用Wait方法而阻塞的Goroutine不再阻塞（释放的信号量=waiter计数） func (wg *WaitGroup) Add(delta int) { statep, semap := wg.">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="concurrency">
 <title>等待组 - sync.WaitGroup | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

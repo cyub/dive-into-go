@@ -3,48 +3,53 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="编译流程 # Go语言是一门编译型语言，程序运行时需要先编译成相应平台的可执行文件。在介绍Go语言编译流程之前，我们来了解下编译器编译整个流程。
-编译六阶段 # 编译器工作目标是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两部分，每个部分又可以细分为三个阶段，也就是说整个编译流程分为六个阶段。编译流程的两部分别是分析部分（Analysis part）以及合成部分（Synthesis part），也称为编译前端和编译后端。编译六阶段如下：
-词法分析（Lexical analysis) 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a&#43;b*5为例:
-Lexemes Tokens c identifier = assignment symbol a identifier &#43; &#43; (addition symbol) b identifier * * (multiplication symbol) 5 5 (number) 语法分析 # 词法分析阶段接收上一阶段生成的Tokens序列，基于特定编程语言的规则生成抽象语法树（Abstract Syntax Tree）。
-抽象语法树 # 抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。
-以(a&#43;b)*c为例，最终生成的抽象语法树如下：
-语义分析阶段 # 语义分析阶段用来检查代码的语义一致性。它使用前一阶段的语法树以及符号表来验证给定的源代码在语义上是一致的。它还检查代码是否传达了适当的含义。
-中间码生成阶段 # 中间代码介是于高级语言和机器语言之间，具有跨平台特性。使用中间代码可以易于跨平台转换为特定类型目标机器代码。
-代码优化阶段 # 代码优化阶段主要是改进中间代码，删除不必要的代码，以调整代码序列以生成速度更快和空间更少的中间代码。">
+<meta name="description" content="编译流程 # Go语言是一门静态编译型语言，源代码需要通过编译器转换成目标平台的机器码才能运行。本文将介绍编译器的编译流程，包括编译器的六个阶段、Go编译器的自举机制以及源码编译的相关知识，帮助读者理解Go语言的编译流程。
+编译的六阶段 # 编译器的核心任务是将高级语言（high-level language）转换为目标平台的机器码（machine code）。编译器的整个编译流程可分为两部分：分析部分（Analysis part）以及合成部分（Synthesis part）。这两部分也称为编译前端和编译后端。每部分又可以细分为三个阶段，简单来说整个编译流程大致可细分为六个阶段：
+词法分析（Lexical analysis）1 语法分析（Syntax analysis）2 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析是编译的第一步，编译器扫描源代码，从左到右逐行将字符序列分组，生成词法单元（Tokens）。这些词法单元包括标识符（identifier）、关键字（reserved word）、运算符（operator）和常量（constant）等。例如，对于代码 c = a &#43; b * 5，词法分析会生成以下Tokens：
+Lexemes Tokens c 标志符 = 赋值符号 a 标志符 &#43; 加法符号 b 标志符 * 乘法符号 5 数字 语法分析 # 词法分析阶段接收词法分析阶段生成的Tokens序列，然后基于特定编程语言的规则生成抽象语法树。
+抽象语法树 # 抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。以(a&#43;b)*c为例，最终生成的抽象语法树如下：
+语义分析 # 语义分析阶段用来检查代码的语义一致性。它使用前一阶段的语法树以及符号表来验证给定的源代码在语义上是一致的。它还检查代码是否传达了适当的含义。例如语义分析会检查a&#43;b中的a和b是否为可以进行&#43;操作的类型。
+在Go语言中，语义分析会检查接口实现、类型推导（如 := 短变量声明）以及包级作用域的符号解析。例如，Go编译器会确保 var x int; x = &quot;string&quot; 这样的代码被标记为类型错误。">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="Go编译流程" />
-<meta property="og:description" content="编译流程 # Go语言是一门编译型语言，程序运行时需要先编译成相应平台的可执行文件。在介绍Go语言编译流程之前，我们来了解下编译器编译整个流程。
-编译六阶段 # 编译器工作目标是完成从高级语言（high-level langue）到机器码（machine code）的输出。整个编译流程可分为两部分，每个部分又可以细分为三个阶段，也就是说整个编译流程分为六个阶段。编译流程的两部分别是分析部分（Analysis part）以及合成部分（Synthesis part），也称为编译前端和编译后端。编译六阶段如下：
-词法分析（Lexical analysis) 语法分析（Syntax analysis） 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以c = a&#43;b*5为例:
-Lexemes Tokens c identifier = assignment symbol a identifier &#43; &#43; (addition symbol) b identifier * * (multiplication symbol) 5 5 (number) 语法分析 # 词法分析阶段接收上一阶段生成的Tokens序列，基于特定编程语言的规则生成抽象语法树（Abstract Syntax Tree）。
-抽象语法树 # 抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。
-以(a&#43;b)*c为例，最终生成的抽象语法树如下：
-语义分析阶段 # 语义分析阶段用来检查代码的语义一致性。它使用前一阶段的语法树以及符号表来验证给定的源代码在语义上是一致的。它还检查代码是否传达了适当的含义。
-中间码生成阶段 # 中间代码介是于高级语言和机器语言之间，具有跨平台特性。使用中间代码可以易于跨平台转换为特定类型目标机器代码。
-代码优化阶段 # 代码优化阶段主要是改进中间代码，删除不必要的代码，以调整代码序列以生成速度更快和空间更少的中间代码。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/compiler/" /><meta property="article:section" content="" />
-
-
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/compiler/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="Go编译流程">
+  <meta property="og:description" content="编译流程 # Go语言是一门静态编译型语言，源代码需要通过编译器转换成目标平台的机器码才能运行。本文将介绍编译器的编译流程，包括编译器的六个阶段、Go编译器的自举机制以及源码编译的相关知识，帮助读者理解Go语言的编译流程。
+编译的六阶段 # 编译器的核心任务是将高级语言（high-level language）转换为目标平台的机器码（machine code）。编译器的整个编译流程可分为两部分：分析部分（Analysis part）以及合成部分（Synthesis part）。这两部分也称为编译前端和编译后端。每部分又可以细分为三个阶段，简单来说整个编译流程大致可细分为六个阶段：
+词法分析（Lexical analysis）1 语法分析（Syntax analysis）2 语义分析（Semantic analysis） 中间码生成（Intermediate code generator） 代码优化（Code optimizer） 机器代码生成（Code generator） 词法分析 # 词法分析是编译的第一步，编译器扫描源代码，从左到右逐行将字符序列分组，生成词法单元（Tokens）。这些词法单元包括标识符（identifier）、关键字（reserved word）、运算符（operator）和常量（constant）等。例如，对于代码 c = a &#43; b * 5，词法分析会生成以下Tokens：
+Lexemes Tokens c 标志符 = 赋值符号 a 标志符 &#43; 加法符号 b 标志符 * 乘法符号 5 数字 语法分析 # 词法分析阶段接收词法分析阶段生成的Tokens序列，然后基于特定编程语言的规则生成抽象语法树。
+抽象语法树 # 抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。以(a&#43;b)*c为例，最终生成的抽象语法树如下：
+语义分析 # 语义分析阶段用来检查代码的语义一致性。它使用前一阶段的语法树以及符号表来验证给定的源代码在语义上是一致的。它还检查代码是否传达了适当的含义。例如语义分析会检查a&#43;b中的a和b是否为可以进行&#43;操作的类型。
+在Go语言中，语义分析会检查接口实现、类型推导（如 := 短变量声明）以及包级作用域的符号解析。例如，Go编译器会确保 var x int; x = &#34;string&#34; 这样的代码被标记为类型错误。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
 <title>Go编译流程 | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book
@@ -295,15 +300,15 @@ https://github.com/alex-shpak/hugo-book
   编译流程
   <a class="anchor" href="#%e7%bc%96%e8%af%91%e6%b5%81%e7%a8%8b">#</a>
 </h1>
-<p>Go语言是一门编译型语言，程序运行时需要先编译成相应平台的可执行文件。在介绍Go语言编译流程之前，我们来了解下编译器编译整个流程。</p>
-<h2 id="编译六阶段">
-  编译六阶段
-  <a class="anchor" href="#%e7%bc%96%e8%af%91%e5%85%ad%e9%98%b6%e6%ae%b5">#</a>
+<p>Go语言是一门静态编译型语言，源代码需要通过编译器转换成目标平台的机器码才能运行。本文将介绍编译器的编译流程，包括编译器的六个阶段、Go编译器的自举机制以及源码编译的相关知识，帮助读者理解Go语言的编译流程。</p>
+<h2 id="编译的六阶段">
+  编译的六阶段
+  <a class="anchor" href="#%e7%bc%96%e8%af%91%e7%9a%84%e5%85%ad%e9%98%b6%e6%ae%b5">#</a>
 </h2>
-<p>编译器工作目标是<strong>完成从高级语言（high-level langue）到机器码（machine code）的输出</strong>。整个编译流程可分为两部分，每个部分又可以细分为三个阶段，也就是说整个编译流程分为六个阶段。编译流程的两部分别是分析部分（Analysis part）以及合成部分（Synthesis part），也称为编译前端和编译后端。编译六阶段如下：</p>
+<p>编译器的核心任务是<strong>将高级语言（high-level language）转换为目标平台的机器码（machine code）</strong>。编译器的整个编译流程可分为两部分：分析部分（Analysis part）以及合成部分（Synthesis part）。这两部分也称为<strong>编译前端</strong>和<strong>编译后端</strong>。每部分又可以细分为三个阶段，简单来说整个编译流程大致可细分为六个阶段：</p>
 <ul>
-<li>词法分析（Lexical analysis)</li>
-<li>语法分析（Syntax analysis）</li>
+<li>词法分析（Lexical analysis）<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></li>
+<li>语法分析（Syntax analysis）<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup></li>
 <li>语义分析（Semantic analysis）</li>
 <li>中间码生成（Intermediate code generator）</li>
 <li>代码优化（Code optimizer）</li>
@@ -313,7 +318,7 @@ https://github.com/alex-shpak/hugo-book
   词法分析
   <a class="anchor" href="#%e8%af%8d%e6%b3%95%e5%88%86%e6%9e%90">#</a>
 </h3>
-<p>词法分析最终生成的是Tokens。词法分析时编译器扫描源代码，从当前行最左端开始到最右端，然后将扫描到的字符进行分组标记。编译器会将扫描到的词法单位（Lexemes）归类到常量、保留字、运算符等标记（Tokens）中。我们以<code>c = a+b*5</code>为例:</p>
+<p>词法分析是编译的第一步，编译器扫描源代码，从左到右逐行将字符序列分组，生成<strong>词法单元（Tokens）</strong>。这些词法单元包括标识符（identifier）、关键字（reserved word）、运算符（operator）和常量（constant）等。例如，对于代码 <code>c = a + b * 5</code>，词法分析会生成以下Tokens：</p>
 <table>
 <thead>
 <tr>
@@ -324,31 +329,31 @@ https://github.com/alex-shpak/hugo-book
 <tbody>
 <tr>
 <td>c</td>
-<td>identifier</td>
+<td>标志符</td>
 </tr>
 <tr>
 <td>=</td>
-<td>assignment symbol</td>
+<td>赋值符号</td>
 </tr>
 <tr>
 <td>a</td>
-<td>identifier</td>
+<td>标志符</td>
 </tr>
 <tr>
 <td>+</td>
-<td>+ (addition symbol)</td>
+<td>加法符号</td>
 </tr>
 <tr>
 <td>b</td>
-<td>identifier</td>
+<td>标志符</td>
 </tr>
 <tr>
 <td>*</td>
-<td>* (multiplication symbol)</td>
+<td>乘法符号</td>
 </tr>
 <tr>
 <td>5</td>
-<td>5 (number)</td>
+<td>数字</td>
 </tr>
 </tbody>
 </table>
@@ -356,45 +361,107 @@ https://github.com/alex-shpak/hugo-book
   语法分析
   <a class="anchor" href="#%e8%af%ad%e6%b3%95%e5%88%86%e6%9e%90">#</a>
 </h3>
-<p>词法分析阶段接收上一阶段生成的Tokens序列，基于特定编程语言的规则生成抽象语法树（Abstract Syntax Tree）。</p>
+<p>词法分析阶段接收词法分析阶段生成的Tokens序列，然后基于特定编程语言的规则生成抽象语法树。</p>
 <h4 id="抽象语法树">
   抽象语法树
   <a class="anchor" href="#%e6%8a%bd%e8%b1%a1%e8%af%ad%e6%b3%95%e6%a0%91">#</a>
 </h4>
-<p>抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。</p>
-<p>以<code>(a+b)*c</code>为例，最终生成的抽象语法树如下：</p>
+<p>抽象语法树（Abstract Syntax Tree），简称AST，是源代码语法结构的一种抽象表示。它以树状的形式表现编程语言的语法结构，树上的每个节点都表示源代码中的一种结构。以<code>(a+b)*c</code>为例，最终生成的抽象语法树如下：</p>
 <p>
   <img src="https://static.cyub.vip/images/202104/ast.png" alt="" /></p>
-<h3 id="语义分析阶段">
-  语义分析阶段
-  <a class="anchor" href="#%e8%af%ad%e4%b9%89%e5%88%86%e6%9e%90%e9%98%b6%e6%ae%b5">#</a>
+<h3 id="语义分析">
+  语义分析
+  <a class="anchor" href="#%e8%af%ad%e4%b9%89%e5%88%86%e6%9e%90">#</a>
 </h3>
-<p>语义分析阶段用来检查代码的语义一致性。它使用前一阶段的语法树以及符号表来验证给定的源代码在语义上是一致的。它还检查代码是否传达了适当的含义。</p>
-<h3 id="中间码生成阶段">
-  中间码生成阶段
-  <a class="anchor" href="#%e4%b8%ad%e9%97%b4%e7%a0%81%e7%94%9f%e6%88%90%e9%98%b6%e6%ae%b5">#</a>
+<p>语义分析阶段用来检查代码的语义一致性。它使用前一阶段的语法树以及符号表来验证给定的源代码在语义上是一致的。它还检查代码是否传达了适当的含义。例如语义分析会检查<code>a+b</code>中的<code>a</code>和<code>b</code>是否为可以进行<code>+</code>操作的类型。</p>
+<p>在Go语言中，语义分析会检查接口实现、类型推导（如 := 短变量声明）以及包级作用域的符号解析。例如，Go编译器会确保 <code>var x int; x = &quot;string&quot; </code>这样的代码被标记为类型错误。</p>
+<h3 id="中间码生成">
+  中间码生成
+  <a class="anchor" href="#%e4%b8%ad%e9%97%b4%e7%a0%81%e7%94%9f%e6%88%90">#</a>
 </h3>
-<p>中间代码介是于高级语言和机器语言之间，具有跨平台特性。使用中间代码可以易于跨平台转换为特定类型目标机器代码。</p>
-<h3 id="代码优化阶段">
-  代码优化阶段
-  <a class="anchor" href="#%e4%bb%a3%e7%a0%81%e4%bc%98%e5%8c%96%e9%98%b6%e6%ae%b5">#</a>
+<p>中间码是一种介于高级语言和机器码之间的表示形式，具有跨平台特性。。使用中间码易于跨平台转换为特定类型目标机器代码。</p>
+<p>Go编译器会生成一种平台无关的中间表示（IR），便于后续优化和目标代码生成。Go编辑器使用的是一种名为SSA(Static Single Assignment)的中间表示形式。SSA的每个变量只被赋值一次，便于优化器进行常量传播，死代码消除等操作。</p>
+<h3 id="代码优化">
+  代码优化
+  <a class="anchor" href="#%e4%bb%a3%e7%a0%81%e4%bc%98%e5%8c%96">#</a>
 </h3>
-<p>代码优化阶段主要是改进中间代码，删除不必要的代码，以调整代码序列以生成速度更快和空间更少的中间代码。</p>
-<h3 id="机器码生成阶段">
-  机器码生成阶段
-  <a class="anchor" href="#%e6%9c%ba%e5%99%a8%e7%a0%81%e7%94%9f%e6%88%90%e9%98%b6%e6%ae%b5">#</a>
+<p>代码优化阶段主要是改进中间代码，生成更高效的代码，优化包括但不限于：</p>
+<ul>
+<li>删除冗余代码（死代码消除）</li>
+<li>常量折叠</li>
+<li>-通过循环展开来进行循环优化</li>
+<li>内联函数</li>
+<li>边界检查消除（BCE, Bound Check Elimination）</li>
+</ul>
+<p>Go编译器在优化阶段执行<strong>逃逸分析（Escape Analysis）</strong>，确定变量是否需要分配到堆上，从而减少内存分配开销。此外，Go还会进行内联优化，将短小的函数直接嵌入调用处，减少函数调用开销。</p>
+<h3 id="机器码生成">
+  机器码生成
+  <a class="anchor" href="#%e6%9c%ba%e5%99%a8%e7%a0%81%e7%94%9f%e6%88%90">#</a>
 </h3>
-<p>机器码生成阶段是编译器工作的最后阶段。此阶段会基于中间码生成汇编代码，汇编器根据汇编代码生成目标文件，目标文件经过链接器处理最终生成可执行文件。</p>
-<h2 id="go语言编译流程">
-  Go语言编译流程
-  <a class="anchor" href="#go%e8%af%ad%e8%a8%80%e7%bc%96%e8%af%91%e6%b5%81%e7%a8%8b">#</a>
+<p>机器码生成是编译器工作的最后阶段。此阶段会基于中间码生成汇编代码，汇编器根据汇编代码生成目标文件，目标文件经过链接器处理最终生成可执行文件。</p>
+<p>Go编译器使用 <code>Plan9</code> 汇编作为统一汇编语言，屏蔽了不同架构的细节，生成的汇编代码随后通过汇编器（如 <code>go tool asm</code>）和链接器（如 <code>go tool link</code>）转换为可执行文件。</p>
+<h2 id="go-编译流程">
+  Go 编译流程
+  <a class="anchor" href="#go-%e7%bc%96%e8%af%91%e6%b5%81%e7%a8%8b">#</a>
 </h2>
-<p>上面介绍了编译器工作整个流程，Go语言编译器编译也符合上面流程：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202104/go-compile.png" width="500px"/><figcaption>
-            <h4>Go语言编译流程</h4>
-        </figcaption>
+<p>上面介绍了通用编译器工作的整个流程，Go语言编译器整体遵循这个流程：</p>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/go-compile.png" width="500px"><figcaption>
+      <h4>Go语言编译流程</h4>
+    </figcaption>
 </figure>
 
+<p>Go 编译器在编译的具体实现时候， 在六个阶段基础上进一步细化。根据Go官方博客介绍<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>，Go编译具体实现包括下面八个阶段：</p>
+<table>
+<thead>
+<tr>
+<th>阶段名称</th>
+<th>主要功能</th>
+<th>相关包</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>解析</td>
+<td>词法分析和语法分析，构建语法树，包含位置信息用于错误和调试。</td>
+<td>cmd/compile/internal/syntax</td>
+</tr>
+<tr>
+<td>类型检查</td>
+<td>使用语法树的AST进行类型检查，基于go/types的端口。</td>
+<td>cmd/compile/internal/types2</td>
+</tr>
+<tr>
+<td>IR构建（Noding）</td>
+<td>将语法和类型转换为IR和类型，使用统一IR支持导入/导出和内联。</td>
+<td>cmd/compile/internal/types, cmd/compile/internal/ir, cmd/compile/internal/noder</td>
+</tr>
+<tr>
+<td>中端优化</td>
+<td>包括死代码消除、去虚拟化、内联和逃逸分析等优化。</td>
+<td>cmd/compile/internal/inline, cmd/compile/internal/devirtualize, cmd/compile/internal/escape</td>
+</tr>
+<tr>
+<td>遍历（Walk）</td>
+<td>分解复杂语句，引入临时变量，简化构造（如将switch转换为跳转表）。</td>
+<td>cmd/compile/internal/walk</td>
+</tr>
+<tr>
+<td>通用SSA</td>
+<td>将IR转换为SSA形式，应用内建函数，执行机器无关的优化（如死代码消除）。</td>
+<td>cmd/compile/internal/ssa, cmd/compile/internal/ssagen</td>
+</tr>
+<tr>
+<td>生成机器码</td>
+<td>将SSA降低为机器特定代码，优化（如寄存器分配），生成包含反射和调试数据的目标文件。</td>
+<td>cmd/compile/internal/ssa, cmd/internal/obj</td>
+</tr>
+<tr>
+<td>导出</td>
+<td>写入导出数据文件，包括类型信息、IR和逃逸分析摘要。</td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <p>我们执行<code>go build</code>命令时候，带上<code>-n</code>选项可以观察编译流程所执行所有的命令：</p>
 <div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;display:grid;">
 <table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
@@ -457,23 +524,29 @@ https://github.com/alex-shpak/hugo-book
 <p>从上面命令输出的内容可以看到：</p>
 <ol>
 <li>
-<p>Go编译器首先会创建一个任务输出临时目录（mkdir -p $WORK/b001/）。b001是root task的工作目录，每次构建都是由一系列task完成，它们构成 <strong>
+<p>Go编译器首先会创建一个任务输出临时目录（<code>mkdir -p $WORK/b001/</code>）。b001是root task的工作目录，每次构建都是由一系列task完成，它们构成 <strong>
   <a href="https://github.com/golang/go/blob/master/src/cmd/go/internal/work/action.go">action graph</a></strong></p>
 </li>
 <li>
-<p>接着将empty_string.go中依赖的包: /usr/lib/go/pkg/linux_amd64/runtime.a 写入到importcfg中</p>
+<p>接着将<code>empty_string.go</code>中依赖的包: <code>/usr/lib/go/pkg/linux_amd64/runtime.a</code> 写入到<code>importcfg</code>中</p>
 </li>
 <li>
-<p>接着会使用compile命令，并指定importcfg文件，将主程序empty_string.go编译成_pkg.a文件（/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/<em>pkg</em>.a -trimpath &ldquo;$WORK/b001=&gt;&rdquo; -p main -complete -buildid aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go）。</p>
+<p>接着会使用<code>compile</code>命令，并指定<code>importcfg</code>文件，将主程序<code>empty_string.go</code>编译成<code>_pkg.a</code>文件（<code>/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b001/_pkg_.a -trimpath &quot;$WORK/b001=&gt;&quot; -p main -complete -buildid aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5 -goversion go1.14.13 -D _/home/vagrant/dive-into-go -importcfg $WORK/b001/importcfg -pack ./empty_string.go</code>）。</p>
 </li>
 <li>
-<p>程序依赖的包都写到importcfg.link这个文件中，Go编译器连接阶段中链接器会使用该文件，找到所有依赖的包文件，将其连接到程序中（/usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode=exe -buildid=FoylCipvV-SPkhyi2PJs/aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5/FoylCipvV-SPkhyi2PJs -extld=gcc $WORK/b001/<em>pkg</em>.a
-/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out # internal）。</p>
+<p>程序依赖的包都写到<code>importcfg.link</code>这个文件中，Go编译器连接阶段中链接器会使用该文件，找到所有依赖的包文件，将其连接到程序中（<code>/usr/lib/go/pkg/tool/linux_amd64/link -o $WORK/b001/exe/a.out -importcfg $WORK/b001/importcfg.link -buildmode=exe -buildid=FoylCipvV-SPkhyi2PJs/aJhlsTb17ElgWQeF76b5/aJhlsTb17ElgWQeF76b5/FoylCipvV-SPkhyi2PJs -extld=gcc $WORK/b001/_pkg_.a</code>）。接着会将<code>buildid</code>写入二进制文件中（
+<code>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b001/exe/a.out</code>）。</p>
 </li>
 <li>
-<p>将编译成功的二进制文件移动到输出目录中（mv $WORK/b001/exe/a.out empty_string）。</p>
+<p>将编译成功的二进制文件移动到输出目录中（<code>mv $WORK/b001/exe/a.out empty_string</code>）。</p>
 </li>
 </ol>
+<p>上面4中我们可以看到<code>buildid</code>写入过程。在 Go 的构建过程中，<code>buildid</code> 用于缓存管理。Go 的构建系统会根据<code>buildid</code>来判断是否需要重新构建某个包或模块。如果缓存中已经存在具有相同<code>buildid</code>的构建结果，构建系统可以重用缓存，从而加快构建速度。<code>buildid</code>也可用于唯一标识每次构建的二进制文件。我们可以通过下面命令查看二进制文件的<code>buildid</code>：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go tool buildid ./example_binary
+</span></span></code></pre></div><h3 id="完整编译流程输出">
+  完整编译流程输出
+  <a class="anchor" href="#%e5%ae%8c%e6%95%b4%e7%bc%96%e8%af%91%e6%b5%81%e7%a8%8b%e8%be%93%e5%87%ba">#</a>
+</h3>
 <p>为了详细查看<code>go build</code>整个详细过程，我们可以使用<code>go build -work -a -p 1 -x empty_string.go</code>命令来观察整个过程，它比<code>go build -n</code>提供了更详细的信息:</p>
 <ul>
 <li>-work选项指示编译器编译完成后保留编译临时工作目录</li>
@@ -481,94 +554,95 @@ https://github.com/alex-shpak/hugo-book
 <li>-p选项用来指定编译过程中线程数，这里指定为1，是为观察编译的顺序性</li>
 <li>-x选项可以指定编译参数</li>
 </ul>
-<p>输出内容摘要如下：</p>
-<pre tabindex="0"><code>vagrant@vagrant:~/dive-into-go$ go build -work -a -p 1 -x empty_string.go
-WORK=/tmp/go-build871888098
-mkdir -p $WORK/b004/
-cat &gt;$WORK/b004/go_asm.h &lt;&lt; &#39;EOF&#39; # internal
-EOF
-cd /usr/lib/go/src/internal/cpu
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b004=&gt;&#34; -I $WORK/b004/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -gensymabis -o $WORK/b004/symabis ./cpu_x86.s
-cat &gt;$WORK/b004/importcfg &lt;&lt; &#39;EOF&#39; # internal
-# import config
-EOF
-/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b004/_pkg_.a -trimpath &#34;$WORK/b004=&gt;&#34; -p internal/cpu -std -+ -buildid 8F_1bll3rU7d1mo74DFt/8F_1bll3rU7d1mo74DFt -goversion go1.14.13 -symabis $WORK/b004/symabis -D &#34;&#34; -importcfg $WORK/b004/importcfg -pack -asmhdr $WORK/b004/go_asm.h ./cpu.go ./cpu_amd64.go ./cpu_x86.go
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b004=&gt;&#34; -I $WORK/b004/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b004/cpu_x86.o ./cpu_x86.s
-/usr/lib/go/pkg/tool/linux_amd64/pack r $WORK/b004/_pkg_.a $WORK/b004/cpu_x86.o # internal
-/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b004/_pkg_.a # internal
-cp $WORK/b004/_pkg_.a /home/vagrant/.cache/go-build/e2/e20b6a590621cff911735ea491492b992b429df9b0b579155aecbfdffdf7ec74-d # internal
-mkdir -p $WORK/b003/
-cat &gt;$WORK/b003/go_asm.h &lt;&lt; &#39;EOF&#39; # internal
-EOF
-cd /usr/lib/go/src/internal/bytealg
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b003=&gt;&#34; -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -gensymabis -o $WORK/b003/symabis ./compare_amd64.s ./count_amd64.s ./equal_amd64.s ./index_amd64.s ./indexbyte_amd64.s
-cat &gt;$WORK/b003/importcfg &lt;&lt; &#39;EOF&#39; # internal
-# import config
-packagefile internal/cpu=$WORK/b004/_pkg_.a
-EOF
-/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b003/_pkg_.a -trimpath &#34;$WORK/b003=&gt;&#34; -p internal/bytealg -std -+ -buildid I0-Z7SEGCaTIz2BZXZCm/I0-Z7SEGCaTIz2BZXZCm -goversion go1.14.13 -symabis $WORK/b003/symabis -D &#34;&#34; -importcfg $WORK/b003/importcfg -pack -asmhdr $WORK/b003/go_asm.h ./bytealg.go ./compare_native.go ./count_native.go ./equal_generic.go ./equal_native.go ./index_amd64.go ./index_native.go ./indexbyte_native.go
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b003=&gt;&#34; -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/compare_amd64.o ./compare_amd64.s
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b003=&gt;&#34; -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/count_amd64.o ./count_amd64.s
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b003=&gt;&#34; -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/equal_amd64.o ./equal_amd64.s
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b003=&gt;&#34; -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/index_amd64.o ./index_amd64.s
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b003=&gt;&#34; -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/indexbyte_amd64.o ./indexbyte_amd64.s
-/usr/lib/go/pkg/tool/linux_amd64/pack r $WORK/b003/_pkg_.a $WORK/b003/compare_amd64.o $WORK/b003/count_amd64.o $WORK/b003/equal_amd64.o $WORK/b003/index_amd64.o $WORK/b003/indexbyte_amd64.o # internal
-/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b003/_pkg_.a # internal
-cp $WORK/b003/_pkg_.a /home/vagrant/.cache/go-build/42/42c362e050cb454a893b15620b72fbb75879ac0a1fdd13762323eec247798a43-d # internal
-mkdir -p $WORK/b006/
-cat &gt;$WORK/b006/go_asm.h &lt;&lt; &#39;EOF&#39; # internal
-EOF
-cd /usr/lib/go/src/runtime/internal/atomic
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b006=&gt;&#34; -I $WORK/b006/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -gensymabis -o $WORK/b006/symabis ./asm_amd64.s
-cat &gt;$WORK/b006/importcfg &lt;&lt; &#39;EOF&#39; # internal
-# import config
-EOF
-/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b006/_pkg_.a -trimpath &#34;$WORK/b006=&gt;&#34; -p runtime/internal/atomic -std -+ -buildid uI0THQvFtr7yRsGPOXDw/uI0THQvFtr7yRsGPOXDw -goversion go1.14.13 -symabis $WORK/b006/symabis -D &#34;&#34; -importcfg $WORK/b006/importcfg -pack -asmhdr $WORK/b006/go_asm.h ./atomic_amd64.go ./stubs.go
-/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath &#34;$WORK/b006=&gt;&#34; -I $WORK/b006/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b006/asm_amd64.o ./asm_amd64.s
-/usr/lib/go/pkg/tool/linux_amd64/pack r $WORK/b006/_pkg_.a $WORK/b006/asm_amd64.o # internal
-/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b006/_pkg_.a # internal
-cp $WORK/b006/_pkg_.a /home/vagrant/.cache/go-build/6b/6b2c5449e17d9b0e34bfe37a77dc16b9675ffb657fbe9277a1067fa8ca5179ab-d # internal
-mkdir -p $WORK/b008/
-cat &gt;$WORK/b008/importcfg &lt;&lt; &#39;EOF&#39; # internal
-# import config
-EOF
-cd /usr/lib/go/src/runtime/internal/sys
-/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b008/_pkg_.a -trimpath &#34;$WORK/b008=&gt;&#34; -p runtime/internal/sys -std -+ -complete -buildid AZJ761JYi_ToDiYI_5UA/AZJ761JYi_ToDiYI_5UA -goversion go1.14.13 -D &#34;&#34; -importcfg $WORK/b008/importcfg -pack ./arch.go ./arch_amd64.go ./intrinsics.go ./intrinsics_common.go ./stubs.go ./sys.go ./zgoarch_amd64.go ./zgoos_linux.go ./zversion.go
-/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b008/_pkg_.a # internal
-cp $WORK/b008/_pkg_.a /home/vagrant/.cache/go-build/f7/f706a1321f01a45857a441e80fd50709a700a9d304543d534a953827021222c1-d # internal
-mkdir -p $WORK/b007/
-cat &gt;$WORK/b007/importcfg &lt;&lt; &#39;EOF&#39; # internal
-# import config
-packagefile runtime/internal/sys=$WORK/b008/_pkg_.a
-EOF
-cd /usr/lib/go/src/runtime/internal/math
-/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b007/_pkg_.a -trimpath &#34;$WORK/b007=&gt;&#34; -p runtime/internal/math -std -+ -complete -buildid NxqylyDav-hCzDju1Kr1/NxqylyDav-hCzDju1Kr1 -goversion go1.14.13 -D &#34;&#34; -importcfg $WORK/b007/importcfg -pack ./math.go
-/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b007/_pkg_.a # internal
-cp $WORK/b007/_pkg_.a /home/vagrant/.cache/go-build/f6/f6dcba7ea64d64182a26bcda498c1888786213b0b5560d9bde92cfff323be7df-d # internal
-...
-</code></pre><p>从上面可以看到编译器工作目录是<code>/tmp/go-build871888098</code>，cd进去之后，我们可以看到多个子目录，每个子目录都是用编译子task使用，存放的都是编译后的包：</p>
-<pre tabindex="0"><code>vagrant@vagrant:/tmp/go-build871888098$ ls
-b001  b002  b003  b004  b006  b007  b008
-</code></pre><p>其中<code>b001</code>目录用于main包编译，是任务图的root节点。<code>b001</code>目录下面的<code>importcfg.link</code>文件存放都是程序所有依赖的包地址，它们指向的都是b002,b003&hellip;这些目录下的<code>_pkg_.a</code>文件。</p>
+<p>完整编译输出内容摘要如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vagrant@vagrant:~/dive-into-go$ go build -work -a -p <span style="color:#ae81ff">1</span> -x empty_string.go
+</span></span><span style="display:flex;"><span>WORK<span style="color:#f92672">=</span>/tmp/go-build871888098
+</span></span><span style="display:flex;"><span>mkdir -p $WORK/b004/
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b004/go_asm.h <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>cd /usr/lib/go/src/internal/cpu
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b004=&gt;&#34;</span> -I $WORK/b004/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -gensymabis -o $WORK/b004/symabis ./cpu_x86.s
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b004/importcfg <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># import config
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b004/_pkg_.a -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b004=&gt;&#34;</span> -p internal/cpu -std -+ -buildid 8F_1bll3rU7d1mo74DFt/8F_1bll3rU7d1mo74DFt -goversion go1.14.13 -symabis $WORK/b004/symabis -D <span style="color:#e6db74">&#34;&#34;</span> -importcfg $WORK/b004/importcfg -pack -asmhdr $WORK/b004/go_asm.h ./cpu.go ./cpu_amd64.go ./cpu_x86.go
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b004=&gt;&#34;</span> -I $WORK/b004/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b004/cpu_x86.o ./cpu_x86.s
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/pack r $WORK/b004/_pkg_.a $WORK/b004/cpu_x86.o <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b004/_pkg_.a <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>cp $WORK/b004/_pkg_.a /home/vagrant/.cache/go-build/e2/e20b6a590621cff911735ea491492b992b429df9b0b579155aecbfdffdf7ec74-d <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>mkdir -p $WORK/b003/
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b003/go_asm.h <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>cd /usr/lib/go/src/internal/bytealg
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b003=&gt;&#34;</span> -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -gensymabis -o $WORK/b003/symabis ./compare_amd64.s ./count_amd64.s ./equal_amd64.s ./index_amd64.s ./indexbyte_amd64.s
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b003/importcfg <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># import config
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile internal/cpu=$WORK/b004/_pkg_.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b003/_pkg_.a -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b003=&gt;&#34;</span> -p internal/bytealg -std -+ -buildid I0-Z7SEGCaTIz2BZXZCm/I0-Z7SEGCaTIz2BZXZCm -goversion go1.14.13 -symabis $WORK/b003/symabis -D <span style="color:#e6db74">&#34;&#34;</span> -importcfg $WORK/b003/importcfg -pack -asmhdr $WORK/b003/go_asm.h ./bytealg.go ./compare_native.go ./count_native.go ./equal_generic.go ./equal_native.go ./index_amd64.go ./index_native.go ./indexbyte_native.go
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b003=&gt;&#34;</span> -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/compare_amd64.o ./compare_amd64.s
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b003=&gt;&#34;</span> -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/count_amd64.o ./count_amd64.s
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b003=&gt;&#34;</span> -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/equal_amd64.o ./equal_amd64.s
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b003=&gt;&#34;</span> -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/index_amd64.o ./index_amd64.s
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b003=&gt;&#34;</span> -I $WORK/b003/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b003/indexbyte_amd64.o ./indexbyte_amd64.s
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/pack r $WORK/b003/_pkg_.a $WORK/b003/compare_amd64.o $WORK/b003/count_amd64.o $WORK/b003/equal_amd64.o $WORK/b003/index_amd64.o $WORK/b003/indexbyte_amd64.o <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b003/_pkg_.a <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>cp $WORK/b003/_pkg_.a /home/vagrant/.cache/go-build/42/42c362e050cb454a893b15620b72fbb75879ac0a1fdd13762323eec247798a43-d <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>mkdir -p $WORK/b006/
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b006/go_asm.h <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>cd /usr/lib/go/src/runtime/internal/atomic
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b006=&gt;&#34;</span> -I $WORK/b006/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -gensymabis -o $WORK/b006/symabis ./asm_amd64.s
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b006/importcfg <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># import config
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b006/_pkg_.a -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b006=&gt;&#34;</span> -p runtime/internal/atomic -std -+ -buildid uI0THQvFtr7yRsGPOXDw/uI0THQvFtr7yRsGPOXDw -goversion go1.14.13 -symabis $WORK/b006/symabis -D <span style="color:#e6db74">&#34;&#34;</span> -importcfg $WORK/b006/importcfg -pack -asmhdr $WORK/b006/go_asm.h ./atomic_amd64.go ./stubs.go
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/asm -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b006=&gt;&#34;</span> -I $WORK/b006/ -I /usr/lib/go/pkg/include -D GOOS_linux -D GOARCH_amd64 -o $WORK/b006/asm_amd64.o ./asm_amd64.s
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/pack r $WORK/b006/_pkg_.a $WORK/b006/asm_amd64.o <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b006/_pkg_.a <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>cp $WORK/b006/_pkg_.a /home/vagrant/.cache/go-build/6b/6b2c5449e17d9b0e34bfe37a77dc16b9675ffb657fbe9277a1067fa8ca5179ab-d <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>mkdir -p $WORK/b008/
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b008/importcfg <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># import config
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>cd /usr/lib/go/src/runtime/internal/sys
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b008/_pkg_.a -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b008=&gt;&#34;</span> -p runtime/internal/sys -std -+ -complete -buildid AZJ761JYi_ToDiYI_5UA/AZJ761JYi_ToDiYI_5UA -goversion go1.14.13 -D <span style="color:#e6db74">&#34;&#34;</span> -importcfg $WORK/b008/importcfg -pack ./arch.go ./arch_amd64.go ./intrinsics.go ./intrinsics_common.go ./stubs.go ./sys.go ./zgoarch_amd64.go ./zgoos_linux.go ./zversion.go
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b008/_pkg_.a <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>cp $WORK/b008/_pkg_.a /home/vagrant/.cache/go-build/f7/f706a1321f01a45857a441e80fd50709a700a9d304543d534a953827021222c1-d <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>mkdir -p $WORK/b007/
+</span></span><span style="display:flex;"><span>cat &gt;$WORK/b007/importcfg <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39; # internal
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># import config
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">packagefile runtime/internal/sys=$WORK/b008/_pkg_.a
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>cd /usr/lib/go/src/runtime/internal/math
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/compile -o $WORK/b007/_pkg_.a -trimpath <span style="color:#e6db74">&#34;</span>$WORK<span style="color:#e6db74">/b007=&gt;&#34;</span> -p runtime/internal/math -std -+ -complete -buildid NxqylyDav-hCzDju1Kr1/NxqylyDav-hCzDju1Kr1 -goversion go1.14.13 -D <span style="color:#e6db74">&#34;&#34;</span> -importcfg $WORK/b007/importcfg -pack ./math.go
+</span></span><span style="display:flex;"><span>/usr/lib/go/pkg/tool/linux_amd64/buildid -w $WORK/b007/_pkg_.a <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>cp $WORK/b007/_pkg_.a /home/vagrant/.cache/go-build/f6/f6dcba7ea64d64182a26bcda498c1888786213b0b5560d9bde92cfff323be7df-d <span style="color:#75715e"># internal</span>
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>从上面可以看到编译器工作目录是<code>/tmp/go-build871888098</code>，cd进去之后，我们可以看到多个子目录，每个子目录都是用编译子task使用，存放的都是编译后的包：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vagrant@vagrant:/tmp/go-build871888098$ ls
+</span></span><span style="display:flex;"><span>b001  b002  b003  b004  b006  b007  b008
+</span></span></code></pre></div><p>其中<code>b001</code>目录用于main包编译，是任务图的root节点。<code>b001</code>目录下面的<code>importcfg.link</code>文件存放都是程序所有依赖的包地址，它们指向的都是b002,b003&hellip;这些目录下的<code>_pkg_.a</code>文件。</p>
 <h2 id="go-编译器">
   Go 编译器
   <a class="anchor" href="#go-%e7%bc%96%e8%af%91%e5%99%a8">#</a>
 </h2>
-<p>Go 编译器，英文名称是<code>Go compiler</code>，简称gc。gc是Go命令的一部分，包含在每次Go发行版本中。Go命令是由Go语言编写的，而Go 语言编写的程序需要Go命令来编译，也就是自己编译自己，这就出现了“先有鸡还是先有蛋”的问题。Go gc如何做到自己编译自己呢，要解答这个问题，我们先来了解下自举概念。</p>
+<p>Go 编译器，英文名称是<code>Go compiler</code>，简称gc。gc是Go命令的一部分，包含在每次Go发行版本中。Go命令是由Go语言编写的，而Go语言编写的程序需要Go命令来编译，也就是自己编译自己，这就出现了“先有鸡还是先有蛋”的问题。Go gc如何做到自己编译自己呢，要解答这个问题，我们先来了解下自举概念。</p>
 <h3 id="自举">
   自举
   <a class="anchor" href="#%e8%87%aa%e4%b8%be">#</a>
 </h3>
-<p>自举，英文名称是Bootstrapping。自举指的是用要编译的程序的编程语言来编写其编译器。自举步骤一般如下，假定要编译的程序语言是A：</p>
+<p>自举，英文名称是Bootstrapping，这个词来自自西方的一句谚语：“pull oneself up by one&rsquo;s bootstraps”，字面意思就是“拽着鞋带把自己拉起来”。自举一词在编译器领域指的是用待编译的程序的编程语言来编写其编译器。自举步骤一般如下，假定要编译的程序语言是A：</p>
 <ol>
 <li>先使用程序语言B实现A的编译器，假定为compiler0</li>
 <li>接着使用A语言实现A的编译器，之后使用步骤1中的compiler0编译器编译，得到编译器compiler1</li>
 <li>最后我们就可以使用compiler1来编译A语言写的程序，这样实现了自己编译自己</li>
 </ol>
-<p>通过自举方式，解决了上面说的“先有鸡还是先有蛋”的问题，实现了自己编译自己。Go语言最开始是使用C语言实现的编译器，go1.4是最后一个C语言实现的编译器版本。自go1.5开始，Go实现了自举功能，go1.5的gc是由go语言实现的，它是由go1.4版本的C语言实现编译器编译出来的，详细内容可以参见Go 自举的设计文档：
+<p>通过自举方式，解决了上面说的“先有鸡还是先有蛋”的问题，实现了自己编译自己。</p>
+<p>Go语言最开始是使用C语言实现的编译器，go1.4是最后一个C语言实现的编译器版本。自go1.5开始，Go实现了自举功能，go1.5的gc是由go语言实现的，它是由go1.4版本的C语言实现编译器编译出来的，详细内容可以参见Go 自举的设计文档：
   <a href="https://docs.google.com/document/d/1P3BLR31VA8cvLJLfMibSuTdwTuF7WWLux71CYD0eeD8/edit">Go 1.3+ Compiler Overhaul</a>。</p>
 <p>除了 Go 语言实现的 gc 外，Go 官方还维护了一个基于 gcc 实现的 Go 编译器 
-  <a href="https://go.dev/doc/install/gccgo">gccgo</a>。与 gc 相比，gccgo 编译代码较慢，但支持更强大的优化，因此由 gccgo 构建的 CPU 密集型(CPU-bound)程序通常会运行得更快。此外 gccgo 比 gc 支持更多的操作系统，如果交叉编译gc不支持的操作系统，可以考虑使用gccgo。</p>
+  <a href="https://go.dev/doc/install/gccgo">gccgo</a>。与 gc 相比，gccgo 编译速度较慢，但支持更强大的优化，因此由 gccgo 构建的 CPU 密集型(CPU-bound)程序通常会运行得更快。此外 gccgo 比 gc 支持更多的操作系统，如果交叉编译gc不支持的操作系统，可以考虑使用gccgo。</p>
 <h3 id="源码安装">
   源码安装
   <a class="anchor" href="#%e6%ba%90%e7%a0%81%e5%ae%89%e8%a3%85">#</a>
@@ -584,7 +658,7 @@ b001  b002  b003  b004  b006  b007  b008
   <a class="anchor" href="#%e4%bb%8e%e5%ae%98%e7%bd%91%e4%b8%8b%e8%bd%bd%e5%8f%91%e8%a1%8c%e5%8c%85">#</a>
 </h4>
 <p>第一种方式是从Go发行包中获取Go二进制应用，比如要源码编译go1.14.13，我们可以去
-  <a href="https://golang.org/dl/">官网</a>下载已经编译好的go1.13，设置好GOROOT_BOOTSTRAP环境变量，就可以源码编译了。</p>
+  <a href="https://golang.org/dl/">官网</a>下载已经编译好的go1.13，设置好<code>GOROOT_BOOTSTRAP</code>环境变量，就可以源码编译了。</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://golang.org/dl/go1.13.15.linux-amd64.tar.gz
 </span></span><span style="display:flex;"><span>tar xzvf go1.13.15.linux-amd64.tar.gz
 </span></span><span style="display:flex;"><span>mv go go1.13.15
@@ -628,6 +702,8 @@ b001  b002  b003  b004  b006  b007  b008
 </h2>
 <ul>
 <li>
+  <a href="https://go.dev/src/cmd/compile/README">Go官方博客：Introduction to the Go compiler</a></li>
+<li>
   <a href="https://medium.com/a-journey-with-go/go-overview-of-the-compiler-4e5a153ca889">Go: Overview of the Compiler</a></li>
 <li>
   <a href="https://getstream.io/blog/how-a-go-program-compiles-down-to-machine-code/">How a Go Program Compiles down to Machine Code</a></li>
@@ -650,6 +726,23 @@ b001  b002  b003  b004  b006  b007  b008
 <li>
   <a href="https://go.dev/blog/gccgo-in-gcc-471">Gccgo in GCC 4.7.1</a></li>
 </ul>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>
+  <a href="https://en.wikipedia.org/wiki/Lexical_analysis">Lexical analysis</a>&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>
+  <a href="https://en.wikipedia.org/wiki/Parsing">Syntax analysis</a>&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>
+  <a href="https://go.dev/src/cmd/compile/README">https://go.dev/src/cmd/compile/README</a>&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
 </article>
  
       

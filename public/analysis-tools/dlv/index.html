@@ -9,32 +9,42 @@ dlv debug main.go 如果当前目录是 main 包所在目录时候，可以不�
 . ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="Delve is a debugger for the Go programming language" />
-<meta property="og:description" content="Delve # Delve1 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 GDB 工具类似，相比 GDB，它简单易用，能够更好的理解和处理Go语言的数据结构和语言特性，比如它支持打印 goroutine 以及 defer 函数等Go特有的语法特性。Delve 简称 dlv，后文将以 dlv 代称 Delve.
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/analysis-tools/dlv/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="Delve is a debugger for the Go programming language">
+  <meta property="og:description" content="Delve # Delve1 是使用Go语言实现的，专门用来调试Go程序的工具。它跟 GDB 工具类似，相比 GDB，它简单易用，能够更好的理解和处理Go语言的数据结构和语言特性，比如它支持打印 goroutine 以及 defer 函数等Go特有的语法特性。Delve 简称 dlv，后文将以 dlv 代称 Delve.
 安装 # # 安装最新版本 go get -u github.com/go-delve/delve/cmd/dlv # 查看版本 dlv version 使用 # 开始调试 # dlv 使用 debug 命令进入调试界面：
 dlv debug main.go 如果当前目录是 main 包所在目录时候，可以不用指定 main.go 文件这个参数的。假定项目结构如下：
-. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/analysis-tools/dlv/" /><meta property="article:section" content="analysis-tools" />
-
-
+. ├── github.com/me/foo ├── cmd │ └── foo │ └── main.go ├── pkg │ └── baz │ ├── bar.go │ └── bar_test.go 如果当前已在 cmd/foo 目录下，我们可以直接执行 dlv debug 命令开始调试。在任何目录下我们可以使用 dlv debug github.">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="analysis-tools">
 <title>Delve is a debugger for the Go programming language | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

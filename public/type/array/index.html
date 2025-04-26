@@ -11,34 +11,44 @@ arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[
 func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="数组" />
-<meta property="og:description" content="数组 # 数组是Go语言中常见的数据结构，相比切片，数组我们使用的比较少。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/type/array/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="数组">
+  <meta property="og:description" content="数组 # 数组是Go语言中常见的数据结构，相比切片，数组我们使用的比较少。
 初始化 # Go语言数组有两个声明初始化方式，一种需要显示指明数组大小，另一种使用 ... 保留字， 数组的长度将由编译器在编译阶段推断出来：
 arr1 := [3]int{1, 2, 3} // 使用[n]T方式 arr2 := [...]int{1, 2, 3} // 使用[...]T方式 arr3 := [3]int{2: 3} // 使用[n]T方式 arr4 := [...]int{2: 3} // 使用[...]T方式 注意：
 上面代码中 arr3 和 arr4 的初始化方式是指定数组索引对应的值。实际使用中这种方式并不常见。
 可比较性 # 数组大小是数组类型的一部分，只有数组大小和数组元素类型一样的数组才能够进行比较。
-func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/type/array/" /><meta property="article:section" content="type" />
-
-
+func main() { var a1 [3]int var a2 [3]int var a3 [5]int fmt.Println(a1 == a2) // 输出true fmt.Println(a1 == a3) // 不能够比较，会报编译错误： invalid operation: a1 == a3 (mismatched types [3]int and [5]int) } 值类型 # Go语言中数组是一个值类型变量，将一个数组作为函数参数传递是拷贝原数组形成一个新数组传递，在函数里面对数组做任何更改都不会影响原数组：">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="type">
 <title>数组 | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book
@@ -348,9 +358,9 @@ https://github.com/alex-shpak/hugo-book
 </li>
 </ul>
 <p>我们知道数组内存空间是连续分配的，比如对于[3][5]int类型数组其内存空间分配使用如下图所示：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202104/array_memory_alloc.png" width="400px"/><figcaption>
-            <h4>二维数组内存布局</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/array_memory_alloc.png" width="400px"><figcaption>
+      <h4>二维数组内存布局</h4>
+    </figcaption>
 </figure>
 
 <p>观察上面的二维数组的内存布局，我们可以得出对于 <code>[m][n]T</code> 类型的数组中任一个元素内存地址的计算公式是：</p>
@@ -388,9 +398,9 @@ https://github.com/alex-shpak/hugo-book
   <a class="anchor" href="#%e7%a9%ba%e9%97%b4%e5%b1%80%e9%83%a8%e6%80%a7%e7%a4%ba%e4%be%8b">#</a>
 </h3>
 <p>对于数组的访问，我们可以一行行访问，也可以一列列访问，根据上面分析我们可以得出<strong>一行行访问可以有很好的空间局部性，有更好的执行效率</strong>的结论。因为一行行访问时，下一次访问的就是当前元素挨着的元素，而一列列访问则是需要跨过数组列数个元素：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202104/multi_dimen_array.png" width="400px"/><figcaption>
-            <h4>二位数组的访问</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202104/multi_dimen_array.png" width="400px"><figcaption>
+      <h4>二位数组的访问</h4>
+    </figcaption>
 </figure>
 
 <p>最后我们来进行下基准测试验证一下：</p>

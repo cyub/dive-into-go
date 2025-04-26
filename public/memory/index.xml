@@ -4,40 +4,22 @@
     <title>深入Go语言之旅</title>
     <link>https://go.cyub.vip/memory/</link>
     <description>Recent content on 深入Go语言之旅</description>
-    <generator>Hugo -- gohugo.io</generator>
-    <language>zh-cn</language><atom:link href="https://go.cyub.vip/memory/index.xml" rel="self" type="application/rss+xml" />
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <atom:link href="https://go.cyub.vip/memory/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title></title>
       <link>https://go.cyub.vip/memory/allocator/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://go.cyub.vip/memory/allocator/</guid>
-      <description>内存分配器 # 概述 # Golang内存分配管理策略是按照不同大小的对象和不同的内存层级来分配管理内存。通过这种多层级分配策略，形成无锁化或者降低锁的粒度，以及尽量减少内存碎片，来提高内存分配效率。
-Golang中内存分配管理的对象按照大小可以分为：
-类别 大小 微对象 tiny object (0, 16B) 小对象 small object [16B, 32KB] 大对象 large object (32KB, +∞) Golang中内存管理的层级从最下到最上可以分为：mspan -&amp;gt; mcache -&amp;gt; mcentral -&amp;gt; mheap -&amp;gt; heapArena。golang中对象的内存分配流程如下：
-小于16个字节的对象使用mcache的微对象分配器进行分配内存 大小在16个字节到32k字节之间的对象，首先计算出需要使用的span大小规格，然后使用mcache中相同大小规格的mspan分配 如果对应的大小规格在mcache中没有可用的mspan，则向mcentral申请 如果mcentral中没有可用的mspan，则向mheap申请，并根据BestFit算法找到最合适的mspan。如果申请到的mspan超出申请大小，将会根据需求进行切分，以返回用户所需的页数，剩余的页构成一个新的mspan放回mheap的空闲列表 如果mheap中没有可用span，则向操作系统申请一系列新的页（最小 1MB） 对于大于32K的大对象直接从mheap分配 mspan # mspan是一个双向链表结构。mspan是golang中内存分配管理的基本单位。
-// file: mheap.go type mspan struct { next *mspan // 指向下一个mspan prev *mspan // 指向上一个mspan startAddr uintptr // 该span在arena区域起始地址 npages uintptr // 该span在arena区域中占用page个数 manualFreeList gclinkptr // 空闲对象列表 freeindex uintptr // 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了 // freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用 // freeindex 和 allocCache配合使用来定位出可用span的位置 nelems uintptr // span链表中元素个数 allocCache uint64 // 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex+pos位置的span未使用 allocBits *gcBits // 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配 gcmarkBits *gcBits // 用来sweep过程进行标记垃圾对象的，用于后续gc。 allocCount uint16 // 已分配的对象个数 spanclass spanClass // span类别 state mSpanState // mspaninuse etc needzero uint8 // needs to be zeroed before allocation elemsize uintptr // 能存储的对象大小 } // file: mheap.</description>
+      <description>内存分配器 # 概述 # Golang内存分配管理策略是按照不同大小的对象和不同的内存层级来分配管理内存。通过这种多层级分配策略，形成无锁化或者降低锁的粒度，以及尽量减少内存碎片，来提高内存分配效率。&#xA;Golang中内存分配管理的对象按照大小可以分为：&#xA;类别 大小 微对象 tiny object (0, 16B) 小对象 small object [16B, 32KB] 大对象 large object (32KB, +∞) Golang中内存管理的层级从最下到最上可以分为：mspan -&amp;gt; mcache -&amp;gt; mcentral -&amp;gt; mheap -&amp;gt; heapArena。golang中对象的内存分配流程如下：&#xA;小于16个字节的对象使用mcache的微对象分配器进行分配内存 大小在16个字节到32k字节之间的对象，首先计算出需要使用的span大小规格，然后使用mcache中相同大小规格的mspan分配 如果对应的大小规格在mcache中没有可用的mspan，则向mcentral申请 如果mcentral中没有可用的mspan，则向mheap申请，并根据BestFit算法找到最合适的mspan。如果申请到的mspan超出申请大小，将会根据需求进行切分，以返回用户所需的页数，剩余的页构成一个新的mspan放回mheap的空闲列表 如果mheap中没有可用span，则向操作系统申请一系列新的页（最小 1MB） 对于大于32K的大对象直接从mheap分配 mspan # mspan是一个双向链表结构。mspan是golang中内存分配管理的基本单位。&#xA;// file: mheap.go type mspan struct { next *mspan // 指向下一个mspan prev *mspan // 指向上一个mspan startAddr uintptr // 该span在arena区域起始地址 npages uintptr // 该span在arena区域中占用page个数 manualFreeList gclinkptr // 空闲对象列表 freeindex uintptr // 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了 // freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用 // freeindex 和 allocCache配合使用来定位出可用span的位置 nelems uintptr // span链表中元素个数 allocCache uint64 // 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex+pos位置的span未使用 allocBits *gcBits // 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配 gcmarkBits *gcBits // 用来sweep过程进行标记垃圾对象的，用于后续gc。 allocCount uint16 // 已分配的对象个数 spanclass spanClass // span类别 state mSpanState // mspaninuse etc needzero uint8 // needs to be zeroed before allocation elemsize uintptr // 能存储的对象大小 } // file: mheap.</description>
     </item>
-    
     <item>
       <title></title>
       <link>https://go.cyub.vip/memory/gc/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://go.cyub.vip/memory/gc/</guid>
-      <description>GC # 三色标记清除算法 # Golang中采用 三色标记清除算法（tricolor mark-and-sweep algorithm） 进行GC。由于支持写屏障（write barrier)了，GC过程和程序可以并发运行。
-三色标记清除算核心原则就是根据每个对象的颜色，分到不同的颜色集合中，对象的颜色是在标记阶段完成的。三色是黑白灰三种颜色，每种颜色的集合都有特别的含义：
-黑色集合
-该集合下的对象没有引用任何白色对象（即该对象没有指针指向白色对象）
-白色集合
-扫描标记结束之后，白色集合里面的对象就是要进行垃圾回收的，该对象允许有指针指向黑色对象。
-灰色集合
-可能有指针指向白色对象。它是一个中间状态，只有该集合下不在存在任何对象时候，才能进行最终的清除操作。
-过程 # 标记清除算法核心不变要素是没有黑色的对象能够指向白色集合对象。当垃圾回收开始，全部对象标记为白色，然后垃圾回收器会遍历所有根对象并把它们标记为灰色。根对象就是程序能直接访问到的对象，包括全局变量以及栈、寄存器上的里面的变量。在这之后，垃圾回收器选取一个灰色的对象，首先把它变为黑色，然后开始寻找去确定这个对象是否有指针指向白色集合的对象，若找到则把找到的对象由标记为灰色，并将其白色集合中移入到灰色集合中。就这样持续下去，直到灰色集合中没有任何对象为止。
-为了支持能够并发进行垃圾回收，Golang在垃圾回收过程中采用写屏障，每次堆中的指针被修改时候写屏障都会执行，写屏障会将该指针指向的对象标记为灰色，然后放入灰色集合（因为才对象现在是可触达的了），然后继续扫描该对象。
-举个例子说明写屏障的重要性：
-假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。</description>
+      <description>GC # 三色标记清除算法 # Golang中采用 三色标记清除算法（tricolor mark-and-sweep algorithm） 进行GC。由于支持写屏障（write barrier)了，GC过程和程序可以并发运行。&#xA;三色标记清除算核心原则就是根据每个对象的颜色，分到不同的颜色集合中，对象的颜色是在标记阶段完成的。三色是黑白灰三种颜色，每种颜色的集合都有特别的含义：&#xA;黑色集合&#xA;该集合下的对象没有引用任何白色对象（即该对象没有指针指向白色对象）&#xA;白色集合&#xA;扫描标记结束之后，白色集合里面的对象就是要进行垃圾回收的，该对象允许有指针指向黑色对象。&#xA;灰色集合&#xA;可能有指针指向白色对象。它是一个中间状态，只有该集合下不在存在任何对象时候，才能进行最终的清除操作。&#xA;过程 # 标记清除算法核心不变要素是没有黑色的对象能够指向白色集合对象。当垃圾回收开始，全部对象标记为白色，然后垃圾回收器会遍历所有根对象并把它们标记为灰色。根对象就是程序能直接访问到的对象，包括全局变量以及栈、寄存器上的里面的变量。在这之后，垃圾回收器选取一个灰色的对象，首先把它变为黑色，然后开始寻找去确定这个对象是否有指针指向白色集合的对象，若找到则把找到的对象由标记为灰色，并将其白色集合中移入到灰色集合中。就这样持续下去，直到灰色集合中没有任何对象为止。&#xA;为了支持能够并发进行垃圾回收，Golang在垃圾回收过程中采用写屏障，每次堆中的指针被修改时候写屏障都会执行，写屏障会将该指针指向的对象标记为灰色，然后放入灰色集合（因为才对象现在是可触达的了），然后继续扫描该对象。&#xA;举个例子说明写屏障的重要性：&#xA;假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。</description>
     </item>
-    
   </channel>
 </rss>

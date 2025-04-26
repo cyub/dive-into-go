@@ -17,8 +17,10 @@
 假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="" />
-<meta property="og:description" content="GC # 三色标记清除算法 # Golang中采用 三色标记清除算法（tricolor mark-and-sweep algorithm） 进行GC。由于支持写屏障（write barrier)了，GC过程和程序可以并发运行。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/memory/gc/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="深入Go语言之旅">
+  <meta property="og:description" content="GC # 三色标记清除算法 # Golang中采用 三色标记清除算法（tricolor mark-and-sweep algorithm） 进行GC。由于支持写屏障（write barrier)了，GC过程和程序可以并发运行。
 三色标记清除算核心原则就是根据每个对象的颜色，分到不同的颜色集合中，对象的颜色是在标记阶段完成的。三色是黑白灰三种颜色，每种颜色的集合都有特别的含义：
 黑色集合
 该集合下的对象没有引用任何白色对象（即该对象没有指针指向白色对象）
@@ -29,28 +31,36 @@
 过程 # 标记清除算法核心不变要素是没有黑色的对象能够指向白色集合对象。当垃圾回收开始，全部对象标记为白色，然后垃圾回收器会遍历所有根对象并把它们标记为灰色。根对象就是程序能直接访问到的对象，包括全局变量以及栈、寄存器上的里面的变量。在这之后，垃圾回收器选取一个灰色的对象，首先把它变为黑色，然后开始寻找去确定这个对象是否有指针指向白色集合的对象，若找到则把找到的对象由标记为灰色，并将其白色集合中移入到灰色集合中。就这样持续下去，直到灰色集合中没有任何对象为止。
 为了支持能够并发进行垃圾回收，Golang在垃圾回收过程中采用写屏障，每次堆中的指针被修改时候写屏障都会执行，写屏障会将该指针指向的对象标记为灰色，然后放入灰色集合（因为才对象现在是可触达的了），然后继续扫描该对象。
 举个例子说明写屏障的重要性：
-假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/memory/gc/" /><meta property="article:section" content="memory" />
-
-
+假定标记完成的瞬间，A对象是黑色，B是白色，然后A的对象指针字段f由空指针改成指向B，若没有写屏障的话，清除阶段B就会被清除掉，那边A的f字段就变成了悬浮指针，这是有问题的。若存在写屏障那么f字段改变的时候，f指向的B就会放入到灰色集合中，然后继续扫描，B最终也会变成黑色的，那么清除阶段它也就不会被清除了。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="memory">
 <title>Gc | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

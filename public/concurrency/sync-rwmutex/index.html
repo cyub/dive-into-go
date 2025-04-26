@@ -13,36 +13,46 @@ RWMutex设计采用写者优先方法，保证写操作优先处理。
 RWMutex的定义 # type RWMutex struct { w Mutex // 互斥锁 writerSem uint32 // writers信号量 readerSem uint32 // readers信号量 readerCount int32 // reader数量 readerWait int32 // writer申请锁时候，已经申请到锁的reader的数量 } const rwmutexMaxReaders = 1 &lt;&lt; 30 // 最大reader数，用于反转readerCount RLock/RUnlock的实现 # func (rw *RWMutex) RLock() { if atomic.AddInt32(&amp;rw.readerCount, 1) &lt; 0 { // 如果rw.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="读写锁 - sync.RWMutex" />
-<meta property="og:description" content="读写锁 - sync.RWMutex # RWMutex是Go语言中内置的一个reader/writer锁，用来解决读者-写者问题（Readers–writers problem）。在任意一时刻，一个RWMutex只能由任意数量的reader持有，或者只能由一个writer持有。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/concurrency/sync-rwmutex/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="读写锁 - sync.RWMutex">
+  <meta property="og:description" content="读写锁 - sync.RWMutex # RWMutex是Go语言中内置的一个reader/writer锁，用来解决读者-写者问题（Readers–writers problem）。在任意一时刻，一个RWMutex只能由任意数量的reader持有，或者只能由一个writer持有。
 读者-写者问题 # 读者-写者问题（Readers–writers problem）描述了计算机并发处理读写数据遇到的问题，如何保证数据完整性、一致性。解决读者-写者问题需保证对于一份资源操作满足以下下条件：
 读写互斥 写写互斥 允许多个读者同时读取 解决读者-写者问题，可以采用读者优先（readers-preference）方案或者写者优先（writers-preference）方案。
 读者优先（readers-preference）：读者优先是读操作优先于写操作，即使写操作提出申请资源，但只要还有读者在读取操作，就还允许其他读者继续读取操作，直到所有读者结束读取，才开始写。读优先可以提供很高的并发处理性能，但是在频繁读取的系统中，会长时间写阻塞，导致写饥饿。
 写者优先（writers-preference）：写者优先是写操作优先于读操作，如果有写者提出申请资源，在申请之前已经开始读取操作的可以继续执行读取，但是如果再有读者申请读取操作，则不能够读取，只有在所有的写者写完之后才可以读取。写者优先解决了读者优先造成写饥饿的问题。但是若在频繁写入的系统中，会长时间读阻塞，导致读饥饿。
 RWMutex设计采用写者优先方法，保证写操作优先处理。
 源码分析 # 下面分析的源码进行精简处理，去掉了race检查功能的代码。
-RWMutex的定义 # type RWMutex struct { w Mutex // 互斥锁 writerSem uint32 // writers信号量 readerSem uint32 // readers信号量 readerCount int32 // reader数量 readerWait int32 // writer申请锁时候，已经申请到锁的reader的数量 } const rwmutexMaxReaders = 1 &lt;&lt; 30 // 最大reader数，用于反转readerCount RLock/RUnlock的实现 # func (rw *RWMutex) RLock() { if atomic.AddInt32(&amp;rw.readerCount, 1) &lt; 0 { // 如果rw." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/concurrency/sync-rwmutex/" /><meta property="article:section" content="concurrency" />
-
-
+RWMutex的定义 # type RWMutex struct { w Mutex // 互斥锁 writerSem uint32 // writers信号量 readerSem uint32 // readers信号量 readerCount int32 // reader数量 readerWait int32 // writer申请锁时候，已经申请到锁的reader的数量 } const rwmutexMaxReaders = 1 &lt;&lt; 30 // 最大reader数，用于反转readerCount RLock/RUnlock的实现 # func (rw *RWMutex) RLock() { if atomic.AddInt32(&amp;rw.readerCount, 1) &lt; 0 { // 如果rw.">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="concurrency">
 <title>读写锁 - sync.RWMutex | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

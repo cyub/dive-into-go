@@ -12,35 +12,45 @@ a := 1 b := 2 c := a &#43; 1 上面代码中是先给变量a赋值，然后给�
 var a, b int // goroutine A go func() { a = 1 b = 2 }() // goroutine B go func() { if b == 2 { print(a) } }() 当执行goroutine B打印变量a时并不一定打印出来1，有可能打印出来的是0。这是因为goroutine A中可能存在指令重排，先将b变量赋值2，若这时候接着执行goroutine B那么就会打印出来0">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="内存模型 - memroy model" />
-<meta property="og:description" content="内存模型 # Go语言中的内存模型规定了多个goroutine读取变量时候，变量的可见性情况。注意本章节的内存模型并不是内存对象分配、管理、回收的模型，准确的说这里面的内存模型是内存一致性模型。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/concurrency/memory-model/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="内存模型 - memroy model">
+  <meta property="og:description" content="内存模型 # Go语言中的内存模型规定了多个goroutine读取变量时候，变量的可见性情况。注意本章节的内存模型并不是内存对象分配、管理、回收的模型，准确的说这里面的内存模型是内存一致性模型。
 Happens Before原则 # Happens Before原则的定义是如果一个操作e1先于操作e2发生，那么我们就说e1 happens before e2，也可以描述成e2 happens after e2，此时e1操作的变量结果对e2都是可见的。如果e1操作既不先于e2发生又不晚于e2发生，我们说e1操作与e2操作并发发生。
 Happens Before具有传导性：如果操作e1 happens before 操作e2，e3 happends before e1，那么e3一定也 happends before e2。
 由于存在指令重排和多核CPU并发访问情况，我们代码中变量顺序和实际方法顺序并不总是一致的。考虑下面一种情况：
 a := 1 b := 2 c := a &#43; 1 上面代码中是先给变量a赋值，然后给变量b赋值，最后给编程c赋值。但是在底层实现指令时候，可能发生指令重排：变量b赋值在前，变量a赋值在后，最后变量c赋值。对于依赖于a变量的c变量的赋值，不管怎样指令重排，Go语言都会保证变量a赋值操作 happends before c变量赋值操作。
 上面代码运行是运行在同一goroutine中，Go语言时能够保证happends before原则的，实现正确的变量可见性。但对于多个goroutine共享数据时候，Go语言是无法保证Happens Before原则的，这时候就需要我们采用锁、通道等同步手段来保证数据一致性。考虑下面场景：
-var a, b int // goroutine A go func() { a = 1 b = 2 }() // goroutine B go func() { if b == 2 { print(a) } }() 当执行goroutine B打印变量a时并不一定打印出来1，有可能打印出来的是0。这是因为goroutine A中可能存在指令重排，先将b变量赋值2，若这时候接着执行goroutine B那么就会打印出来0" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/concurrency/memory-model/" /><meta property="article:section" content="concurrency" />
-
-
+var a, b int // goroutine A go func() { a = 1 b = 2 }() // goroutine B go func() { if b == 2 { print(a) } }() 当执行goroutine B打印变量a时并不一定打印出来1，有可能打印出来的是0。这是因为goroutine A中可能存在指令重排，先将b变量赋值2，若这时候接着执行goroutine B那么就会打印出来0">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="concurrency">
 <title>内存模型 - memroy model | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

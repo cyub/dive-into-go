@@ -4,7 +4,8 @@
     <title>Tags on 深入Go语言之旅</title>
     <link>https://go.cyub.vip/tags/</link>
     <description>Recent content in Tags on 深入Go语言之旅</description>
-    <generator>Hugo -- gohugo.io</generator>
-    <language>zh-cn</language><atom:link href="https://go.cyub.vip/tags/index.xml" rel="self" type="application/rss+xml" />
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    <atom:link href="https://go.cyub.vip/tags/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>

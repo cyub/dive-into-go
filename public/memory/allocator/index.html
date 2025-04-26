@@ -10,33 +10,43 @@ Golang中内存分配管理的对象按照大小可以分为：
 // file: mheap.go type mspan struct { next *mspan // 指向下一个mspan prev *mspan // 指向上一个mspan startAddr uintptr // 该span在arena区域起始地址 npages uintptr // 该span在arena区域中占用page个数 manualFreeList gclinkptr // 空闲对象列表 freeindex uintptr // 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了 // freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用 // freeindex 和 allocCache配合使用来定位出可用span的位置 nelems uintptr // span链表中元素个数 allocCache uint64 // 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex&#43;pos位置的span未使用 allocBits *gcBits // 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配 gcmarkBits *gcBits // 用来sweep过程进行标记垃圾对象的，用于后续gc。 allocCount uint16 // 已分配的对象个数 spanclass spanClass // span类别 state mSpanState // mspaninuse etc needzero uint8 // needs to be zeroed before allocation elemsize uintptr // 能存储的对象大小 } // file: mheap.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="" />
-<meta property="og:description" content="内存分配器 # 概述 # Golang内存分配管理策略是按照不同大小的对象和不同的内存层级来分配管理内存。通过这种多层级分配策略，形成无锁化或者降低锁的粒度，以及尽量减少内存碎片，来提高内存分配效率。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/memory/allocator/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="深入Go语言之旅">
+  <meta property="og:description" content="内存分配器 # 概述 # Golang内存分配管理策略是按照不同大小的对象和不同的内存层级来分配管理内存。通过这种多层级分配策略，形成无锁化或者降低锁的粒度，以及尽量减少内存碎片，来提高内存分配效率。
 Golang中内存分配管理的对象按照大小可以分为：
 类别 大小 微对象 tiny object (0, 16B) 小对象 small object [16B, 32KB] 大对象 large object (32KB, &#43;∞) Golang中内存管理的层级从最下到最上可以分为：mspan -&gt; mcache -&gt; mcentral -&gt; mheap -&gt; heapArena。golang中对象的内存分配流程如下：
 小于16个字节的对象使用mcache的微对象分配器进行分配内存 大小在16个字节到32k字节之间的对象，首先计算出需要使用的span大小规格，然后使用mcache中相同大小规格的mspan分配 如果对应的大小规格在mcache中没有可用的mspan，则向mcentral申请 如果mcentral中没有可用的mspan，则向mheap申请，并根据BestFit算法找到最合适的mspan。如果申请到的mspan超出申请大小，将会根据需求进行切分，以返回用户所需的页数，剩余的页构成一个新的mspan放回mheap的空闲列表 如果mheap中没有可用span，则向操作系统申请一系列新的页（最小 1MB） 对于大于32K的大对象直接从mheap分配 mspan # mspan是一个双向链表结构。mspan是golang中内存分配管理的基本单位。
-// file: mheap.go type mspan struct { next *mspan // 指向下一个mspan prev *mspan // 指向上一个mspan startAddr uintptr // 该span在arena区域起始地址 npages uintptr // 该span在arena区域中占用page个数 manualFreeList gclinkptr // 空闲对象列表 freeindex uintptr // 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了 // freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用 // freeindex 和 allocCache配合使用来定位出可用span的位置 nelems uintptr // span链表中元素个数 allocCache uint64 // 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex&#43;pos位置的span未使用 allocBits *gcBits // 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配 gcmarkBits *gcBits // 用来sweep过程进行标记垃圾对象的，用于后续gc。 allocCount uint16 // 已分配的对象个数 spanclass spanClass // span类别 state mSpanState // mspaninuse etc needzero uint8 // needs to be zeroed before allocation elemsize uintptr // 能存储的对象大小 } // file: mheap." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/memory/allocator/" /><meta property="article:section" content="memory" />
-
-
+// file: mheap.go type mspan struct { next *mspan // 指向下一个mspan prev *mspan // 指向上一个mspan startAddr uintptr // 该span在arena区域起始地址 npages uintptr // 该span在arena区域中占用page个数 manualFreeList gclinkptr // 空闲对象列表 freeindex uintptr // 下一个空闲span的索引，freeindex大小介于0到nelems，当freeindex == nelem，表明该span中没有空余对象空间了 // freeindex之前的元素均是已经被使用的，freeindex之后的元素可能被使用，也可能没被使用 // freeindex 和 allocCache配合使用来定位出可用span的位置 nelems uintptr // span链表中元素个数 allocCache uint64 // 初始值为2^64-1，位值置为1（假定该位的位置是pos）的表明该span链表中对应的freeindex&#43;pos位置的span未使用 allocBits *gcBits // 标识该span中所有元素的使用分配情况，位值置为1则标识span链表中对应位置的span已被分配 gcmarkBits *gcBits // 用来sweep过程进行标记垃圾对象的，用于后续gc。 allocCount uint16 // 已分配的对象个数 spanclass spanClass // span类别 state mSpanState // mspaninuse etc needzero uint8 // needs to be zeroed before allocation elemsize uintptr // 能存储的对象大小 } // file: mheap.">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="memory">
 <title>Allocator | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

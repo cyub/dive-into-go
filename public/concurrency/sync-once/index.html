@@ -9,32 +9,42 @@ type Once struct { done uint32 // 用来标志操作是否操作 m Mutex // 锁�
 func (o *Once) Do(f func()) { if atomic.LoadUint32(&amp;o.done) == 0 {// 原子性加载o.done，若值为1，说明已完成操作，若为0，说明未完成操作 o.doSlow(f) } } func (o *Once) doSlow(f func()) { o.m.Lock() // 加锁 defer o.m.Unlock() if o.done == 0 { // 再次进行o.done是否等于0判断，因为存在并发调用doSlow的情况 defer atomic.StoreUint32(&amp;o.done, 1) // 将o.done值设置为1，用来标志操作完成 f() // 执行操作 } } ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="一次性操作 - sync.Once" />
-<meta property="og:description" content=" 一次性操作 - sync.Once # sync.Once用来完成一次性操作，比如配置加载，单例对象初始化等。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/concurrency/sync-once/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="一次性操作 - sync.Once">
+  <meta property="og:description" content=" 一次性操作 - sync.Once # sync.Once用来完成一次性操作，比如配置加载，单例对象初始化等。
 源码分析 # sync.Once定义如下：
 type Once struct { done uint32 // 用来标志操作是否操作 m Mutex // 锁，用来第一操作时候，加锁处理 } 接下来看剩下的全部代码：
-func (o *Once) Do(f func()) { if atomic.LoadUint32(&amp;o.done) == 0 {// 原子性加载o.done，若值为1，说明已完成操作，若为0，说明未完成操作 o.doSlow(f) } } func (o *Once) doSlow(f func()) { o.m.Lock() // 加锁 defer o.m.Unlock() if o.done == 0 { // 再次进行o.done是否等于0判断，因为存在并发调用doSlow的情况 defer atomic.StoreUint32(&amp;o.done, 1) // 将o.done值设置为1，用来标志操作完成 f() // 执行操作 } } " />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/concurrency/sync-once/" /><meta property="article:section" content="concurrency" />
-
-
+func (o *Once) Do(f func()) { if atomic.LoadUint32(&amp;o.done) == 0 {// 原子性加载o.done，若值为1，说明已完成操作，若为0，说明未完成操作 o.doSlow(f) } } func (o *Once) doSlow(f func()) { o.m.Lock() // 加锁 defer o.m.Unlock() if o.done == 0 { // 再次进行o.done是否等于0判断，因为存在并发调用doSlow的情况 defer atomic.StoreUint32(&amp;o.done, 1) // 将o.done值设置为1，用来标志操作完成 f() // 执行操作 } } ">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="concurrency">
 <title>一次性操作 - sync.Once | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

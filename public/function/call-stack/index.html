@@ -18,8 +18,10 @@ Go语言函数调用栈 接下来的函数调用栈分析，都是基于函数�
 package main func sum(a, b int) int { sum := 0 sum = a &#43; b return sum } func main() { a := 3 b := 5 print(sum(a, b)) } 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="Go函数调用栈" />
-<meta property="og:description" content="调用栈 # 这一章节延续前面《 准备篇-Go汇编 》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编 》查看了解。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/function/call-stack/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="Go函数调用栈">
+  <meta property="og:description" content="调用栈 # 这一章节延续前面《 准备篇-Go汇编 》那一章节。这一章节将从一个实例出发详细分析Go 语言中函数调用栈。这一章节会涉及caller，callee，寄存器相关概念，如果还不太了解可以去《 准备篇-Go汇编 》查看了解。
 在详细分析函数栈之前，我们先复习以下几个概念。
 caller 与 callee # 如果一个函数调用另外一个函数，那么该函数被称为调用者函数，也叫做caller，而被调用的函数称为被调用者函数，也叫做callee。比如函数main中调用sum函数，那么main就是caller，而sum函数就是callee。
 栈帧 # 栈帧（stack frame）指的是未完成函数所持有的，独立连续的栈区域，用来保存其局部变量，返回地址等信息。
@@ -31,28 +33,36 @@ caller 与 callee # 如果一个函数调用另外一个函数，那么该函数
 Go 语言中函数栈全景图如下：
 Go语言函数调用栈 接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。
 实例分析 # 我们将分析如下代码。
-package main func sum(a, b int) int { sum := 0 sum = a &#43; b return sum } func main() { a := 3 b := 5 print(sum(a, b)) } 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/function/call-stack/" /><meta property="article:section" content="function" />
-
-
+package main func sum(a, b int) int { sum := 0 sum = a &#43; b return sum } func main() { a := 3 b := 5 print(sum(a, b)) } 参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="function">
 <title>Go函数调用栈 | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book
@@ -338,9 +348,9 @@ https://github.com/alex-shpak/hugo-book
 </h2>
 <p>当前函数作为caller，其本身拥有的栈帧以及其所有callee的栈帧，可以称为该函数的函数栈，也称函数调用栈。C语言中函数栈大小是固定的，如果超出栈空间，就会栈溢出异常。比如递归求斐波拉契，这时候可以使用尾调用来优化。由于Go 语言栈可以自动进行分裂扩容，栈空间不够时候，可以自动进行扩容。当用火焰图分析性能时候，火焰越高，说明栈越深。</p>
 <p>Go 语言中函数栈全景图如下：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-func-stack.png" width="400px"/><figcaption>
-            <h4>Go语言函数调用栈</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-func-stack.png" width="400px"><figcaption>
+      <h4>Go语言函数调用栈</h4>
+    </figcaption>
 </figure>
 
 <p>接下来的函数调用栈分析，都是基于函数栈的全景图出发。知道该全景图每一部分含义也就了解函数调用栈。</p>
@@ -363,9 +373,9 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	print(<span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">a</span>, <span style="color:#a6e22e">b</span>))
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>参照前面的函数栈全景图，我们画出main函数调用sum函数时的函数调用栈图：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-stack-sum.png" width="400px"/><figcaption>
-            <h4>main函数调用栈</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-stack-sum.png" width="400px"><figcaption>
+      <h4>main函数调用栈</h4>
+    </figcaption>
 </figure>
 
 <p>从栈底往栈顶，我们依次可以看到：</p>
@@ -434,9 +444,9 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>0x0077 <span style="color:#ae81ff">00119</span> <span style="color:#f92672">(</span>main.go:9<span style="color:#f92672">)</span>	PCDATA	$0, $-<span style="color:#ae81ff">1</span>
 </span></span><span style="display:flex;"><span>0x0077 <span style="color:#ae81ff">00119</span> <span style="color:#f92672">(</span>main.go:9<span style="color:#f92672">)</span>	JMP	<span style="color:#ae81ff">0</span>
 </span></span></code></pre></div><p>结合汇编，我们最终画出 <code>main</code> 函数调用栈图：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-stack-sum2.png" width="450px"/><figcaption>
-            <h4>main函数调用栈</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202105/go-stack-sum2.png" width="450px"><figcaption>
+      <h4>main函数调用栈</h4>
+    </figcaption>
 </figure>
 
 </article>

@@ -11,34 +11,44 @@ defer函数可以读取和修改函数的命名返回值 # func main() { fmt.Pri
 白话defer原理 # defer函数底层数据结构是_defer结构体，多个defer函数会构建成一个_defer链表，后面加入的defer函数会插入链表的头部，该链表链表头部会链接到G上。当函数执行完成返回的时候，会从_defer链表头部开始依次执行defer函数。这也就是defer函数执行时会LIFO的原因。_defer链接结构示意图如下：">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="延迟执行 - defer语法" />
-<meta property="og:description" content="延迟执行 - defer语法 # defer 语法支持是Go 语言中一大特性，通过 defer 关键字，我们可以声明一个延迟执行函数，当调用者返回之前开始执行该函数，一般用来完成资源、锁、连接等释放工作，或者 recover 可能发生的panic。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/feature/defer/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="延迟执行 - defer语法">
+  <meta property="og:description" content="延迟执行 - defer语法 # defer 语法支持是Go 语言中一大特性，通过 defer 关键字，我们可以声明一个延迟执行函数，当调用者返回之前开始执行该函数，一般用来完成资源、锁、连接等释放工作，或者 recover 可能发生的panic。
 三大特性 # defer延迟执行语法有三大特性：
 defer函数的传入参数在定义时就已经明确 # func main() { i := 1 defer fmt.Println(i) i&#43;&#43; return } 上面代码输出1，而不是2。
 defer函数是按照后进先出的顺序执行 # func main() { for i := 1; i &lt;= 5; i&#43;&#43; { defer fmt.Print(i) } } 上面代码输出54321，而不是12345。
 defer函数可以读取和修改函数的命名返回值 # func main() { fmt.Println(test()) } func test() (i int) { defer func() { i&#43;&#43; }() return 100 } 上面代码输出输出101，而不是100或者1。
-白话defer原理 # defer函数底层数据结构是_defer结构体，多个defer函数会构建成一个_defer链表，后面加入的defer函数会插入链表的头部，该链表链表头部会链接到G上。当函数执行完成返回的时候，会从_defer链表头部开始依次执行defer函数。这也就是defer函数执行时会LIFO的原因。_defer链接结构示意图如下：" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/feature/defer/" /><meta property="article:section" content="feature" />
-
-
+白话defer原理 # defer函数底层数据结构是_defer结构体，多个defer函数会构建成一个_defer链表，后面加入的defer函数会插入链表的头部，该链表链表头部会链接到G上。当函数执行完成返回的时候，会从_defer链表头部开始依次执行defer函数。这也就是defer函数执行时会LIFO的原因。_defer链接结构示意图如下：">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="feature">
 <title>延迟执行 - defer语法 | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book
@@ -336,9 +346,9 @@ https://github.com/alex-shpak/hugo-book
   <a class="anchor" href="#%e7%99%bd%e8%af%9ddefer%e5%8e%9f%e7%90%86">#</a>
 </h2>
 <p>defer函数底层数据结构是_defer结构体，多个defer函数会构建成一个_defer链表，后面加入的defer函数会插入链表的头部，该链表链表头部会链接到G上。当函数执行完成返回的时候，会从_defer链表头部开始依次执行defer函数。这也就是defer函数执行时会LIFO的原因。_defer链接结构示意图如下：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202105/defer_profile.png" width="450px"/><figcaption>
-            <h4>defer原理示意图</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202105/defer_profile.png" width="450px"><figcaption>
+      <h4>defer原理示意图</h4>
+    </figcaption>
 </figure>
 
 <p>创建_defer结构体是需要进行内存分配的，为了减少分配_defer结构体时资源消耗，Go底层使用了defer缓冲池（defer pool），用来缓存上次使用完的_defer结构体，这样下次可以直接使用，不必再重新分配内存了。defer缓冲池一共有两级：per-P级defer缓冲池和全局defer缓冲池。当创建_defer结构体时候，优先从当前M关联的P的缓冲池中取得_defer结构体，即从per-P缓冲池中获取，这个过程是无锁操作。如果per-P缓冲池中没有，则在尝试从全局defer缓冲池获取，若也没有获取到，则重新分配一个新的_defer结构体。</p>
@@ -687,7 +697,7 @@ https://github.com/alex-shpak/hugo-book
 	}
 }
 </code></pre><p>画出deferreturn调用内存和栈的状态图，帮助理解：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202106/jmpdefer.png" width="500px"/>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202106/jmpdefer.png" width="500px">
 </figure>
 
 <p>最后我们来探究一下deferreturn第二个终止条件，考虑下面的场景：</p>

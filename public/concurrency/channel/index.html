@@ -29,52 +29,41 @@ type hchan struct {
 ">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="通道 - channel" />
-<meta property="og:description" content="
-  通道 - channel
-  #
-
-Golang中Channel是goroutine间重要通信的方式，是并发安全的，通道内的数据First In First Out，我们可以把通道想象成队列。
-
-  channel数据结构
-  #
-
-Channel底层数据结构是一个结构体。
-type hchan struct {
-	qcount   uint // 队列中元素个数
-	dataqsiz uint // 循环队列的大小
-	buf      unsafe.Pointer // 指向循环队列
-	elemsize uint16 // 通道里面的元素大小
-	closed   uint32 // 通道关闭的标志
-	elemtype *_type // 通道元素的类型
-	sendx    uint   // 待发送的索引，即循环队列中的队尾指针rear
-	recvx    uint   // 待读取的索引，即循环队列中的队头指针front
-	recvq    waitq  // 接收等待队列
-	sendq    waitq  // 发送等待队列
-	lock mutex // 互斥锁
-}
-" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/concurrency/channel/" /><meta property="article:section" content="concurrency" />
-
-
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/concurrency/channel/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="通道 - channel">
+  <meta property="og:description" content=" 通道 - channel # Golang中Channel是goroutine间重要通信的方式，是并发安全的，通道内的数据First In First Out，我们可以把通道想象成队列。
+channel数据结构 # Channel底层数据结构是一个结构体。
+type hchan struct { qcount uint // 队列中元素个数 dataqsiz uint // 循环队列的大小 buf unsafe.Pointer // 指向循环队列 elemsize uint16 // 通道里面的元素大小 closed uint32 // 通道关闭的标志 elemtype *_type // 通道元素的类型 sendx uint // 待发送的索引，即循环队列中的队尾指针rear recvx uint // 待读取的索引，即循环队列中的队头指针front recvq waitq // 接收等待队列 sendq waitq // 发送等待队列 lock mutex // 互斥锁 } ">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="concurrency">
 <title>通道 - channel | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book

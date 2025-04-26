@@ -10,33 +10,43 @@ Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决
 // A header for a Go map. type hmap struct { count int // 元素个数，用于len函数返回map元素数量 flags uint8 // 标志位，标志当前map正在写等状态 B uint8 // buckets个数的对数，即桶数量 = 2 ^ B noverflow uint16 // overflow桶数量的近似值，overflow桶即溢出桶，即链表法中存在链表上的桶的个数 hash0 uint32 // 随机数种子，用于计算key的哈希值 buckets unsafe.Pointer // 指向buckets数组，如果元素个数为0时，该值为nil oldbuckets unsafe.Pointer // 扩容时指向旧的buckets nevacuate uintptr // 用于指示迁移进度，小于此值的桶已经迁移完成 extra *mapextra // 额外记录overflow桶信息 } 映射中每一个桶的结构是 runtime.bmap( runtime/map.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:title" content="映射类型" />
-<meta property="og:description" content="映射 # 映射也被称为哈希表(hash table)、字典。它是一种由key-value组成的抽象数据结构。大多数情况下，它都能在O(1)的时间复杂度下实现增删改查功能。若在极端情况下出现所有key都发生哈希碰撞时则退回成链表形式，此时复杂度为O(N)。
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://go.cyub.vip/type/map/">
+  <meta property="og:site_name" content="深入Go语言之旅">
+  <meta property="og:title" content="映射类型">
+  <meta property="og:description" content="映射 # 映射也被称为哈希表(hash table)、字典。它是一种由key-value组成的抽象数据结构。大多数情况下，它都能在O(1)的时间复杂度下实现增删改查功能。若在极端情况下出现所有key都发生哈希碰撞时则退回成链表形式，此时复杂度为O(N)。
 映射底层一般都是由数组组成，该数组每个元素称为桶，它使用hash函数将key分配到不同桶中，若出现碰撞冲突时候，则采用链地址法（也称为拉链法）或者开放寻址法解决冲突。下图就是一个由姓名-号码构成的哈希表的结构图：
 Go语言中映射中key若出现冲突碰撞时候，则采用链地址法解决，Go语言中映射具有以下特点：
 引用类型变量 读写并发不安全 遍历结果是随机的 数据结构 # Go语言映射的数据结构 Go语言中映射的数据结构是 runtime.hmap( runtime/map.go):
-// A header for a Go map. type hmap struct { count int // 元素个数，用于len函数返回map元素数量 flags uint8 // 标志位，标志当前map正在写等状态 B uint8 // buckets个数的对数，即桶数量 = 2 ^ B noverflow uint16 // overflow桶数量的近似值，overflow桶即溢出桶，即链表法中存在链表上的桶的个数 hash0 uint32 // 随机数种子，用于计算key的哈希值 buckets unsafe.Pointer // 指向buckets数组，如果元素个数为0时，该值为nil oldbuckets unsafe.Pointer // 扩容时指向旧的buckets nevacuate uintptr // 用于指示迁移进度，小于此值的桶已经迁移完成 extra *mapextra // 额外记录overflow桶信息 } 映射中每一个桶的结构是 runtime.bmap( runtime/map." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://go.cyub.vip/type/map/" /><meta property="article:section" content="type" />
-
-
+// A header for a Go map. type hmap struct { count int // 元素个数，用于len函数返回map元素数量 flags uint8 // 标志位，标志当前map正在写等状态 B uint8 // buckets个数的对数，即桶数量 = 2 ^ B noverflow uint16 // overflow桶数量的近似值，overflow桶即溢出桶，即链表法中存在链表上的桶的个数 hash0 uint32 // 随机数种子，用于计算key的哈希值 buckets unsafe.Pointer // 指向buckets数组，如果元素个数为0时，该值为nil oldbuckets unsafe.Pointer // 扩容时指向旧的buckets nevacuate uintptr // 用于指示迁移进度，小于此值的桶已经迁移完成 extra *mapextra // 额外记录overflow桶信息 } 映射中每一个桶的结构是 runtime.bmap( runtime/map.">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="type">
 <title>映射类型 | 深入Go语言之旅</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/favicon.png" >
 <link rel="stylesheet" href="/book.min.f06572240ce28e67eb332ac5cf5d59a696c47ad4c6f700d5842c5ed93dd8ec77.css" integrity="sha256-8GVyJAzijmfrMyrFz11ZppbEetTG9wDVhCxe2T3Y7Hc=" crossorigin="anonymous">
   <script defer src="/flexsearch.min.js"></script>
-  <script defer src="/en.search.min.6357d375f72b7454d8e1c8ed9a52a89441a848cb2fde139eda67364b62961303.js" integrity="sha256-Y1fTdfcrdFTY4cjtmlKolEGoSMsv3hOe2mc2S2KWEwM=" crossorigin="anonymous"></script>
+  <script defer src="/en.search.min.0cc31e5129251169a16d97c870c23a49fe144037c802f43523165a8d0efe977a.js" integrity="sha256-DMMeUSklEWmhbZfIcMI6Sf4UQDfIAvQ1IxZajQ7&#43;l3o=" crossorigin="anonymous"></script>
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
-<script>
-var doNotTrack = false;
-if (!doNotTrack) {
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
-	gtag('config', 'G-BQ229RRTTX', { 'anonymize_ip': false });
-}
-</script>
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-BQ229RRTTX"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-BQ229RRTTX');
+        }
+      </script>
+    
+  
+
 <!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book
@@ -301,9 +311,9 @@ https://github.com/alex-shpak/hugo-book
   数据结构
   <a class="anchor" href="#%e6%95%b0%e6%8d%ae%e7%bb%93%e6%9e%84">#</a>
 </h2>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_struct.png" width="800px"/><figcaption>
-            <h4>Go语言映射的数据结构</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_struct.png" width="800px"><figcaption>
+      <h4>Go语言映射的数据结构</h4>
+    </figcaption>
 </figure>
 
 <p>Go语言中映射的数据结构是 <code>runtime.hmap</code>(<strong>
@@ -336,9 +346,9 @@ https://github.com/alex-shpak/hugo-book
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">overflow</span> <span style="color:#66d9ef">uintptr</span> <span style="color:#75715e">// overflow指向下一个bmap，overflow是uintptr而不是*bmap类型，是为了减少gc
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
 </span></span></code></pre></div><p>bmap结构示意图：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_bmap.png" width="500px"/><figcaption>
-            <h4>bmap底层结构</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_bmap.png" width="500px"><figcaption>
+      <h4>bmap底层结构</h4>
+    </figcaption>
 </figure>
 
 <p>每个桶bmap中可以装载8个key-value键值对。当一个key确定存储在哪个桶之后，还需要确定具体存储在桶的哪个位置（这个位置也称为桶单元，一个bmap装载8个key-value键值对，那么一个bmap共8个桶单元），bmap中tophash就是用于实现快速定位key的位置。在实现过程中会使用key的hash值的高八位作为tophash值，存放在bmap的tophash字段中。tophash计算公式如下：</p>
@@ -359,9 +369,9 @@ https://github.com/alex-shpak/hugo-book
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">minTopHash</span>     = <span style="color:#ae81ff">5</span> <span style="color:#75715e">// key的tophash值与桶状态值分割线值，小于此值的一定代表着桶单元的状态，大于此值的一定是key对应的tophash值
 </span></span></span></code></pre></div><p>emptyRest和emptyOne状态都表示此桶单元为空，都可以用来插入数据。但是emptyRest还代表着更高单元也为空，那么遍历寻找key的时候，当遇到当前单元值为emptyRest时候，那么更高单元无需继续遍历。</p>
 <p>下图中桶单元1的tophash值是emptyOne，桶单元3的tophash值是emptyRest，那么我们一定可以推断出桶单元3以上都是emptyRest状态。</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_tophash.png" width="500px"/><figcaption>
-            <h4>bmap的tophash底层结构</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_tophash.png" width="500px"><figcaption>
+      <h4>bmap的tophash底层结构</h4>
+    </figcaption>
 </figure>
 
 <p>bmap中可以装载8个key-value，这8个key-value并不是按照key1/value1/key2/value2/key3/value3&hellip;这样形式存储，而采用key1/key2../key8/value1/../value8形式存储，因为第二种形式可以减少padding，源码中以map[int64]int8举例说明。</p>
@@ -473,9 +483,9 @@ https://github.com/alex-shpak/hugo-book
 </span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">buckets</span>, <span style="color:#a6e22e">nextOverflow</span>
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>我们画出桶初始化时候的分配示意图：</p>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_overflow_bucket.png" width="600px"/><figcaption>
-            <h4>映射中桶定位</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_overflow_bucket.png" width="600px"><figcaption>
+      <h4>映射中桶定位</h4>
+    </figcaption>
 </figure>
 
 <p>通过上面分析整个映射创建过程，可以看到使用make创建map时候，返回都是hmap类型指针，这也就说明<strong>Go语言中映射是引用类型</strong>。</p>
@@ -491,9 +501,9 @@ https://github.com/alex-shpak/hugo-book
 <li>根据步骤3取到的值，计算该值的hash，再次比较，若相等则定位成功。否则重复步骤3去<code>bmap.overflow</code>中继续查找。</li>
 <li>若<code>bmap.overflow</code>链表都找个遍都没有找到，则返回nil。</li>
 </ol>
-<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_access.png" width="800px"/><figcaption>
-            <h4>映射中桶定位</h4>
-        </figcaption>
+<figure class="text-center"><img src="https://static.cyub.vip/images/202106/map_access.png" width="800px"><figcaption>
+      <h4>映射中桶定位</h4>
+    </figcaption>
 </figure>
 
 <p>当m为2的x幂时候，n对m取余数存在以下等式：</p>
